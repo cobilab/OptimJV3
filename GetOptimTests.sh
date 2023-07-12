@@ -2,7 +2,8 @@
 #
 # ./RunSeqs.sh [--size xs|s|m|l|xl]1> ../results/bench-results-raw.txt 2> ../results/sterr.txt
 #
-resultsPath="../results";
+resultsPath="../optimRes";
+errPath="$resultsPath/err";
 bin_path="../bin/";
 #
 csv_dsToSize="dsToSize.csv";
@@ -36,6 +37,8 @@ function RUN_TEST() {
   D_COMMAND="$6";
   nrun="$7";
   #
+  # echo $C_COMMAND;
+  #
   stdErrC="stderrC_ds${ds_id}_$size.txt";
   stdErrD="stderrD_ds${ds_id}_$size.txt";
   #
@@ -53,10 +56,10 @@ function RUN_TEST() {
   # https://man7.org/linux/man-pages/man1/time.1.html
   # %e: (Not in tcsh(1).)  Elapsed real time (in seconds).
   # %M: Maximum resident set size of the process during its lifetime, in Kbytes.
-  /bin/time -f "TIME\t%e\tMEM\t%M" $C_COMMAND \
-  |& grep "TIME" \
-  |& tr '.' ',' \
-  |& awk -v dividendo="$dividendo" '{ printf $2/dividendo"\t"$4/1024/1024"\n" }' 1> c_time_mem.txt 2> $stdErrC;
+  timeout $timeOut /bin/time -f "TIME\t%e\tMEM\t%M" $C_COMMAND \
+  | grep "TIME" \
+  | tr '.' ',' \
+  | awk -v dividendo="$dividendo" '{ printf $2/dividendo"\t"$4/1024/1024"\n" }' 1> c_time_mem.txt 2> $stdErrC;
   if [ -e "$FILEC" ]; then
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
     BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc);
@@ -65,10 +68,10 @@ function RUN_TEST() {
     BPS=-1;
   fi
   #
-  /bin/time -f "TIME\t%e\tMEM\t%M" $D_COMMAND \
-  |& grep "TIME" \
-  |& tr '.' ',' \
-  |& awk -v dividendo="$dividendo" '{ printf $2/dividendo"\t"$4/1024/1024"\n" }' 1> d_time_mem.txt 2> $stdErrD;
+  timeout $timeOut /bin/time -f "TIME\t%e\tMEM\t%M" $D_COMMAND \
+  | grep "TIME" \
+  | tr '.' ',' \
+  | awk -v dividendo="$dividendo" '{ printf $2/dividendo"\t"$4/1024/1024"\n" }' 1> d_time_mem.txt 2> $stdErrD;
   #
   # compare input file to decompressed file; they should have the same sequence
   diff <(tail -n +2 $IN_FILE | tr -d '\n') <(tail -n +2 $FILED | tr -d '\n') > cmp.txt;
@@ -81,7 +84,7 @@ function RUN_TEST() {
   CMP_SIZE=`ls -la cmp.txt | awk '{ print $5}'`
   if [[ "$CMP_SIZE" != "0" ]]; then CMP_SIZE="1"; fi
   #
-  printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\n";
+  printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t$C_COMMAND\n";
   #
   if [ ! -s $stdErrC ]; then rm -fr $stdErrC; fi
   if [ ! -s $stdErrD ]; then rm -fr $stdErrD; fi
@@ -94,7 +97,13 @@ function RUN_TEST() {
 #
 LOAD_CSV_DSTOSIZE;
 
-mkdir -p $resultsPath naf_out mbgc_out paq8l_out;
+mkdir -p $resultsPath $errPath;
+mkdir -p naf_out mbgc_out paq8l_out;
+
+# Initialize variables
+timeOut=50;
+numTests=100;
+numThreads=8;
 
 # if one or more sizes are choosen, select all genomes with those sizes
 for size in "${sizes[@]}"; do
@@ -121,6 +130,33 @@ done
 if [ ${#GENOMES[@]} -eq 0 ]; then
   GENOMES=("${ALL_GENS_IN_DIR[@]}");
 fi
+
+# Parse other command-line arguments
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    --timeout|-to)
+      timeOut="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    --num-tests|-n)
+      numTests="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    --threads|-t)
+      numThreads="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    *) 
+      # Ignore any other arguments
+      shift
+      ;;
+  esac
+done
+
 #
 # ------------------------------------------------------------------------------
 #
@@ -130,7 +166,7 @@ for genome in "${GENOMES[@]}"; do
     # - the number of times each test should be executed (maybe); 
     # - whether c/d time should be in ms, s, m,...
     #
-    ds_id=$(($(grep -n "$genome" dsToSize.csv | cut -d ":" -f 1)-1))
+    ds_id=$(($(grep -n -w "$genome" dsToSize.csv | cut -d ":" -f 1)-1))
     size=${dsToSize[$genome]};
     # num_runs_to_repeat=1;
     dividendo=60; str_time="m"; # bigger files => slower tests => time measured in minutes
@@ -139,16 +175,16 @@ for genome in "${GENOMES[@]}"; do
       dividendo=1; str_time="s";
     fi
     #
-    output_file_ds="$resultsPath/bench-results-raw-ds${ds_id}-${size}.txt";
+    output_file_ds="$resultsPath/optim-bench-raw-ds${ds_id}-${size}.txt";
     run=0;
     #
     # --- RUN GENOME TESTS ---------------------------------------------------------------------------
     #
-    printf "DS$ds_id - $genome - $size \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME ($str_time)\tC_MEM (GB)\tD_TIME ($str_time)\tD_MEM (GB)\tDIFF\tRUN\n";
+    printf "DS$ds_id - $genome - $size \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME ($str_time)\tC_MEM (GB)\tD_TIME ($str_time)\tD_MEM (GB)\tDIFF\tRUN\tC_COMMAND\n";
     #
 
     # PARAMETERS COMMON TO CM AND RM
-    NB_C_lst=( {1..14} ) # context model size
+    NB_C_lst=( {1..13} ) # context model size
     NB_I_lst=( {0,1,2} ) # manages inverted repeats
     NB_G_lst=($(seq 0 0.1 0.9)) # gamma
 
@@ -160,50 +196,46 @@ for genome in "${GENOMES[@]}"; do
     NB_A_lst=($(seq 0 0.1 0.9))
 
     # RM PARAMETERS
-    NB_R_lst=( {1..10000} )
-    NB_B_lst=($(seq 0 0.1 0.9))
-    NB_L_lst=({1..10000}) # has dependency with NB_B
-    NB_W=($(seq 0 0.1 0.9)) # initial weight for repeat classes
-    NB_Y=({1..50}) # max cache size
+    NB_R_lst=( {1..100} )
+    NB_B_lst=($(seq 0.9 0.01 0.99))
+    NB_L_lst=({9000..10000}) # has dependency with NB_B
+    NB_W_lst=($(seq 0 0.1 0.9)) # initial weight for repeat classes
+    NB_Y_lst=({0..50}) # max cache size
 
-    num_tests=100;
-
-    for i in {1..$num_tests}; do
-      min_cms=1;
+    for ((i=1; i<=numTests; i++)); do
+      min_cms=0;
       max_cms=5;
 
-      min_rms=1;
-      max_rms=1;
+      num_cms=$((RANDOM % (max_cms - min_cms + 1) + min_cms));
 
       CM="";
-      for i in {1..$((RANDOM % $max_cms + $min_cms))}; do
-
-        # randomly chosen cm parameter values
+      for ((j=1; j<=num_cms; j++)); do
+        # randomly chosen cm parameter values -cm 1:1:0:0.9/0:0:0:0
         NB_C=${NB_C_lst[$((RANDOM % ${#NB_C_lst[@]}))]};
         NB_D=${NB_D_lst[$((RANDOM % ${#NB_D_lst[@]}))]}; 
         NB_I=${NB_I_lst[$((RANDOM % ${#NB_I_lst[@]}))]}; 
         NB_G=${NB_G_lst[$((RANDOM % ${#NB_G_lst[@]}))]};
         NB_S=${NB_S_lst[$((RANDOM % ${#NB_S_lst[@]}))]};
         NB_R=${NB_R_lst[$((RANDOM % ${#NB_R_lst[@]}))]};
-        NB_E=${NB_E_lst[$((RANDOM % ${#NB_E_lst[@]}))]};
+        NB_E=1 # ${NB_E_lst[$((RANDOM % ${#NB_E_lst[@]}))]};
         NB_A=${NB_A_lst[$((RANDOM % ${#NB_A_lst[@]}))]};
 
-        CM+="-cm ${NB_C}:${NB_D}:${NB_I}:${NB_G}/${NB_S}:${NB_R}:${NB_E}:${NB_A}";
+        CM+="-cm ${NB_C}:${NB_D}:${NB_I}:${NB_G}/${NB_S}:${NB_R}:${NB_E}:${NB_A} ";
       done
 
       # randomly chosen rm parameter values
-      NB_C=${NB_C_lst[$((RANDOM % ${#NB_C_lst[@]}))]};
-      NB_D=${NB_D_lst[$((RANDOM % ${#NB_D_lst[@]}))]}; 
-      NB_I=${NB_I_lst[$((RANDOM % ${#NB_I_lst[@]}))]}; 
-      NB_G=${NB_G_lst[$((RANDOM % ${#NB_G_lst[@]}))]};
-      NB_S=${NB_S_lst[$((RANDOM % ${#NB_S_lst[@]}))]};
       NB_R=${NB_R_lst[$((RANDOM % ${#NB_R_lst[@]}))]};
-      NB_E=${NB_E_lst[$((RANDOM % ${#NB_E_lst[@]}))]};
-      NB_A=${NB_A_lst[$((RANDOM % ${#NB_A_lst[@]}))]};
+      NB_C=12 # ${NB_C_lst[$((RANDOM % ${#NB_C_lst[@]}))]}; 
+      NB_B=${NB_B_lst[$((RANDOM % ${#NB_B_lst[@]}))]}; 
+      NB_L=7 # ${NB_L_lst[$((RANDOM % ${#NB_L_lst[@]}))]};
+      NB_G=0.7 # ${NB_G_lst[$((RANDOM % ${#NB_G_lst[@]}))]};
+      NB_I=1 # ${NB_I_lst[$((RANDOM % ${#NB_I_lst[@]}))]};
+      NB_W=0.06 # ${NB_W_lst[$((RANDOM % ${#NB_W_lst[@]}))]};
+      NB_Y=2 # ${NB_Y_lst[$((RANDOM % ${#NB_Y_lst[@]}))]};
 
-      RM="-rm ${NB_C}:${NB_D}:${NB_I}:${NB_G}/${NB_S}:${NB_R}:${NB_E}:${NB_A}";
+      RM="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}";
 
-      RUN_TEST "JARVIS3_BIN" "$genome.seq" "$genome.seq.jc" "$genome.seq.jc.jd" "${bin_path}JARVIS3 $CM $RM $genome.seq" "${bin_path}JARVIS3 -d $genome.seq.jc" "$run"; run=$((run+1));
+      RUN_TEST "JARVIS3_BIN" "$genome.seq" "$genome.seq.jc" "$genome.seq.jc.jd" "${bin_path}JARVIS3 -v --threads $numThreads $CM $RM $genome.seq" "${bin_path}JARVIS3 -d $genome.seq.jc" "$run"; run=$((run+1));
 
     done
 done
