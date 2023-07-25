@@ -37,11 +37,6 @@ function RUN_TEST() {
   D_COMMAND="$6";
   nrun="$7";
   #
-  # echo $C_COMMAND;
-  #
-  stdErrC="stderrC_ds${ds_id}_$size.txt";
-  stdErrD="stderrD_ds${ds_id}_$size.txt";
-  #
   # some compressors need extra preprocessing
   if [[ $NAME == MFC* || $NAME == DMcompress* ]]; then 
     echo ">x" > $IN_FILE;
@@ -57,9 +52,9 @@ function RUN_TEST() {
   # %e: (Not in tcsh(1).)  Elapsed real time (in seconds).
   # %M: Maximum resident set size of the process during its lifetime, in Kbytes.
   timeout $timeOut /bin/time -f "TIME\t%e\tMEM\t%M" $C_COMMAND \
-  | grep "TIME" \
-  | tr '.' ',' \
-  | awk -v dividendo="$dividendo" '{ printf $2/dividendo"\t"$4/1024/1024"\n" }' 1> c_time_mem.txt 2> $stdErrC;
+  |& grep "TIME" \
+  |& awk '{ printf $2"\t"$4/1024/1024"\n" }' > c_time_mem.txt;
+
   if [ -e "$FILEC" ]; then
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
     BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc);
@@ -69,19 +64,30 @@ function RUN_TEST() {
   fi
   #
   timeout $timeOut /bin/time -f "TIME\t%e\tMEM\t%M" $D_COMMAND \
-  | grep "TIME" \
-  | tr '.' ',' \
-  | awk -v dividendo="$dividendo" '{ printf $2/dividendo"\t"$4/1024/1024"\n" }' 1> d_time_mem.txt 2> $stdErrD;
+  |& grep "TIME" \
+  |& awk '{ printf $2"\t"$4/1024/1024"\n" }' > d_time_mem.txt;
   #
   # compare input file to decompressed file; they should have the same sequence
   diff <(tail -n +2 $IN_FILE | tr -d '\n') <(tail -n +2 $FILED | tr -d '\n') > cmp.txt;
   #
-  C_TIME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $1 }')`;
-  C_MEME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $2 }')`;
-  D_TIME=`printf "%0.3f\n" $(cat d_time_mem.txt | awk '{ print $1 }')`;
-  D_MEME=`printf "%0.3f\n" $(cat d_time_mem.txt | awk '{ print $2 }')`;
+  if [[ -s "c_time_mem.txt" ]]; then # if file is not empty...
+    C_TIME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $1 }')`;
+    C_MEME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $2 }')`; 
+  else
+    C_TIME=-1;
+    C_MEME=-1;
+  fi
+  #
+  if [[ -s "d_time_mem.txt" ]]; then # if file is not empty...
+    D_TIME=`printf "%0.3f\n" $(cat d_time_mem.txt | awk '{ print $1 }')`;
+    D_MEME=`printf "%0.3f\n" $(cat d_time_mem.txt | awk '{ print $2 }')`;
+  else
+    D_TIME=-1;
+    D_MEME=-1;
+  fi
+  #
   VERIFY="0";
-  CMP_SIZE=`ls -la cmp.txt | awk '{ print $5}'`
+  CMP_SIZE=`ls -la cmp.txt | awk '{ print $5}'`;
   if [[ "$CMP_SIZE" != "0" ]]; then CMP_SIZE="1"; fi
   #
   printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t$C_COMMAND\n";
@@ -101,7 +107,7 @@ mkdir -p $resultsPath $errPath;
 mkdir -p naf_out mbgc_out paq8l_out;
 
 # Initialize variables
-timeOut=50;
+timeOut=3600;
 numTests=100;
 numThreads=8;
 
@@ -160,6 +166,7 @@ done
 #
 # ------------------------------------------------------------------------------
 #
+run=1;
 for genome in "${GENOMES[@]}"; do
     #
     # before running the tests, determine size type of sequence to know: 
@@ -169,18 +176,12 @@ for genome in "${GENOMES[@]}"; do
     ds_id=$(($(grep -n -w "$genome" dsToSize.csv | cut -d ":" -f 1)-1))
     size=${dsToSize[$genome]};
     # num_runs_to_repeat=1;
-    dividendo=60; str_time="m"; # bigger files => slower tests => time measured in minutes
-    if [ "$size" = "xs" ] || [ "$size" = "s" ]; then # smaller files => faster tests => time measured in seconds
-      # num_runs_to_repeat=10;
-      dividendo=1; str_time="s";
-    fi
     #
     output_file_ds="$resultsPath/optim-bench-raw-ds${ds_id}-${size}.txt";
-    run=0;
     #
     # --- RUN GENOME TESTS ---------------------------------------------------------------------------
     #
-    printf "DS$ds_id - $genome - $size \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME ($str_time)\tC_MEM (GB)\tD_TIME ($str_time)\tD_MEM (GB)\tDIFF\tRUN\tC_COMMAND\n";
+    printf "DS$ds_id - $genome - $size \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tRUN\tC_COMMAND\n";
     #
 
     # PARAMETERS COMMON TO CM AND RM
@@ -235,7 +236,7 @@ for genome in "${GENOMES[@]}"; do
 
       RM="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}";
 
-      RUN_TEST "JARVIS3_BIN" "$genome.seq" "$genome.seq.jc" "$genome.seq.jc.jd" "${bin_path}JARVIS3 -v --threads $numThreads $CM $RM $genome.seq" "${bin_path}JARVIS3 -d $genome.seq.jc" "$run"; run=$((run+1));
+      RUN_TEST "JARVIS3_BIN" "$genome.seq" "$genome.seq.jc" "$genome.seq.jc.jd" "${bin_path}JARVIS3 --threads $numThreads $CM $RM $genome.seq" "${bin_path}JARVIS3 -d $genome.seq.jc" "$run"; run=$((run+1));
 
     done
 done
