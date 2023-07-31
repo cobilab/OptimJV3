@@ -1,0 +1,10 @@
+# Ignore these
+scripts/*
+results/*
+optimRes/*
+
+# Except these
+!scripts/*.sh
+
+# Except except these
+scripts/optimJV3cmds
