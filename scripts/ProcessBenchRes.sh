@@ -4,7 +4,7 @@ resultsPath="../optimRes";
 optimCmds="optimCmds";
 mkdir -p $optimCmds;
 
-numBestRes=20;
+filterRes=false;
 
 sizes=("xs" "s" "m" "l" "xl");
 
@@ -73,10 +73,11 @@ function SPLIT_FILES_BY_DS() {
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
-        --num-best-res|-n)
-            numBestRes="$2"
-            shift
-            shift
+        --filter|-f)
+            filterRes=true;
+            numBestRes="$2";
+            shift;
+            shift;
         ;;
         *) 
             # ignore any other arguments
@@ -92,27 +93,24 @@ FILTER_INNACURATE_DATA;
 clean_bench_grps=( $(find "$resultsPath" -maxdepth 1 -type f -name "*-grp-*" | sort -t '-' -k2,2 -k4,4 -r) );
 SPLIT_FILES_BY_DS;
 
-#
-# === MAIN: OTIMIZATION CODE =============================================================
-#
-# filter each DS so that they contain the N best tests and commands
+# sort each *DS*.csv by bps and c_time, in ascending order 
 dsFiles=($(find $resultsPath -maxdepth 1 -type f -name 'bench-results-DS*-*.csv'));
 for dsFile in ${dsFiles[@]}; do
-    dsFileTMP="${dsFile/.csv/-TMP.csv}";
+    dsFileSorted="${dsFile/.csv/-TMP.csv}";
 
-    # get N best results
-    sort -nk4,4 -nk5,5 $dsFile | head -n $((2+numBestRes)) > $dsFileTMP;
+    # sort .csv
+    sort -nk4,4 -nk5,5 $dsFile > $dsFileSorted;
 
-    # get N best commands
-    topNcmds="${dsFile/bench-results/bench-results-top$numBestRes.sh}";
-    topNcmds="optimJV3cmds/$(basename $topNcmds)";
-    tail -n +3 $dsFileTMP  | awk '{print substr($0, index($0, "../bin/JARVIS3"))}' > $topNcmds;
+    # write file with commands, from best to worst
+    sortedCmds="${dsFile/bench-results/bench-results-cmds.sh}";
+    sortedCmds="optimJV3cmds/$(basename $sortedCmds)";
+    tail -n +3 $dsFileSorted  | awk '{print substr($0, index($0, "../bin/JARVIS3"))}' > $sortedCmds;
 
     rm -fr $dsFile;
-    mv $dsFileTMP $dsFile;
+    mv $dsFileSorted $dsFile;
 done
 
-# the .csv clean grps files needs to be updated to contain only the N best results of each DS
+# rewrite *grp*.csv with with the sorted *DS*.csv files
 for clean_grp in ${clean_bench_grps[@]}; do
     rm -fr $clean_grp;
     touch $clean_grp;

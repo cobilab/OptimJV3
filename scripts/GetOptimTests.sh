@@ -9,9 +9,11 @@ binPath="../bin/";
 csv_dsToSize="dsToSize.csv";
 declare -A dsToSize;
 
-sizes=("xs" "s" "m" "l" "xl"); # to be able to filter SEQUENCES to run by size 
-ALL_SEQUENCES_IN_DIR=( $(ls -S | egrep ".seq$" | sed 's/\.seq$//' | tac) ) # ( "test" ) # manual alternative
-SEQUENCES=() # gens that have the required size will be added here
+sizes=("xs" "s" "m" "l" "xl"); # to be able to filter SEQUENCES_NAMES to run by size 
+
+sequencesPath="$HOME/sequences";
+ALL_SEQUENCES_IN_DIR=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) ) # ( "test" ) # manual alternative
+SEQUENCES_NAMES=() # gens that have the required size will be added here
 #
 # ==============================================================================
 #
@@ -92,9 +94,6 @@ function RUN_TEST() {
   #
   printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t$C_COMMAND\n";
   #
-  if [ ! -s $stdErrC ]; then rm -fr $stdErrC; fi
-  if [ ! -s $stdErrD ]; then rm -fr $stdErrD; fi
-  #
   rm -fr $FILEC $FILED c_tmp_report.txt d_tmp_report.txt c_time_mem.txt d_time_mem.txt
   #
 }
@@ -111,12 +110,12 @@ timeOut=3600;
 numTests=100;
 numThreads=8;
 
-# if one or more sizes are choosen, select all SEQUENCES with those sizes
+# if one or more sizes are choosen, select all SEQUENCES_NAMES with those sizes
 for size in "${sizes[@]}"; do
   if [[ "$*" == *"--size $size"* || "$*" == *"-s $size"* ]]; then
     for seq in "${ALL_SEQUENCES_IN_DIR[@]}"; do
         if [[ "${dsToSize[$seq]}" == "$size" ]]; then
-            SEQUENCES+=("$seq");
+            SEQUENCES_NAMES+=("$seq");
         fi
     done
   fi
@@ -125,16 +124,16 @@ done
 # if one or more gens are choosen, add them to array if they aren't there yet
 for seq in "${ALL_SEQUENCES_IN_DIR[@]}"; do
   if [[ "$*" == *"--sequence $seq"* || "$*" == *"-s $seq"* ]]; then
-    if ! echo "${SEQUENCES[@]}" | grep -q -w "$seq"; then
-      SEQUENCES+=("$seq");
+    if ! echo "${SEQUENCES_NAMES[@]}" | grep -q -w "$seq"; then
+      SEQUENCES_NAMES+=("$seq");
     fi
   fi
 done
 
 #
-# if nothing is choosen, all SEQUENCES will be selected
-if [ ${#SEQUENCES[@]} -eq 0 ]; then
-  SEQUENCES=("${ALL_SEQUENCES_IN_DIR[@]}");
+# if nothing is choosen, all SEQUENCES_NAMES will be selected
+if [ ${#SEQUENCES_NAMES[@]} -eq 0 ]; then
+  SEQUENCES_NAMES=("${ALL_SEQUENCES_IN_DIR[@]}");
 fi
 
 # Parse other command-line arguments
@@ -167,21 +166,18 @@ done
 # ------------------------------------------------------------------------------
 #
 run=1;
-for sequence in "${SEQUENCES[@]}"; do
+for sequenceName in "${SEQUENCES_NAMES[@]}"; do
+    sequence="$sequencesPath/$sequenceName";
     #
-    # before running the tests, determine size type of sequence to know: 
-    # - the number of times each test should be executed (maybe); 
-    # - whether c/d time should be in ms, s, m,...
-    #
-    ds_id=$(($(grep -n -w "$sequence" dsToSize.csv | cut -d ":" -f 1)-1))
-    size=${dsToSize[$sequence]};
+    ds_id=$(($(grep -n -w "$sequenceName" dsToSize.csv | cut -d ":" -f 1)-1))
+    size=${dsToSize[$sequenceName]};
     # num_runs_to_repeat=1;
     #
     output_file_ds="$resultsPath/optim-bench-raw-ds${ds_id}-${size}.txt";
     #
     # --- RUN sequence TESTS ---------------------------------------------------------------------------
     #
-    printf "DS$ds_id - $sequence - $size \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tRUN\tC_COMMAND\n";
+    printf "DS$ds_id - $sequenceName - $size \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tRUN\tC_COMMAND\n";
     #
 
     # PARAMETERS COMMON TO CM AND RM

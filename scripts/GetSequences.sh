@@ -1,6 +1,8 @@
 #!/bin/bash
 
-sequencesPath="~/sequences";
+binPath="../bin";
+
+sequencesPath="$HOME/sequences";
 mkdir -p $sequencesPath;
 
 urls=(
@@ -34,15 +36,15 @@ urls=(
     # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102174/Spheniscus_demersus.cds.v1.fa" # 21.87MB
     # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102200/phyml_tree.fa" # 2.36MB
 
-    "https://raw.githubusercontent.com/rongjiewang/DMcompress/master/test.fasta" # 710.0KB
-    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102012/RL0949_chloroplast.fa" # 157.91KB
-    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/101001_102000/101111/RL0048_chloroplast.fa" # 154.2KB
-    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102011/RL0948_chloroplast.fa" # 153.45KB
-    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102130/RL1067_chloroplast.fa" # 150.17KB
-    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/101001_102000/101120/RL0057_chloroplast.fa" # 135.7KB
-    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102150/RL1087_chloroplast.fa" # 134.88KB
-    "https://raw.githubusercontent.com/plotly/datasets/master/Dash_Bio/Genetic/COVID_sequence.fasta" # 29.7KB
-    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102253/Aldabrachelys_gigantea_mitochondrial_genome.fasta" # 16.55KB
+    # "https://raw.githubusercontent.com/rongjiewang/DMcompress/master/test.fasta" # 710.0KB
+    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102012/RL0949_chloroplast.fa" # 157.91KB
+    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/101001_102000/101111/RL0048_chloroplast.fa" # 154.2KB
+    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102011/RL0948_chloroplast.fa" # 153.45KB
+    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102130/RL1067_chloroplast.fa" # 150.17KB
+    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/101001_102000/101120/RL0057_chloroplast.fa" # 135.7KB
+    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102150/RL1087_chloroplast.fa" # 134.88KB
+    # "https://raw.githubusercontent.com/plotly/datasets/master/Dash_Bio/Genetic/COVID_sequence.fasta" # 29.7KB
+    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102253/Aldabrachelys_gigantea_mitochondrial_genome.fasta" # 16.55KB
     "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102194/mt_genome_CM029732.fa" # 15.06KB
 )
 
@@ -67,7 +69,7 @@ done
 #
 # === Skip *_raw.fa that are multifasta by renaming them as *_raw.mfa and updating array ===========================================================================
 #
-rawFiles=( $(ls $sequencesPath | egrep "_raw.fa") )
+rawFiles=( $sequencesPath/*_raw.fa )
 for rawFile in ${rawFiles[@]}; do
     if [ $(grep -c ">" $rawFile) -gt 1 ]; then
 
@@ -77,7 +79,7 @@ for rawFile in ${rawFiles[@]}; do
     fi
 done
 # update array to exclude raw multifasta files
-rawFiles=( $(ls $sequencesPath | egrep "_raw.fa") )
+rawFiles=( $sequencesPath/*_raw.fa )
 
 #
 # === Preprocess _raw.fa files onto clean .fa and .seq files ===========================================================================
@@ -87,7 +89,7 @@ for rawFile in "${rawFiles[@]}"; do
     cleanFaFile=${rawFile/_raw.fa/.fa};
 
     if [[ ! -f $sequencesPath/$cleanFaFile ]]; then
-        ../bin/gto_fasta_to_seq < $rawFile | tr 'agct' 'AGCT' | tr -d -c "AGCT" | ../bin/gto_fasta_from_seq -n x -l 80 > $cleanFaFile
+        $binPath/gto_fasta_to_seq < $rawFile | tr 'agct' 'AGCT' | tr -d -c "AGCT" | $binPath/gto_fasta_from_seq -n x -l 80 > $cleanFaFile
         echo "$cleanFaFile created with success"
     else
         echo "$cleanFaFile has been previously created"  
@@ -97,11 +99,11 @@ for rawFile in "${rawFiles[@]}"; do
 done 
 
 printf "\n*.fa ------> *.seq\n" # preprocesses each fasta file into its respective clean files
-cleanFiles=( $(ls $sequencesPath | egrep ".fa") )
+cleanFiles=( $sequencesPath/*.fa )
 for cleanFile in "${cleanFiles[@]}"; do 
     seqFile=$(echo $cleanFile | sed 's/.fa/.seq/g');
     if [[ ! -f $sequencesPath/$seqFile ]]; then   
-        cat "$sequencesPath/$cleanFile" | grep -v ">" | tr 'agct' 'AGCT' | tr -d -c "ACGT" > "$sequencesPath/$seqFile" # removes lines with comments and non-nucleotide chars
+        cat "$cleanFile" | grep -v ">" | tr 'agct' 'AGCT' | tr -d -c "ACGT" > "$seqFile" # removes lines with comments and non-nucleotide chars
         echo "$seqFile created with success"
     else
         echo "$seqFile has been previously created"
