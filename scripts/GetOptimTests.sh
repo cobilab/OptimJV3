@@ -169,7 +169,7 @@ run=1;
 for sequenceName in "${SEQUENCES_NAMES[@]}"; do
     sequence="$sequencesPath/$sequenceName";
     #
-    ds_id=$(($(grep -n -w "$sequenceName" dsToSize.csv | cut -d ":" -f 1)-1))
+    ds_id=$(($(grep -n -w "$sequenceName" dsToSize.csv | cut -d ":" -f 1)-1));
     size=${dsToSize[$sequenceName]};
     # num_runs_to_repeat=1;
     #

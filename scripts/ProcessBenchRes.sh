@@ -1,10 +1,10 @@
 #!/bin/bash
 
 resultsPath="../optimRes";
-optimCmds="optimCmds";
-mkdir -p $optimCmds;
+cmds="cmds";
+mkdir -p $cmds;
 
-filterRes=false;
+# filterRes=false;
 
 sizes=("xs" "s" "m" "l" "xl");
 
@@ -33,7 +33,7 @@ function FILTER_INNACURATE_DATA() {
         cleanFile="$resultsPath/bench-results$cleanGrp.csv"
         
         if [ -f "$rawFile" ]; then
-             awk '{flag=0; for(i=1; i<=NF; i++) if ($i == -1) {flag=1; next}; if (flag==0) print $0}' "$rawFile" > "$cleanFile";
+             awk '!/No such file or directory/ {flag=0; for(i=1; i<=NF; i++) if ($i == -1) {flag=1; next}; if (flag==0) print $0}' "$rawFile" > "$cleanFile";
         fi
     done
 }
@@ -64,27 +64,60 @@ function SPLIT_FILES_BY_DS() {
         done < "$input_file"
     done
 }
+#
+function SORT_RESULTS() {
+    dsFiles=($(find $resultsPath -maxdepth 1 -type f -name 'bench-results-DS*-*.csv'));
+    for dsFile in ${dsFiles[@]}; do
+        dsFileSorted="${dsFile/.csv/-SORTED.csv}";
+
+        # sort .csv
+        sort -nk4,4 -nk5,5 $dsFile > $dsFileSorted;
+
+        # write in a script all commands, from best to worst
+        sortedCmds=${dsFile//..\/optimRes\//cmds/};
+        sortedCmds=${sortedCmds//.csv/.sh};
+        echo $sortedCmds;
+        tail -n +3 $dsFileSorted | awk '{print substr($0, index($0, "../bin/JARVIS3"))}' > $sortedCmds;
+
+        rm -fr $dsFile;
+        mv $dsFileSorted $dsFile;
+    done
+
+    # rewrite *grp*.csv with with the sorted *DS*.csv files
+    for clean_grp in ${clean_bench_grps[@]}; do
+        rm -fr $clean_grp;
+        touch $clean_grp;
+
+        size="${clean_grp#*-grp-}";
+        size="${size%%.*}";
+
+        dsFilesSizeX=($(find $resultsPath -maxdepth 1 -type f -name bench-results-DS*-$size.csv | sort -V));
+        for dsFileSizeX in ${dsFilesSizeX[@]}; do 
+            cat $dsFileSizeX >> $clean_grp;
+        done 
+    done
+}
 
 #
 # === MAIN ===========================================================================
 #
 
 # parse command-line arguments
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-        --filter|-f)
-            filterRes=true;
-            numBestRes="$2";
-            shift;
-            shift;
-        ;;
-        *) 
-            # ignore any other arguments
-            shift
-        ;;
-    esac
-done
+# while [[ $# -gt 0 ]]; do
+#     key="$1"
+#     case $key in
+#         --filter|-f)
+#             filterRes=true;
+#             numBestRes="$2";
+#             shift;
+#             shift;
+#         ;;
+#         *) 
+#             # ignore any other arguments
+#             shift
+#         ;;
+#     esac
+# done
 
 # bench-results-raw-$size.txt ----> bench-results-grp-$size.csv
 FILTER_INNACURATE_DATA;
@@ -94,33 +127,4 @@ clean_bench_grps=( $(find "$resultsPath" -maxdepth 1 -type f -name "*-grp-*" | s
 SPLIT_FILES_BY_DS;
 
 # sort each *DS*.csv by bps and c_time, in ascending order 
-dsFiles=($(find $resultsPath -maxdepth 1 -type f -name 'bench-results-DS*-*.csv'));
-for dsFile in ${dsFiles[@]}; do
-    dsFileSorted="${dsFile/.csv/-TMP.csv}";
-
-    # sort .csv
-    sort -nk4,4 -nk5,5 $dsFile > $dsFileSorted;
-
-    # write file with commands, from best to worst
-    sortedCmds="${dsFile/bench-results/bench-results-cmds.sh}";
-    sortedCmds="optimJV3cmds/$(basename $sortedCmds)";
-    tail -n +3 $dsFileSorted  | awk '{print substr($0, index($0, "../bin/JARVIS3"))}' > $sortedCmds;
-
-    rm -fr $dsFile;
-    mv $dsFileSorted $dsFile;
-done
-
-# rewrite *grp*.csv with with the sorted *DS*.csv files
-for clean_grp in ${clean_bench_grps[@]}; do
-    rm -fr $clean_grp;
-    touch $clean_grp;
-
-    size="${clean_grp#*-grp-}";
-    size="${size%%.*}";
-
-    dsFilesSizeX=($(find $resultsPath -maxdepth 1 -type f -name bench-results-DS*-$size.csv | sort -V));
-    for dsFileSizeX in ${dsFilesSizeX[@]}; do 
-        cat $dsFileSizeX >> $clean_grp;
-    done 
-done
-
+SORT_RESULTS;
