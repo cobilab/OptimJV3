@@ -1,9 +1,8 @@
 #!/bin/bash
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
-#
-seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
+configJson="../config.json"
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
 #
 function FIX_SEQUENCE_NAME() {
     sequence="$1"
@@ -18,9 +17,9 @@ function FIX_SEQUENCE_NAME() {
     fi
 }
 #
-iga="sampling"
+iga="sampling100gens"
 oga="sampling2"
-sequence="human100MB"
+sequence="human"
 y2min="*"
 y2Max="*"
 #
@@ -63,15 +62,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-if [[ $sequence == *"human"* ]] || [[ $sequence == *"chm13v2.0"* ]]; then
-    seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
+availableSeqs=$(awk '{ print $2 }' "$ds_sizesBase2")
+if echo "$sequence" | grep -q "$availableSeqs" || [[ $sequence == "human" ]] || [[ $sequence == "cassava" ]]; then
+    seqArr=("${sequence}12d5MB" "${sequence}25MB" "${sequence}50MB" "${sequence}100MB")
 else
-    seqArr=("cassava12d5MB" "cassava25MB" "cassava50MB" "cassava100MB")
+    echo "Input sequence not found"
+    echo "To view available sequences, execute ./Sampling.sh -v"
+    exit;
 fi
 #
 # second sampling plot
 #
-dsx=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2")
+FIX_SEQUENCE_NAME $sequence
+dsx=$(awk '/'${sequence}'[[:space:]]/ { print $1 }' "$ds_sizesBase2")
 mkdir -p "../$dsx/$oga"
 labelAndCmdTable="../$dsx/$oga/labelCmdTable.tsv"
 script="../$dsx/$oga/g1.sh"

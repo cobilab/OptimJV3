@@ -9,7 +9,7 @@ function SHOW_HELP() {
   echo "                                                        ";
   echo "-h|--help......................................Show this";
   echo "-v|--view-ds|--view-datasets...View sequence names, size";
-  echo "           of each in bytes, MB, and BG, and their group";
+  echo "           of each in bytes, MB, and GB, and their group";
   echo "-s|--seq|--sequence..........Select sequence by its name";
   echo "-sg|-sequence-grp|--seq-group..Select group of sequences";
   echo "                                           by their size";

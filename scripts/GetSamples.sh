@@ -20,6 +20,7 @@ sample100mb="human100MB.seq"
 sample50mb="human50MB.seq"
 sample25mb="human25MB.seq"
 sample12d5mb="human12d5MB.seq"
+sample10mb="human10MB.seq"
 #
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -75,3 +76,10 @@ cat $sequencesPath/$sample100mb | cut -c 1-26214400 | tr -d '\n' > $sequencesPat
 # 1 -> start
 # echo "104857600*0.125"|bc = 13107200.000 -> end
 cat $sequencesPath/$sample100mb | cut -c 1-13107200 | tr -d '\n' > $sequencesPath/$sample12d5mb
+#
+# === Sample 10MB human genome ===
+if [[ "$sequence" == "human"* ]] || [[ "$sequence" == "chm13v2.0"* ]]; then
+    start=$(echo "scale=0;$size*0.2 + 1" | bc | cut -d'.' -f1)
+    end=$(echo "scale=0;$size*0.2 + 10*2^20" | bc | cut -d'.' -f1)
+    cat $sequencesPath/$sequence | cut -c 1-13107200 | tr -d '\n' > $sequencesPath/$sample10mb
+fi

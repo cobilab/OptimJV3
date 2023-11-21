@@ -1,9 +1,10 @@
 #!/bin/bash
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+configJson="../config.json"
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
 #
-ga="sampling"
+ga="sampling100gens"
 sequence="human"
 y2min="*"
 y2Max="*"
@@ -11,6 +12,10 @@ y2Max="*"
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
+    -v|--view-ds|--view-datasets)
+        cat $ds_sizesBase2; echo
+        exit;
+        ;;
     -a|-ga|--algorithm|--genetic-algorithm)
         ga="$2";
         shift 2; 
@@ -32,13 +37,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-if [[ $sequence == "human" ]]; then
-    seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
+availableSeqs=$(awk '{ print $2 }' "$ds_sizesBase2")
+if echo "$sequence" | grep -q "$availableSeqs" || [[ $sequence == "human" ]] || [[ $sequence == "cassava" ]]; then
+    seqArr=("${sequence}12d5MB" "${sequence}25MB" "${sequence}50MB" "${sequence}100MB")
+    output="../${sequence}Sampling"
 else
-    seqArr=("cassava12d5MB" "cassava25MB" "cassava50MB" "cassava100MB")
+    echo "Input sequence not found"
+    echo "To view available sequences, execute ./Sampling.sh -v"
+    exit;
 fi
 #
-[[ ${seqArr[@]} == *"human"* ]] && output="../humanSampling" || output="../cassavaSampling"
 mkdir -p $output
 pltsFolder="$output/plots"
 mkdir -p $pltsFolder
@@ -77,8 +85,8 @@ awk -F'\t' '{
 }' $statsFile > $statsFileProcessed
 #
 # gnuplot
-gnuplot -persist << EOF
-    # set title "Sampling"
+gnuplot << EOF
+    set title "Sampling"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$pltsFile"
     set key outside top horizontal Right noreverse noenhanced autotitle nobox
@@ -90,7 +98,7 @@ gnuplot -persist << EOF
 
     set ylabel "BPS"
     set ytics nomirror
-    set yrange [1.43:1.69]
+    set yrange [.769:1]
 
     set y2label "C TIME (m)"
     set y2tics nomirror

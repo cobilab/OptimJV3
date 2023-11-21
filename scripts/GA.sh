@@ -11,7 +11,7 @@ function SHOW_HELP() {
   echo "                                                        ";
   echo "-h|--help......................................Show this";
   echo "-v|--view-ds|--view-datasets...View sequence names, size";
-  echo "           of each in bytes, MB, and BG, and their group";
+  echo "           of each in bytes, MB, and GB, and their group";
   echo "-fg|--first-generation...Specify first generation number";
   echo "-lg|--last-generation......Select last generation number";
   echo "                                           by their size";
@@ -55,8 +55,8 @@ function SHOW_HELP() {
   echo "                                                        ";
   echo " Program options (run) ---------------------------------";
   echo "                                                        ";
-  echo "-t|--nthreads...........num of threads to run JARVIS3 in"; 
-  echo "                                                parallel";
+  echo "-t|--nthreads....Define number of threads to run JARVIS3"; 
+  echo "                                             in parallel";
   echo "                                                        ";
   echo " Program options (evaluation) --------------------------";
   echo "                                                        ";
@@ -190,12 +190,10 @@ while [[ $# -gt 0 ]]; do
     -h|--help)
         SHOW_HELP;
         exit;
-        shift;
         ;;
     -v|--view-ds|--view-datasets)
         cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
         exit;
-        shift;
         ;;
     -fg|--first-gen|--first-generation)
         FIRST_GEN="$2";

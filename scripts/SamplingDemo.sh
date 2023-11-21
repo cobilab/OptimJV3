@@ -1,16 +1,18 @@
 #!/bin/bash
-
+#
+configJson="../config.json"
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+#
 # get human sequence samples
 ./GetSamples.sh 
-
 #
 # === GA optimization for 100 generations
 #
 # run GAs 
-bash -x ./GA.sh -s human12d5MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 101 1> out 2> err & 
-bash -x ./GA.sh -s human25MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 101 1> out 2> err &
-bash -x ./GA.sh -s human50MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 101 1> out 2> err &
-bash -x ./GA.sh -s human100MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 101 1> out 2> err &
+bash -x ./GA.sh -s human12d5MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 100 1> out 2> err & 
+bash -x ./GA.sh -s human25MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 100 1> out 2> err &
+bash -x ./GA.sh -s human50MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 100 1> out 2> err &
+bash -x ./GA.sh -s human100MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "rmga" -c "u" --moga -wBPS 0.5 -fg 1 -lg 100 1> out 2> err &
 
 # sampling (part 1) from 100 generations optimization
 ./Sampling.sh -ga "sampling" -s "human"
@@ -28,8 +30,8 @@ bash -x ./GA.sh -s human100MB -ga sampling100gens -hyi -hhp 0.5 -sl "rws" -cc "r
 #
 # copy GA folders to run the algorithm on them
 samples=("human12d5MB" "human25MB" "human50MB" "human100MB")
-for s in ${samples[@]}; do
-    dsx="$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2")"
+for sample in ${samples[@]}; do
+    dsx="$(awk '/'$sample'[[:space:]]/ { print $1 }' "$ds_sizesBase2")"
     gaFolder="../$dsx/sampling"
     gaFolder200="../$dsx/sampling200gens"
     [ -d $gaFolder200 ] && mv $gaFolder200 ${gaFolder200}_bkp

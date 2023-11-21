@@ -11,7 +11,7 @@ function SHOW_HELP() {
   echo "                                                        ";
   echo "-h|--help......................................Show this";
   echo "-v|--view-ds|--view-datasets...View sequence names, size";
-  echo "           of each in bytes, MB, and BG, and their group";
+  echo "           of each in bytes, MB, and GB, and their group";
   echo "-s|--seq|--sequence..........Select sequence by its name";
   echo "-sg|--sequence-grp|--seq-group.Select group of sequences";
   echo "                                           by their size";
@@ -24,8 +24,6 @@ function SHOW_HELP() {
   echo "                   sequences by range of dataset numbers";
   echo "-ps|--psize|--population|--population-size........Define";
   echo "                                         population size";
-  echo "-t|--nthreads...........num of threads to run JARVIS3 in"; 
-  echo "                                                parallel";
   echo "-sd|--seed.....................Define pseudo-random seed";
   echo "-si|--seed-increment...............Define seed increment";
   echo "                                                        ";
