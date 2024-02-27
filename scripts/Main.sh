@@ -7,5 +7,5 @@
 ./CategorizeSeqBySize.sh
 ./RunTestsExample.sh
 # ./SaveBenchAsTex.sh # optional 
-./ProcessRawBench.sh
+./ProcessBenchRes.sh
 ./Plot.sh

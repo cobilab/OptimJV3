@@ -103,21 +103,26 @@ function SORT_RESULTS() {
 #
 
 # parse command-line arguments
-# while [[ $# -gt 0 ]]; do
-#     key="$1"
-#     case $key in
-#         --filter|-f)
-#             filterRes=true;
-#             numBestRes="$2";
-#             shift;
-#             shift;
-#         ;;
-#         *) 
-#             # ignore any other arguments
-#             shift
-#         ;;
-#     esac
-# done
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        --filter|-f)
+            filterRes=true;
+            numBestRes="$2";
+            shift;
+            shift;
+        ;;
+        --dir|-d)
+            resultsPath="$2"
+            shift;
+            shift;
+        ;;
+        *) 
+            # ignore any other arguments
+            shift
+        ;;
+    esac
+done
 
 # bench-results-raw-$size.txt ----> bench-results-grp-$size.csv
 FILTER_INNACURATE_DATA;

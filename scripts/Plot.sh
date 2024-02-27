@@ -66,8 +66,10 @@ function SPLIT_FILE_BY_COMPRESSOR() {
 function GET_PLOT_BOUNDS() {
     # row structure: Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
     Rscript -e 'summary(as.numeric(readLines("stdin")))' < <(awk '{if ($4 ~ /^[0-9.]+$/) print $4}' $csvFile) > tempX.txt
+    bps_min=$(awk 'NR==2{print $1}' "tempX.txt");
     bps_Q1=$(awk 'NR==2{print $2}' "tempX.txt");
     bps_Q3=$(awk 'NR==2{print $5}' "tempX.txt");
+    bps_max=$(awk 'NR==2{print $6}' "tempX.txt");
 
     # row structure: Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
     Rscript -e 'summary(as.numeric(readLines("stdin")))' < <(awk '{if ($5 ~ /^[0-9.]+$/) print $5}' $csvFile) > tempY.txt
@@ -78,35 +80,35 @@ function GET_PLOT_BOUNDS() {
     bps_IQR=$(echo "$bps_Q3-$bps_Q1" | bc);
     bytesCF_IQR=$(echo "$bytesCF_Q3-$bytesCF_Q1" | bc);
 
-    # lower bound = Q1 – 0.2*IQR
-    bps_lowerBound=$(echo "$bps_Q1-0.2*$bps_IQR" | bc);
-    bytesCF_lowerBound=$(echo "$bytesCF_Q1-0.2*$bytesCF_IQR" | bc);
+    # lower bound = Q1 – c*IQR
+    bps_lowerBound=$bps_min # $(echo "$bps_Q1+0.4*$bps_IQR" | bc);
+    bytesCF_lowerBound=$(echo "$bytesCF_Q1-0.075*$bytesCF_IQR" | bc);
 
-    # upper bound = Q3 + 0.2*IQR
-    bps_upperBound=$(echo "$bps_Q3+0.2*$bps_IQR" | bc);
-    bytesCF_upperBound=$(echo "$bytesCF_Q3+0.2*$bytesCF_IQR" | bc);
+    # upper bound = Q3 + c*IQR
+    bps_upperBound=$bps_max # $(echo "$bps_Q3+0.3*$bps_IQR" | bc);
+    bytesCF_upperBound=$(echo "$bytesCF_Q3+0.075*$bytesCF_IQR" | bc);
 
-    if (( $(echo "$bps_lowerBound < 0" | bc -l) )); then
-      bps_lowerBound=-0.01;
-    fi
+    # if (( $(echo "$bps_lowerBound < 0" | bc -l) )); then
+    #   bps_lowerBound=-0.01;
+    # fi
 
-    if (( $(echo "$bps_upperBound > 2.5" | bc -l) )); then
-      bps_upperBound=2.5;
-    fi
+    # if (( $(echo "$bps_upperBound > 2.5" | bc -l) )); then
+    #   bps_upperBound=2.5;
+    # fi
 
-    if (( $(echo "$bytesCF_lowerBound < 0" | bc -l) )); then
-      bytesCF_lowerBound=-0.01;
-    fi
+    # if (( $(echo "$bytesCF_lowerBound < 0" | bc -l) )); then
+    #   bytesCF_lowerBound=-0.01;
+    # fi
 
-    if (( $(echo "$bps_IQR < 1" | bc -l) )); then
-      bps_lowerBound="$bps_Q1";
-      bps_upperBound="$bps_Q3";
-    fi
+    # if (( $(echo "$bps_IQR < 1" | bc -l) )); then
+    #   bps_lowerBound="$bps_Q1";
+    #   bps_upperBound="$bps_Q3";
+    # fi
 
-    if (( $(echo "$bytesCF_IQR < 1" | bc -l) )); then
-      bytesCF_lowerBound="$bytesCF_Q1";
-      bytesCF_upperBound="$bytesCF_Q3";
-    fi
+    # if (( $(echo "$bytesCF_IQR < 1" | bc -l) )); then
+    #   bytesCF_lowerBound="$bytesCF_Q1";
+    #   bytesCF_upperBound="$bytesCF_Q3";
+    # fi
 
     cat tempX.txt;
     printf "bps Q1: $bps_Q1 \n";
@@ -136,11 +138,12 @@ function PLOT() {
     # set tics nomirror out scale 0.01
     set key outside right top vertical Right noreverse noenhanced autotitle nobox
     set style histogram clustered gap 1 title textcolor lt -1
-    set xtics border in scale 0,0 nomirror #rotate by -60  autojustify
+    set xtics border in scale 0,0 nomirror rotate by -45 autojustify
     set yrange [$bytesCF_lowerBound:$bytesCF_upperBound]
     set xrange [$bps_lowerBound:$bps_upperBound]
     set xtics auto
     set ytics auto
+    set format x "%.3f"  # set format to three decimals
     set key top right
     set style line 1 lc rgb '#990099'  pt 1 ps 0.6  # circle
     set style line 2 lc rgb '#004C99'  pt 2 ps 0.6  # circle
@@ -177,11 +180,12 @@ function PLOT_LOG() {
     # set tics nomirror out scale 0.01
     set key outside right top vertical Right noreverse noenhanced autotitle nobox
     set style histogram clustered gap 1 title textcolor lt -1
-    set xtics border in scale 0,0 nomirror #rotate by -60  autojustify
+    set xtics border in scale 0,0 nomirror rotate by -45 autojustify
     set yrange [1e-10:$bytesCF_upperBound]
     set xrange [$bps_lowerBound:$bps_upperBound]
     set xtics auto
-    set ytics auto 
+    set ytics auto
+    set format x "%.3f"  # set format to three decimals
     set key top right
     set style line 1 lc rgb '#990099'  pt 1 ps 0.6  # circle
     set style line 2 lc rgb '#004C99'  pt 2 ps 0.6  # circle
@@ -201,9 +205,22 @@ function PLOT_LOG() {
     plot $plotnames_log
 EOF
 }
+
 #
 # === MAIN ===========================================================================
 #
+
+# while [[ $# -gt 0 ]]; do
+#     key="$1"
+#     case $key in
+#         --dir|-d)
+#             resultsPath="../optimResGen";
+#         *) 
+#             # ignore any other arguments
+#             shift
+#         ;;
+#     esac
+# done
 
 LOAD_CSV_DSTOSIZE;
 
