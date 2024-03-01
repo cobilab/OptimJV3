@@ -11,7 +11,7 @@ declare -A dsToSize;
 
 sizes=("xs" "s" "m" "l" "xl"); # to be able to filter SEQUENCES_NAMES to run by size
 
-sequencesPath="$HOME/sequences";
+sequencesPath="../../sequences";
 ALL_SEQUENCES_IN_DIR=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) ) # ( "test" ) # manual alternative
 SEQUENCES_NAMES=() # gens that have the required size will be added here
 #
@@ -66,7 +66,7 @@ function RUN_TEST() {
   diff <(tail -n +2 $IN_FILE | tr -d '\n') <(tail -n +2 $FILED | tr -d '\n') > cmp.txt;
   #
   if [[ -s "c_time_mem.txt" ]]; then # if file is not empty...
-    C_TIME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $1 }')`;
+    C_TIME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $1 }')`; 
     C_MEME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $2 }')`; 
   else
     C_TIME=-1;
@@ -87,7 +87,7 @@ function RUN_TEST() {
   #
   printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t$C_COMMAND\n";
   #
-  rm -fr $FILEC $FILED c_tmp_report.txt d_tmp_report.txt c_time_mem.txt d_time_mem.txt;
+  rm -fr $FILEC $FILED c_tmp_report.txt d_tmp_report.txt; # c_time_mem.txt d_time_mem.txt;
   #
 }
 #
@@ -100,12 +100,14 @@ mkdir -p naf_out mbgc_out paq8l_out;
 
 # Initialize variables
 timeOut=3600;
-numTests=100;
+numTests=50;
 numThreads=8;
+output=false;
+output_ext="";
 
 # if one or more sizes are choosen, select all SEQUENCES_NAMES with those sizes
 for size in "${sizes[@]}"; do
-  if [[ "$*" == *"--size $size"* || "$*" == *"-s $size"* ]]; then
+  if [[ "$*" == *"--size $size"* || "$*" == *"-sz $size"* ]]; then
     for seq in "${ALL_SEQUENCES_IN_DIR[@]}"; do
         if [[ "${dsToSize[$seq]}" == "$size" ]]; then
             SEQUENCES_NAMES+=("$seq");
@@ -116,7 +118,7 @@ done
 
 # if one or more sequences are choosen, add them to array if they aren't there yet
 for seq in "${ALL_SEQUENCES_IN_DIR[@]}"; do
-  if [[ "$*" == *"--sequence $seq"* || "$*" == *"--seq $seq"* || "$*" == *"-s $seq"* ]]; then
+  if [[ "$*" == *"--sequence $seq"* || "$*" == *"--seq $seq"* || "$*" == *"-sq $seq"* ]]; then
     if ! echo "${SEQUENCES_NAMES[@]}" | grep -q -w "$seq"; then
       SEQUENCES_NAMES+=("$seq");
     fi
@@ -147,6 +149,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --threads|-t)
       numThreads="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    --output|-o)
+      output=true;
+      output_ext="$2";
       shift # past argument
       shift # past value
       ;;
@@ -242,7 +250,11 @@ for sequenceName in "${SEQUENCES_NAMES[@]}"; do
         RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
       done
 
-      RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.seq.jc" "$sequence.seq.jc.jd" "${binPath}JARVIS3 --threads $numThreads $CM $RM $sequence.seq" "${binPath}JARVIS3 -d $sequence.seq.jc" "$run"; run=$((run+1));
+      if $output; then
+        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${binPath}JARVIS3_output $CM $RM -o $sequence.$output_ext.seq.jc $sequence.seq" "${binPath}JARVIS3_output -d $sequence.$output_ext.seq.jc" "$run"; run=$((run+1));
+      else
+        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.seq.jc" "$sequence.seq.jc.jd" "${binPath}JARVIS3_output $CM $RM $sequence.seq" "${binPath}JARVIS3_output -d $sequence.seq.jc" "$run"; run=$((run+1));
+      fi
     done
 
     # otimizacao evolucionaria/genetica
@@ -250,4 +262,4 @@ for sequenceName in "${SEQUENCES_NAMES[@]}"; do
     # mutation_rate=0.1
     # num_generations=10
 done
-# 
+

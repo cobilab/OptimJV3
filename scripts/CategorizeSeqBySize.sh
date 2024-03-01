@@ -7,7 +7,7 @@ sizes_bytes=(1048576 104857600 1073741824 10737418240 10737418240);
 #
 declare -A dsToSize;
 #
-sequencesPath="$HOME/sequences";
+sequencesPath="../../sequences";
 seqFiles=( $sequencesPath/*.seq );
 #
 # ==============================================================================

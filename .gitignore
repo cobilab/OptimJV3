@@ -1,7 +1,7 @@
 # Ignore these
 scripts/*
 results/*
-optimRes/*
+optimRes*/*
 
 # Except these
 !scripts/*.sh
