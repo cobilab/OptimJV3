@@ -47,7 +47,7 @@ function RUN_TEST() {
   # %M: Maximum resident set size of the process during its lifetime, in Kbytes.
   timeout "$timeOut" /bin/time -f "TIME\t%e\tMEM\t%M" $C_COMMAND \
   |& grep "TIME" \
-  |& awk '{ printf $2"\t"$4/1024/1024"\n" }' > c_time_mem.txt;
+  |& awk '{ printf $2"\t"$4/1024/1024"\n" }' > ${sequenceName}${output_ext}c_time_mem.txt;
 
   if [ -e "$FILEC" ]; then
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
@@ -65,17 +65,17 @@ function RUN_TEST() {
   # compare input file to decompressed file; they should have the same sequence
   diff <(tail -n +2 $IN_FILE | tr -d '\n') <(tail -n +2 $FILED | tr -d '\n') > cmp.txt;
   #
-  if [[ -s "c_time_mem.txt" ]]; then # if file is not empty...
-    C_TIME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $1 }')`; 
-    C_MEME=`printf "%0.3f\n" $(cat c_time_mem.txt | awk '{ print $2 }')`; 
+  if [[ -s "${sequenceName}${output_ext}c_time_mem.txt" ]]; then # if file is not empty...
+    C_TIME=`printf "%0.3f\n" $(cat ${sequenceName}${output_ext}c_time_mem.txt | awk '{ print $1 }')`; 
+    C_MEME=`printf "%0.3f\n" $(cat ${sequenceName}${output_ext}c_time_mem.txt | awk '{ print $2 }')`; 
   else
     C_TIME=-1;
     C_MEME=-1;
   fi
   #
-  if [[ -s "d_time_mem.txt" ]]; then # if file is not empty...
-    D_TIME=`printf "%0.3f\n" $(cat d_time_mem.txt | awk '{ print $1 }')`;
-    D_MEME=`printf "%0.3f\n" $(cat d_time_mem.txt | awk '{ print $2 }')`;
+  if [[ -s "${sequenceName}${output_ext}d_time_mem.txt" ]]; then # if file is not empty...
+    D_TIME=`printf "%0.3f\n" $(cat ${sequenceName}${output_ext}d_time_mem.txt | awk '{ print $1 }')`;
+    D_MEME=`printf "%0.3f\n" $(cat ${sequenceName}${output_ext}d_time_mem.txt | awk '{ print $2 }')`;
   else
     D_TIME=-1;
     D_MEME=-1;
@@ -87,7 +87,7 @@ function RUN_TEST() {
   #
   printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t$C_COMMAND\n";
   #
-  rm -fr $FILEC $FILED c_tmp_report.txt d_tmp_report.txt; # c_time_mem.txt d_time_mem.txt;
+  rm -fr $FILEC $FILED; # c_tmp_report.txt d_tmp_report.txt; # ${sequenceName}${output_ext}c_time_mem.txt ${sequenceName}${output_ext}d_time_mem.txt;
   #
 }
 #
