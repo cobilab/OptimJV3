@@ -60,10 +60,10 @@ function RUN_TEST() {
   # DESCOMPRESSAO
   timeout "$timeOut" /bin/time -f "TIME\t%e\tMEM\t%M" $D_COMMAND \
   |& grep "TIME" \
-  |& awk '{ printf $2"\t"$4/1024/1024"\n" }' > d_time_mem.txt;
+  |& awk '{ printf $2"\t"$4/1024/1024"\n" }' > ${sequenceName}${output_ext}d_time_mem.txt;
   #
   # compare input file to decompressed file; they should have the same sequence
-  diff <(tail -n +2 $IN_FILE | tr -d '\n') <(tail -n +2 $FILED | tr -d '\n') > cmp.txt;
+  diff <(tail -n +2 $IN_FILE | tr -d '\n') <(tail -n +2 $FILED | tr -d '\n') > ${sequenceName}${output_ext}cmp.txt;
   #
   if [[ -s "${sequenceName}${output_ext}c_time_mem.txt" ]]; then # if file is not empty...
     C_TIME=`printf "%0.3f\n" $(cat ${sequenceName}${output_ext}c_time_mem.txt | awk '{ print $1 }')`; 
@@ -82,7 +82,7 @@ function RUN_TEST() {
   fi
   #
   VERIFY="0";
-  CMP_SIZE=`ls -la cmp.txt | awk '{ print $5}'`;
+  CMP_SIZE=`ls -la ${sequenceName}${output_ext}cmp.txt | awk '{ print $5}'`;
   if [[ "$CMP_SIZE" != "0" ]]; then CMP_SIZE="1"; fi
   #
   printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t$C_COMMAND\n";
@@ -131,7 +131,7 @@ if [ ${#SEQUENCES_NAMES[@]} -eq 0 ]; then
   SEQUENCES_NAMES=("${ALL_SEQUENCES_IN_DIR[@]}");
 fi
 
-echo ${SEQUENCES_NAMES[@]}
+# echo ${SEQUENCES_NAMES[@]}
 
 # Parse other command-line arguments
 while [[ $# -gt 0 ]]; do

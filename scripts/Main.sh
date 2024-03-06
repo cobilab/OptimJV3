@@ -1,8 +1,9 @@
 #!/bin/bash
 #
 ./CleanCandDfiles.sh # optional but recommended
-./Install_Tools.sh
-./GetSequences.sh 
+./InstallTools.sh
+./DownloadSequences.sh
+./PreprocessSequences.sh
 # ./CreateSequences.sh # optional
 ./CategorizeSeqBySize.sh
 ./RunTestsExample.sh

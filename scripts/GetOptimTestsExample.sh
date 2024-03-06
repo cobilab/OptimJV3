@@ -18,19 +18,43 @@ mkdir -p ../optimResGen;
 
 # alternatively, to run optmization on a specific sequence from group m:
 ./GetOptimTests.sh --seq Helostoma_temminckii.genome 1> ../optimRes/bench-results-raw-ds15.txt 2> ../optimRes/err/m_ds15_err.txt & 
+./GetOptimTests.sh --seq Helostoma_temminckii.genome -o 1 -n 12 1> ../optimRes/bench-results-raw-ds15.1.txt 2> ../optimRes/err/m_ds15_1_err.txt & # tudo falhou mas n faz mal
 
-./GetOptimTests.sh --seq Chelmon_rostratus.genome 1> ../optimRes/bench-results-raw-ds16.txt 2> ../optimRes/err/m_ds16_err.txt & 
+./GetOptimTests.sh --seq Chelmon_rostratus.genome 1> ../optimRes/bench-results-raw-ds16.txt 2> ../optimRes/err/m_ds16_err.txt &
+./GetOptimTests.sh --seq Chelmon_rostratus.genome -o 1 -n 12 1> ../optimRes/bench-results-raw-ds16.1.txt 2> ../optimRes/err/m_ds16_1_err.txt & # em processo :)
+
 ./GetOptimTests.sh --seq Chaetodon_tr.seqsciatus.genome 1> ../optimRes/bench-results-raw-ds17.txt 2> ../optimRes/err/m_ds17_err.txt & 
-./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig2 1> ../optimRes/bench-results-raw-ds18.txt 2> ../optimRes/err/m_ds18_err.txt & 
-./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig1 1> ../optimRes/bench-results-raw-ds19.txt 2> ../optimRes/err/m_ds19_err.txt & 
-./GetOptimTests.sh --seq Naso_vlamingii.genome 1> ../optimRes/bench-results-raw-ds20.txt 2> ../optimRes/err/m_ds20_err.txt & 
+./GetOptimTests.sh --seq Chaetodon_tr.seqsciatus.genome -o 1 -n 25 1> ../optimRes/bench-results-raw-ds17.1.txt 2> ../optimRes/err/m_ds17_1_err.txt & # em processo :)
+./GetOptimTests.sh --seq Chaetodon_tr.seqsciatus.genome -o 2 -n 25 1> ../optimRes/bench-results-raw-ds17.2.txt 2> ../optimRes/err/m_ds17_2_err.txt & # em processo :)
 
+
+
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig2 1> ../optimRes/bench-results-raw-ds18.txt 2> ../optimRes/err/m_ds18_err.txt &
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig2 -o 1 -n 25 1> ../optimRes/bench-results-raw-ds18.1.txt 2> ../optimRes/err/m_ds18_1_err.txt & # em processo :)
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig2 -o 2 -n 25 1> ../optimRes/bench-results-raw-ds18.2.txt 2> ../optimRes/err/m_ds18_2_err.txt & # em processo :)
+
+
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig1 1> ../optimRes/bench-results-raw-ds19.txt 2> ../optimRes/err/m_ds19_err.txt & # por correr
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig1 -o 1 -n 10 1> ../optimRes/bench-results-raw-ds19.1.txt 2> ../optimRes/err/m_ds19_1_err.txt &
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig1 -o 2 -n 10 1> ../optimRes/bench-results-raw-ds19.2.txt 2> ../optimRes/err/m_ds19_2_err.txt &
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig1 -o 3 -n 10 1> ../optimRes/bench-results-raw-ds19.3.txt 2> ../optimRes/err/m_ds19_3_err.txt &
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig1 -o 4 -n 10 1> ../optimRes/bench-results-raw-ds19.4.txt 2> ../optimRes/err/m_ds19_4_err.txt &
+./GetOptimTests.sh --seq TME204.HiFi_HiC.haplotig1 -o 5 -n 10 1> ../optimRes/bench-results-raw-ds19.5.txt 2> ../optimRes/err/m_ds19_5_err.txt &
+
+
+./GetOptimTests.sh --seq Naso_vlamingii.genome 1> ../optimRes/bench-results-raw-ds20.txt 2> ../optimRes/err/m_ds20_err.txt & # por correr
+./GetOptimTests.sh --seq Naso_vlamingii.genome -o 1 -n 10 1> ../optimRes/bench-results-raw-ds20.1.txt 2> ../optimRes/err/m_ds20_1_err.txt &
+./GetOptimTests.sh --seq Naso_vlamingii.genome -o 2 -n 10 1> ../optimRes/bench-results-raw-ds20.2.txt 2> ../optimRes/err/m_ds20_2_err.txt &
+./GetOptimTests.sh --seq Naso_vlamingii.genome -o 3 -n 10 1> ../optimRes/bench-results-raw-ds20.3.txt 2> ../optimRes/err/m_ds20_3_err.txt &
+./GetOptimTests.sh --seq Naso_vlamingii.genome -o 4 -n 10 1> ../optimRes/bench-results-raw-ds20.4.txt 2> ../optimRes/err/m_ds20_4_err.txt &
+./GetOptimTests.sh --seq Naso_vlamingii.genome -o 5 -n 10 1> ../optimRes/bench-results-raw-ds20.5.txt 2> ../optimRes/err/m_ds20_5_err.txt &
+
+# ds21 concluido :) 
 ./GetOptimTests.sh --seq Rhodeus_ocellatus.genome -o 1 -n 25 1> ../optimRes/bench-results-raw-ds21.1.txt 2> ../optimRes/err/m_ds21_1_err.txt & 
-./GetOptimTests.sh --seq Rhodeus_ocellatus.genome -o 2 -n 25 1> ../optimRes/bench-results-raw-ds21.2.txt 2> ../optimRes/err/m_ds21_2_err.txt & 
+./GetOptimTests.sh --seq Rhodeus_ocellatus.genome -o 2 -n 25 1> ../optimRes/bench-results-raw-ds21.2.txt 2> ../optimRes/err/m_ds21_2_err.txt &
 
-./GetOptimTests.sh --seq Pseudobrama_simoni.genome -o 1 -n 25 1> ../optimRes/bench-results-raw-ds22.1.txt 2> ../optimRes/err/m_ds22_1_err.txt & 
-./GetOptimTests.sh --seq Pseudobrama_simoni.genome -o 2 -n 25 1> ../optimRes/bench-results-raw-ds22.2.txt 2> ../optimRes/err/m_ds22_2_err.txt & 
-./GetOptimTests.sh --seq Pseudobrama_simoni.genome -o 3 -n 2 1> ../optimRes/bench-results-raw-ds22.2.txt 2> ../optimRes/err/m_ds22_2_err.txt & # faltam 20
+./GetOptimTests.sh --seq Pseudobrama_simoni.genome -o 1 -n 25 1> ../optimRes/bench-results-raw-ds22.1.txt 2> ../optimRes/err/m_ds22_1_err.txt & # a correr...
+./GetOptimTests.sh --seq Pseudobrama_simoni.genome -o 2 -n 25 1> ../optimRes/bench-results-raw-ds22.2.txt 2> ../optimRes/err/m_ds22_2_err.txt & # a correr...
 
 # alternatively, to run optmization on a specific sequence from group s:
 # ./GetOptimTests.sh --seq ensete_glaucum.evm.cds -n 50 > ../optimRes/bench-results-raw-ds14.txt 2>&1 & 
