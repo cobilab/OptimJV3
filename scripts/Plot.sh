@@ -1,9 +1,9 @@
-#!/bin/bash
-#
+#!/usr/bin/env bash
+
 resultsPath="../optimRes";
-#
+
 sizes=("xs" "s" "m" "l" "xl");
-#
+
 csv_dsToSize="dsToSize.csv";
 declare -A dsToSize;
 

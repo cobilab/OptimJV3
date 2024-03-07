@@ -13,6 +13,10 @@ mkdir -p ../optimResGen;
 ./GetOptimTests.sh --size m 1> ../optimRes/bench-results-raw-m.txt 2> ../optimRes/err/m_err.txt &
 ./GetOptimTests.sh --size l 1> ../optimRes/bench-results-raw-l.txt 2> ../optimRes/err/l_err.txt &
 
+# specific sequences from grp xs:
+./GetOptimTests.sh --seq eubas_hfib_1 -n 1 1> ../optimRes/bench-results-raw-ds8.txt 2> ../optimRes/err/xs_ds8_err.txt &
+./GetOptimTests.sh --seq SARS-CoV-Hun-1 1> ../optimRes/bench-results-raw-ds9.txt 2> ../optimRes/err/xs_ds9_err.txt &
+
 # specific sequences from group s, with -o flag:
 ./GetOptimTests.sh --seq Spheniscus_demersus.cds.v1 -o 1 -n 25 1> ../optimRes/bench-results-raw-ds10.1.txt 2> ../optimRes/err/s_ds10_1_err.txt & 
 
