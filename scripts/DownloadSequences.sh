@@ -1,12 +1,9 @@
-
 #!/bin/bash
-
 
 binPath="../bin";
 
 rawSequencesPath="../../sequences_raw";
 mkdir -p $rawSequencesPath;
-
 
 urls=(
    # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102253/Coding_Sequences_AldGig_1.0.fa" # 4.45GB
@@ -16,18 +13,15 @@ urls=(
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102252/Bengal_Tiger_Machali.fasta" # 2.27GB, fasta file for PanTigT.MC genome assembly (tiger), [DOI] 10.5524/102252, http://gigadb.org/dataset/102252
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102199/GCA_004024665.1_LemCat_v1_BIUU_genomic.fna" # DS23 - 2.22GB, LemCat_v1_BIUU assembly (illumina) (ring-tailed lemur), [DOI] 10.5524/102199, http://gigadb.org/dataset/102199
 
-   # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102199/hg38.fa.gz" # 938.09MB
-   # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102199/gorGor6.fa.gz" # 903.79MB
-   # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102199/calJac4.fa.gz" # 887.99MB
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102191/Pseudobrama_simoni.genome.fa" # DS22 - 886.11MB, The genome sequence of Pseudobrama_simoni (cyprinid fish), [DOI] 10.5524/102191, http://gigadb.org/dataset/102191
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102192/Rhodeus_ocellatus.genome.fa" # DS21 -860.71MB, The genome sequence of Rhodeus_ocellatus (rosy bitterling), [DOI] 10.5524/102192, http://gigadb.org/dataset/102192
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102188/Naso_vlamingii.genome.fa" # DS20 - 821.29MB, The genome sequence of Naso_vlamingii (bignose unicornfish/zebra unicornfish), [DOI] 10.5524/102188, http://gigadb.org/dataset/102188
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102193/00_Assembly_Fasta/haplotigs/TME204.HiFi_HiC.haplotig1.fa" # DS19 - 727.09MB, CASSAVA
-   # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102199/Mmur_3.0.fa.gz" # 720.14MB
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102193/00_Assembly_Fasta/haplotigs/TME204.HiFi_HiC.haplotig2.fa" # DS18 - 673.62MB
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102187/Chaetodon_trifasciatus.genome.fa" # DS17 - 636.91MB, The genome sequence of Chaetodon_trifasciatus (Melon Butterflyfish), [DOI] 10.5524/102187, http://gigadb.org/dataset/102187
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102189/Chelmon_rostratus.genome.fa" # DS16 - 609.48MB, The genome sequence of Chelmon_rostratus (copperband butterflyfish/beaked coral fish), [DOI] 10.5524/102189, http://gigadb.org/dataset/102189
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102190/Helostoma_temminckii.genome.fa" # DS15 - 605.25MB, The genome sequence of Helostoma_temminckii (kissing fish), [DOI] 10.5524/102190, http://gigadb.org/dataset/102190
+   "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102239/131021_Filtered_Dendrobium_mutatnt-assembly.fasta.gz" # 202.24MB (.gz), De novo MaSuRCA assembled contigs of Dendrobium Emma White genome (flower), [DOI] 10.5524/102239, http://gigadb.org/dataset/102239
 
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102198/ensete_glaucum.evm.cds.fna" # 40.21MB, Coding sequences of predicted genes of Ensete glaucum genome (plant known as snow banana), [DOI] 10.5524/102198, http://gigadb.org/dataset/102198
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102173/Spheniscus_magellanicus.cds.v1.fa" # 23.49MB, coding gene nucleotide sequences (Magellanic penguin), [DOI] 10.5524/102173, http://gigadb.org/dataset/102173
@@ -46,7 +40,6 @@ urls=(
    "https://ftp.cngb.org/pub/gigadb/pub/10.5524/100001_101000/100185/reference_sequences/escherichia_coli.fasta" # 1.65KB, reference sequence of E. coli bacteria, [DOI] 10.5524/100185, http://gigadb.org/dataset/100185
 )
 
-
 # reverse urls array so that smaller sequence files are downloaded first
 urls_rev=();
 for (( i=${#urls[@]}-1; i>=0; i-- )) ; do
@@ -61,8 +54,12 @@ printf "%s\n" ${urls_rev[@]}
 #
 printf "downloading ${#urls_rev[@]} sequence files...\n"
 for url in "${urls_rev[@]}"; do
-   # gets filename by spliting in "/" and getting the last element
-   rawFile=$(echo $url | rev | cut -d'/' -f1 | rev | sed 's/\.fa\|\.fna\|\.fasta/_raw.fa/')
+
+   # gets raw filename by: 
+   #     spliting in "/" and getting the last element,
+   #     replacing all "-" for "_"; 
+   #     replacing .fa, .fna or .fasta for _raw.fa
+   rawFile=$(echo $url | rev | cut -d'/' -f1 | rev | sed 's/-/_/g' | sed 's/\.fa\|\.fna\|\.fasta/_raw.fa/')
 
    if [[ ! -f "$rawSequencesPath/$rawFile" ]]; then 
        echo "downloading $origFile file..."
@@ -71,8 +68,14 @@ for url in "${urls_rev[@]}"; do
        # no need to download a file that already exists
        echo "$rawFile has been previously downloaded"
    fi
+
+   # unzip file if it ends with .gz
+   if [[ "$rawSequencesPath/$rawFile" == *.gz ]]; then
+       gunzip -c <(curl -Ls "$url") > "$rawSequencesPath/${rawFile%.gz}"
+   fi
 done
 
-
-# # is each raw file a multifasta file or not?
+#
+# === Is each raw file a multifasta file or not? ===========================================================================
+#
 find $rawSequencesPath -maxdepth 1 -type f -exec sh -c 'echo -n "{} has how many headers? "; grep -o ">" {} | wc -l' \; > "../../sequences_info.txt"
