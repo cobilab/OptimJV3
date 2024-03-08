@@ -164,6 +164,43 @@ function PLOT() {
 EOF
 }
 #
+function PLOT_AUTO() {
+  gnuplot << EOF
+    reset
+    set title "$plot_title"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set output "$plot_file_auto"
+    set style line 101 lc rgb '#000000' lt 1 lw 2 
+    set border 3 front ls 101
+    # set tics nomirror out scale 0.01
+    set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    set style histogram clustered gap 1 title textcolor lt -1
+    set xtics border in scale 0,0 nomirror rotate by -45 autojustify
+    set yrange auto
+    set xrange auto
+    set xtics auto
+    set ytics auto
+    set format x "%.3f"  # set format to three decimals
+    set key top right
+    set style line 1 lc rgb '#990099'  pt 1 ps 0.6  # circle
+    set style line 2 lc rgb '#004C99'  pt 2 ps 0.6  # circle
+    set style line 3 lc rgb '#CCCC00'  pt 3 ps 0.6  # circle
+    #set style line 4 lc rgb '#CC0000' lt 2 dashtype '---' lw 4 pt 5 ps 0.4 # --- red
+    set style line 4 lc rgb 'red'  pt 7 ps 0.6  # circle 
+    set style line 5 lc rgb '#009900'  pt 5 ps 0.6  # circle
+    set style line 6 lc rgb '#990000'  pt 6 ps 0.6  # circle
+    set style line 7 lc rgb '#009999'  pt 4 ps 0.6  # circle
+    set style line 8 lc rgb '#99004C'  pt 8 ps 0.6  # circle
+    set style line 9 lc rgb '#CC6600'  pt 9 ps 0.6  # circle
+    set style line 10 lc rgb '#322152' pt 10 ps 0.6  # circle    
+    set style line 11 lc rgb '#425152' pt 11 ps 0.6  # circle    
+    set grid
+    set ylabel "Compression time (s)"
+    set xlabel "Average number of bits per symbol"
+    plot $plotnames
+EOF
+}
+#
 function PLOT_LOG() {
   gnuplot << EOF
     reset
@@ -181,7 +218,7 @@ function PLOT_LOG() {
     set key outside right top vertical Right noreverse noenhanced autotitle nobox
     set style histogram clustered gap 1 title textcolor lt -1
     set xtics border in scale 0,0 nomirror rotate by -45 autojustify
-    set yrange [1e-10:$bytesCF_upperBound]
+    set yrange [$bytesCF_lowerBound:$bytesCF_upperBound]
     set xrange [$bps_lowerBound:$bps_upperBound]
     set xtics auto
     set ytics auto
@@ -205,7 +242,48 @@ function PLOT_LOG() {
     plot $plotnames_log
 EOF
 }
+#
+function PLOT_AUTO_LOG() {
+  gnuplot << EOF
+    reset
 
+    # define a function to adjust zero or near-zero values
+    pseudo_log(x) = (x <= 0) ? -10 : log10(x)
+
+    set title "$plot_title_log"
+    set logscale xy 2
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set output "$plot_file_auto_log"
+    set style line 101 lc rgb '#000000' lt 1 lw 2 
+    set border 3 front ls 101
+    # set tics nomirror out scale 0.01
+    set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    set style histogram clustered gap 1 title textcolor lt -1
+    set xtics border in scale 0,0 nomirror rotate by -45 autojustify
+    set yrange auto
+    set xrange auto
+    set xtics auto
+    set ytics auto
+    set format x "%.3f"  # set format to three decimals
+    set key top right
+    set style line 1 lc rgb '#990099'  pt 1 ps 0.6  # circle
+    set style line 2 lc rgb '#004C99'  pt 2 ps 0.6  # circle
+    set style line 3 lc rgb '#CCCC00'  pt 3 ps 0.6  # circle
+    #set style line 4 lc rgb '#CC0000' lt 2 dashtype '---' lw 4 pt 5 ps 0.4 # --- red
+    set style line 4 lc rgb 'red'  pt 7 ps 0.6  # circle 
+    set style line 5 lc rgb '#009900'  pt 5 ps 0.6  # circle
+    set style line 6 lc rgb '#990000'  pt 6 ps 0.6  # circle
+    set style line 7 lc rgb '#009999'  pt 4 ps 0.6  # circle
+    set style line 8 lc rgb '#99004C'  pt 8 ps 0.6  # circle
+    set style line 9 lc rgb '#CC6600'  pt 9 ps 0.6  # circle
+    set style line 10 lc rgb '#322152' pt 10 ps 0.6  # circle    
+    set style line 11 lc rgb '#425152' pt 11 ps 0.6  # circle    
+    set grid
+    set ylabel "Compression time (s)"
+    set xlabel "Average number of bits per symbol"
+    plot $plotnames_log
+EOF
+}
 #
 # === MAIN ===========================================================================
 #
@@ -249,6 +327,8 @@ for clean_ds in ${clean_bench_dss[@]}; do
 
   plot_file="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size.pdf";
   plot_file_log="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size-log.pdf";
+  plot_file_auto="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size-auto.pdf";
+  plot_file_auto_log="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size-auto-log.pdf";
 
   plot_title="Compression efficiency of $str_genome";
   plot_title_log="Compression efficiency of $str_genome (log scale)";
@@ -256,7 +336,9 @@ for clean_ds in ${clean_bench_dss[@]}; do
   SPLIT_FILE_BY_COMPRESSOR;
   GET_PLOT_BOUNDS;
   PLOT;
+  PLOT_AUTO;
   PLOT_LOG;
+  PLOT_AUTO_LOG;
 done
 
 #
@@ -281,6 +363,8 @@ for clean_grp in ${clean_bench_grps[@]}; do
 
     plot_file="$resultsPath/plot_grp_$size/bench-plot-grp-$size.pdf";
     plot_file_log="$resultsPath/plot_grp_$size/bench-plot-grp-$size-log.pdf";
+    plot_file_auto="$resultsPath/plot_grp_$size/bench-plot-grp-$size-auto.pdf";
+    plot_file_auto="$resultsPath/plot_grp_$size/bench-plot-grp-$size-auto-log.pdf";
 
     plot_title="Compression efficiency of sequences from group $size";
     plot_title_log="Compression efficiency of sequences from group $size (log scale)";
@@ -288,5 +372,7 @@ for clean_grp in ${clean_bench_grps[@]}; do
     SPLIT_FILE_BY_COMPRESSOR;
     GET_PLOT_BOUNDS;
     PLOT;
+    PLOT_AUTO;
     PLOT_LOG;
+    PLOT_AUTO_LOG;
 done

@@ -18,10 +18,14 @@ Alternatively:
 <pre>
 cd scripts/
 chmod +x *.sh
-./CleanCandDfiles.sh # optional
-./Install_Tools.sh
-./GetSeqs.sh
+./CleanCandDfiles.sh # optional but recommended
+./InstallTools.sh
+./DownloadSequences.sh
+./PreprocessSequences.sh
+# ./CreateSequences.sh # optional
 ./CategorizeSeqBySize.sh
-./GetOptimTestsExample.sh
+./RunTestsExample.sh
+# ./SaveBenchAsTex.sh # optional 
+./ProcessBenchRes.sh
 ./Plot.sh
 </pre>

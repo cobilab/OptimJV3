@@ -251,9 +251,9 @@ for sequenceName in "${SEQUENCES_NAMES[@]}"; do
       done
 
       if $output; then
-        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${binPath}JARVIS3_output $CM $RM -o $sequence.$output_ext.seq.jc $sequence.seq" "${binPath}JARVIS3_output -d $sequence.$output_ext.seq.jc" "$run"; run=$((run+1));
+        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${binPath}JARVIS3 $CM $RM -o $sequence.$output_ext.seq.jc $sequence.seq" "${binPath}JARVIS3 -d $sequence.$output_ext.seq.jc" "$run"; run=$((run+1));
       else
-        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.seq.jc" "$sequence.seq.jc.jd" "${binPath}JARVIS3_output $CM $RM $sequence.seq" "${binPath}JARVIS3_output -d $sequence.seq.jc" "$run"; run=$((run+1));
+        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.seq.jc" "$sequence.seq.jc.jd" "${binPath}JARVIS3 $CM $RM $sequence.seq" "${binPath}JARVIS3 -d $sequence.seq.jc" "$run"; run=$((run+1));
       fi
     done
 
