@@ -9,16 +9,16 @@
 #rm sort_fanalysis.fasta.gz
 #rm sort.fa.gz
 #rm sequence_model.fasta.gz
-
+#
 # Define the lowest sequence size to be considered
 LOWEST_SIZE=100;
-
+#
 # Define the increment factor to be used on sequence sizes
 INCREMENT_FACTOR=2;
-
+#
 # Define the seed range
 SEED_RANGE=10;
-
+#
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --lowest-size|-l)
@@ -40,18 +40,18 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
-
-
+#
+#
 OUT_FILE="alcorSeq.mfa";
-
+#
 #read -p "Define the number of different sequences sizes to be considered: " SIZE_NUMBER
-
+#
 #echo "The first $SEED_RANGE prime numbers  are: "
 declare -a seed_arr=()
 declare -a size_arr=()
-
+#
 rm -fr alcorSeq*.*;
-
+#
 m=2
 while [  ${#seed_arr[@]}  -lt $SEED_RANGE ]
 do
@@ -74,12 +74,12 @@ do
     fi
     m=`expr $m + 1`
 done
-
+#
 for((i=0;i<${#seed_arr[@]}; i++ ))
 do
     echo ${seed_arr[$i]} #> prime_numbers.txt
 done
-
+#
 INCREMENT=0
 #for x in {1..$SIZE_NUMBER}
 size=$((LOWEST_SIZE))
@@ -97,10 +97,10 @@ do
     #echo $size
     ./AlcoR simulation -rs  $size:0:$seed:0:0:0 > alcorGen_$i.fa
 done
-
+#
 #for x in {0...$SEED_RANGE}
 echo ${#seed_arr[@]}
-
+#
 size=$((LOWEST_SIZE))
 INCREMENT=0
 #echo $size
@@ -117,21 +117,21 @@ do
         do
             # echo $x
             s=$(($i-1))
-            
+            #
             #size=$(($LOWEST_SIZE*$INCREMENT_FACTOR*$i))
             #size=$((1000*$i))
             #echo
             #seed=$(${seed_arr[x]})
             #if [ $i -gt $j ]
             #the
-            
+            #
             # From equation:
             #$size= $lowest_size + ($i-1)* ($INCREMENT_FACTOR) * ($lowest_size)
             #we get:
             size_diff=$(($size-$LOWEST_SIZE))
             valid_i=$(echo $(($size_diff/$INCREMENT)))
             valid_i=$(($valid_i + 1))
-            
+            #
             echo $valid_i
             echo $size " : " $s
             #echo "$size"
@@ -150,9 +150,9 @@ do
 done
 ####
 sed -i '/^$/d' $OUT_FILE
-
+#
 faFiles=( $(ls | egrep "alcorGen_") );
-
+#
 for faFile in ${faFiles[@]}; do
   seqFile=$(echo $faFile | sed 's/.fa/.seq/g');
   cat "$faFile" | grep -v ">" | tr 'agct' 'AGCT' | tr -d -c "ACGT" > "$seqFile" # removes lines with comments and non-nucleotide chars

@@ -2,7 +2,7 @@
 #!/bin/bash
 
 
-binPath="../bin";
+jv3Path="../jv3";
 
 rawSequencesPath="../../sequences_raw";
 sequencesPath="../../sequences";
@@ -22,7 +22,7 @@ for rawFaFile in "${rawFaFiles[@]}"; do
 
     if [[ ! -f $cleanFaFile ]]; then
         # this cleaning implies removing all of their headers...
-        $binPath/gto_fasta_to_seq < $rawFaFile | tr 'agct' 'AGCT' | tr -d -c "AGCT" | $binPath/gto_fasta_from_seq -n x -l 80 > $cleanFaFile
+        $jv3Path/gto_fasta_to_seq < $rawFaFile | tr 'agct' 'AGCT' | tr -d -c "AGCT" | $jv3Path/gto_fasta_from_seq -n x -l 80 > $cleanFaFile
         echo "$cleanFaFile created with success"
     else
         echo "$cleanFaFile has been previously created"

@@ -1,111 +1,122 @@
 #!/bin/bash
 #
-# ./RunTests.sh [--size xs|s|m|l|xl]1> ../results/bench-results-raw.txt 2> ../results/sterr.txt
+# === FUNCTIONS ==========================================================================
 #
-resultsPath="../optimRes";
-errPath="$resultsPath/err";
-binPath="../bin/";
-cmdsDirOutput="cmds0"; 
-#
-tsv_dsToSize="dsToSize.csv";
-declare -A dsToSize;
-#
-sizes=("xs" "s" "m" "l" "xl"); # to be able to filter SEQUENCES_NAMES to run by size
-#
-sequencesPath="../../sequences";
-ALL_SEQUENCES_IN_DIR=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) ) # ( "test" ) # manual alternative
-SEQUENCES_NAMES=() # gens that have the required size will be added here
-#
-# ==============================================================================
-#
-function LOAD_TSV_DSTOSIZE() {
-  while IFS=, read -r ds bytes size; do
-    # Skip the header line
-    if [[ "$ds" != "ds" ]]; then
-      dsToSize[$ds]=$size;
-    fi
-  done < $tsv_dsToSize;
+function SHOW_HELP() {
+  echo " -------------------------------------------------------";
+  echo "                                                        ";
+  echo " OptimJV3 - optimize JARVIS3 CM and RM parameters       ";
+  echo "                                                        ";
+  echo " Program options ---------------------------------------";
+  echo "                                                        ";
+  echo " --help|-h.....................................Show this";
+  echo " --view-datasets|--view-ds|-v....View sequences and size"; 
+  echo "                                                 of each";
+  echo "--sequence|--seq|-s..........Select sequence by its name";
+  echo "--sequence-group|--seq-grp|-sg.Select group of sequences";
+  echo "                                           by their size";
+  echo "--dataset|-ds......Select sequence by its dataset number";
+  echo "--dataset-range|--dsrange|--drange|-dr............Select";
+  echo "                   sequences by range of dataset numbers";
+  echo "--seed|-sd..............Pseudo-random seed. Value: $seed";
+  echo "                                                        ";
+  echo " -------------------------------------------------------";
 }
 #
-# === MAIN ===========================================================================
 #
-LOAD_TSV_DSTOSIZE;
+# === DEFAULT VALUES ===========================================================================
 #
-mkdir -p $cmdsDirOutput $resultsPath $errPath;
-mkdir -p naf_out mbgc_out paq8l_out;
+sequencesPath="../../sequences";
+jv3Path="../jv3/";
 #
-# Initialize variables
-timeOut=3600;
-numTests=50;
-numThreads=8;
+ds_sizesBase2="../../DS_sizesBase2.tsv";
+ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-# if one or more sizes are choosen, select all SEQUENCES_NAMES with those sizes
-for size in "${sizes[@]}"; do
-  if [[ "$*" == *"--size $size"* || "$*" == *"-sz $size"* ]]; then
-    for seq in "${ALL_SEQUENCES_IN_DIR[@]}"; do
-        if [[ "${dsToSize[$seq]}" == "$size" ]]; then
-            SEQUENCES_NAMES+=("$seq");
-        fi
-    done
-  fi
-done
+sizes=("grp1" "grp2" "grp3" "grp4" "grp5"); # sequence size groups
 #
-# if one or more sequences are choosen, add them to array if they aren't there yet
-for seq in "${ALL_SEQUENCES_IN_DIR[@]}"; do
-  if [[ "$*" == *"--sequence $seq"* || "$*" == *"--seq $seq"* || "$*" == *"-sq $seq"* ]]; then
-    if ! echo "${SEQUENCES_NAMES[@]}" | grep -q -w "$seq"; then
-      SEQUENCES_NAMES+=("$seq");
-    fi
-  fi
-done
+POPULATION=100;
+#
+ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
+SEQUENCES=();
+#
+seed=1; # JV3 seed interval: [1;599999]
+RANDOM=$seed;
 #
 #
-# if nothing is choosen, all SEQUENCES_NAMES will be selected
-if [ ${#SEQUENCES_NAMES[@]} -eq 0 ]; then
-  SEQUENCES_NAMES=("${ALL_SEQUENCES_IN_DIR[@]}");
-fi
+#== PARSING ===========================================================================
 #
-# echo ${SEQUENCES_NAMES[@]}
-#
-# Parse other command-line arguments
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    --timeout|-to)
-      timeOut="$2"
-      shift # past argument
-      shift # past value
+    --help|-h)
+      SHOW_HELP;
+      exit;
+      shift;
       ;;
-    --num-tests|-n)
-      numTests="$2"
-      shift # past argument
-      shift # past value
+    --view-datasets|--view-ds|-v)
+      cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
+      exit;
+      shift;
       ;;
-    --threads|-t)
-      numThreads="$2"
-      shift # past argument
-      shift # past value
+    --sequence|--seq|-s)
+      sequence="$2";
+      SEQUENCES+=( "$sequence" );
+      shift 2; 
       ;;
-    *) 
-      # Ignore any other arguments
+    --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
+      size="$2";
+      SEQUENCES+=( $(awk '/[[:space:]]'$size'/ { print $2 }' "$ds_sizesBase2") );
+      shift 2; 
+      ;;
+    --dataset|-ds)
+      dsnum=$(echo "$2" | tr -d "dsDS");
+      SEQUENCES+=( "$(awk '/DS'$dsnum'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
+      shift 2;
+      ;;
+    --dataset-range|--dsrange|--drange|-dr)
+      input=( $(echo "$2" | sed 's/[:/]/ /g') );
+      sortedInput=( $(printf "%s\n" ${input[@]} | sort -n ) );
+      dsmin="${sortedInput[0]}";
+      dsmax="${sortedInput[1]}";
+      SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
+      shift 2;
+      ;;
+    --population|-p)
+      POPULATION="$2";
+      shift 2; 
+      ;;
+    --seed|-sd)
+      seed="$2";
+      RANDOM=$seed;
+      shift 2;
+      ;;
+    *) # ignore any other arguments
       shift
       ;;
   esac
 done
 #
-# ------------------------------------------------------------------------------
+if [ ${#SEQUENCES[@]} -eq 0 ]; then
+  SEQUENCES=( "${ALL_SEQUENCES[@]}" );
+fi
 #
-#echo ${SEQUENCES_NAMES[7]};
-for sequenceName in "${SEQUENCES_NAMES[@]}"; do
+# === MAIN ===========================================================================
+#
+#echo ${SEQUENCES[7]};
+for sequenceName in "${SEQUENCES[@]}"; do
+    echo "sequence name: $sequenceName";
+    #
+    dsX=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
+    size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
+    #
+    dsFolder="../${dsX}";
+    if [ -d $dsFolder ]; then cp -fr $dsFolder ${dsFolder//DS/bkp_DS}; fi
+    rm -fr $dsFolder; # rewrite all generation scripts of dsX...
+    mkdir -p $dsFolder;
+    #
+    outputScript="$dsFolder/g0.sh";
+    #
     sequence="$sequencesPath/$sequenceName";
-    #
-    echo "$sequenceName";
-    ds_id=$(($(grep -n "$sequenceName", dsToSize.csv | cut -d ":" -f 1)-1));
-    size=${dsToSize[$sequenceName]};
-    # num_runs_to_repeat=1;
-    #
-    outputScript="$cmdsDirOutput/DS${ds_id}_${size}.sh";
-    rm -fr $outputScript; # rewrite output script just in case...
     #
     # PARAMETERS COMMON TO CM AND RM
     NB_I_lst=(1) # (integer {0,1,2}) manages inverted repeats
@@ -131,7 +142,7 @@ for sequenceName in "${SEQUENCES_NAMES[@]}"; do
     NB_Y_lst=(2) # (integer {0}, [1;50]) max cache size
     #
     # write stochastically generated commands
-    for ((i=1; i<=numTests; i++)); do
+    for ((i=1; i<=POPULATION; i++)); do
       min_cms=1;
       max_cms=3;
       #
@@ -174,7 +185,13 @@ for sequenceName in "${SEQUENCES_NAMES[@]}"; do
         RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
       done
       #
-      printf "${binPath}JARVIS3 $CM $RM $sequence.seq; ${binPath}JARVIS3 -d $sequence.seq.jc; \n" >> $outputScript;
+      printf "${jv3Path}JARVIS3 $CM$RM$sequence.seq \n" >> $outputScript;
+      seed=$((seed+10));
     done
+    #
+    echo "$POPULATION cmds have been written to $outputScript";
+    chmod +x $outputScript;
+    echo "$outputScript is executable";
+    echo "--------------------------------------------------";
     #
 done

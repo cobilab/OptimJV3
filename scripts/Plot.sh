@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-
-resultsPath="../optimRes";
-
+#
+resultsPath="../res0";
 sizes=("xs" "s" "m" "l" "xl");
-
 csv_dsToSize="dsToSize.csv";
 declare -A dsToSize;
-
 #
 # ==============================================================================
 #
@@ -46,7 +43,7 @@ function SPLIT_FILE_BY_COMPRESSOR() {
   mapfile -t INT_DATA < "$compressor_names";
   for dint in "${INT_DATA[@]}"; do
     if [[ $dint != PROGRAM && $dint != DS* ]]; then
-      compressor_csv="$compressor_csv_prefix$c_i.csv";
+      compressor_csv="$compressor_csv_prefix$c_i.tsv";
       grep $dint $bench_res_csv > "$compressor_csv";
       
       tmp="'$compressor_csv' u 4:5 w points ls $c_i title '$dint', ";
@@ -65,14 +62,14 @@ function SPLIT_FILE_BY_COMPRESSOR() {
 #
 function GET_PLOT_BOUNDS() {
     # row structure: Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-    Rscript -e 'summary(as.numeric(readLines("stdin")))' < <(awk '{if ($4 ~ /^[0-9.]+$/) print $4}' $csvFile) > tempX.txt
+    Rscript -e 'summary(as.numeric(readLines("stdin")))' < <(awk '{if ($4 ~ /^[0-9.]+$/) print $4}' $tsvFile) > tempX.txt
     bps_min=$(awk 'NR==2{print $1}' "tempX.txt");
     bps_Q1=$(awk 'NR==2{print $2}' "tempX.txt");
     bps_Q3=$(awk 'NR==2{print $5}' "tempX.txt");
     bps_max=$(awk 'NR==2{print $6}' "tempX.txt");
 
     # row structure: Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-    Rscript -e 'summary(as.numeric(readLines("stdin")))' < <(awk '{if ($5 ~ /^[0-9.]+$/) print $5}' $csvFile) > tempY.txt
+    Rscript -e 'summary(as.numeric(readLines("stdin")))' < <(awk '{if ($5 ~ /^[0-9.]+$/) print $5}' $tsvFile) > tempY.txt
     bytesCF_Q1=$(awk 'NR==2{print $2}' "tempY.txt");
     bytesCF_Q3=$(awk 'NR==2{print $5}' "tempY.txt");
 
@@ -176,8 +173,8 @@ function PLOT_AUTO() {
     set key outside right top vertical Right noreverse noenhanced autotitle nobox
     set style histogram clustered gap 1 title textcolor lt -1
     set xtics border in scale 0,0 nomirror rotate by -45 autojustify
-    set yrange auto
-    set xrange auto
+    set yrange restore
+    set xrange restore
     set xtics auto
     set ytics auto
     set format x "%.3f"  # set format to three decimals
@@ -260,8 +257,8 @@ function PLOT_AUTO_LOG() {
     set key outside right top vertical Right noreverse noenhanced autotitle nobox
     set style histogram clustered gap 1 title textcolor lt -1
     set xtics border in scale 0,0 nomirror rotate by -45 autojustify
-    set yrange auto
-    set xrange auto
+    set yrange restore
+    set xrange restore
     set xtics auto
     set ytics auto
     set format x "%.3f"  # set format to three decimals
@@ -305,30 +302,27 @@ LOAD_CSV_DSTOSIZE;
 #
 # === MAIN: PLOT EACH DS ===========================================================================
 #
-clean_bench_dss=( $(find "$resultsPath" -maxdepth 1 -type f -name "*bench-results-DS*-*.csv" | sort -t ' ' -k2n) );
+clean_bench_dss=( $(find "$resultsPath" -maxdepth 1 -type f -name "*DS*_*.tsv" | sort -t ' ' -k2n) );
 for clean_ds in ${clean_bench_dss[@]}; do
   header=$(head -n 1 "$clean_ds")
   IFS=' - ' read -r DSX genome size <<< "$header" # split the header into variables
-
-  # str_time="m";
-  # if [ "$size" = "xs" ] || [ "$size" = "s" ]; then # smaller files => faster tests => time measured in seconds
-  #   str_time="s";
-  # fi
-
-  gen_i=${DSX#DS};
+  #
   str_genome=${genome//_/ }
+  #
+  dsFilename="${clean_ds##*/}"  # DS${gen_i}_${size}[_top$topN].tsv
+  dsFilename="${dsFilename%.*}"  # DS${gen_i}_${size}[_top$topN]
+  #
+  tsvFile=$clean_ds;
+  #
+  plots_folder="$resultsPath/plot_${dsFilename}";
+  bench_res_csv="$resultsPath/${dsFilename}.tsv";
+  compressor_names="$plots_folder/names_${dsFilename}.txt";
+  compressor_csv_prefix="$plots_folder/${dsFilename}_c";
 
-  csvFile=$clean_ds;
-
-  plots_folder="$resultsPath/plot_ds${gen_i}_${size}";
-  bench_res_csv="$resultsPath/bench-results-DS${gen_i}-${size}.csv";
-  compressor_names="$plots_folder/names_ds$gen_i.txt";
-  compressor_csv_prefix="$plots_folder/bench-results-DS$gen_i-c";
-
-  plot_file="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size.pdf";
-  plot_file_log="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size-log.pdf";
-  plot_file_auto="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size-auto.pdf";
-  plot_file_auto_log="$resultsPath/plot_ds${gen_i}_${size}/bench-plot-ds$gen_i-$size-auto-log.pdf";
+  plot_file="$resultsPath/plot_${dsFilename}/${dsFilename}.pdf";
+  plot_file_log="$resultsPath/plot_${dsFilename}/${dsFilename}_log.pdf";
+  plot_file_auto="$resultsPath/plot_${dsFilename}/${dsFilename}_auto.pdf";
+  plot_file_auto_log="$resultsPath/plot_${dsFilename}/${dsFilename}_auto_log.pdf";
 
   plot_title="Compression efficiency of $str_genome";
   plot_title_log="Compression efficiency of $str_genome (log scale)";
@@ -344,31 +338,31 @@ done
 #
 # === MAIN: PLOT EACH GRP OF DSs BY SIZE ===========================================================================
 #
-clean_bench_grps=( $(find "$resultsPath" -maxdepth 1 -type f -name "*-grp-*" | sort -t '-' -k2,2 -k4,4 -r) );
+clean_bench_grps=( $(find "$resultsPath" -maxdepth 1 -type f -name "*grp_*top*.tsv" | sort -t '-' -k2,2 -k4,4 -r) );
 for clean_grp in ${clean_bench_grps[@]}; do
-    suffix="${clean_grp##*-grp-}";   # remove everything before the last occurrence of "-grp-"
-    size="${suffix%%.*}";            # remove everything after the first dot
-
-    # str_time="m";
-    # if [ "$size" = "xs" ] || [ "$size" = "s" ]; then # smaller files => faster tests => time measured in seconds
-    #   str_time="s";
-    # fi
-
-    csvFile=$clean_grp;
-
-    plots_folder="$resultsPath/plot_grp_$size";
-    bench_res_csv="$resultsPath/bench-results-grp-$size.csv";
-    compressor_names="$plots_folder/names_grp_$size.txt";
-    compressor_csv_prefix="$plots_folder/bench-results-grp-$size-c";
-
-    plot_file="$resultsPath/plot_grp_$size/bench-plot-grp-$size.pdf";
-    plot_file_log="$resultsPath/plot_grp_$size/bench-plot-grp-$size-log.pdf";
-    plot_file_auto="$resultsPath/plot_grp_$size/bench-plot-grp-$size-auto.pdf";
-    plot_file_auto="$resultsPath/plot_grp_$size/bench-plot-grp-$size-auto-log.pdf";
-
+    size="${clean_grp#*grp_}";
+    size="${size%%.*}";
+    size="${size%%_*}";
+    echo $size;
+    #
+    grpFilename="${clean_grp##*/}"  # grp_${size}[_top$topN].tsv
+    grpFilename="${grpFilename%.*}"  # grp_${size}[_top$topN]
+    #
+    tsvFile=$clean_grp;
+    #
+    plots_folder="$resultsPath/plot_${grpFilename}";
+    bench_res_csv="$resultsPath/${grpFilename}.tsv";
+    compressor_names="$plots_folder/names_${grpFilename}.txt";
+    compressor_csv_prefix="$plots_folder/${grpFilename}_c";
+    #
+    plot_file="$resultsPath/plot_${grpFilename}/${grpFilename}.pdf";
+    plot_file_log="$resultsPath/plot_${grpFilename}/${grpFilename}_log.pdf";
+    plot_file_auto="$resultsPath/plot_${grpFilename}/${grpFilename}_auto.pdf";
+    plot_file_auto_log="$resultsPath/plot_${grpFilename}/${grpFilename}_auto_log.pdf";
+    #
     plot_title="Compression efficiency of sequences from group $size";
     plot_title_log="Compression efficiency of sequences from group $size (log scale)";
-
+    #
     SPLIT_FILE_BY_COMPRESSOR;
     GET_PLOT_BOUNDS;
     PLOT;
