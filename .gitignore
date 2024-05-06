@@ -1,10 +1,11 @@
 # Ignore these
 scripts/*
-results/*
-optimRes*/*
+DS*/*
+bkp_*/*
+logs/*
+errors/*
+jv3/*
 
 # Except these
 !scripts/*.sh
 
-# Except except these
-scripts/optimJV3cmds

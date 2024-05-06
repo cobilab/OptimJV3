@@ -7,25 +7,24 @@
 
 ### Reproducibility: ###
 
-Change directory and give permitions:
+Install jarvis3:
 <pre>
+git clone https://github.com/cobilab/jarvis3.git
+cd jarvis3/src/
+make
+</pre>
+
+After cloning this repository:
+<pre>
+mv /path/to/jarvis3/src/JARVIS3 scripts/
 cd scripts/
 chmod +x *.sh
 ./Main.sh
+./MainGA.sh
 </pre>
 
-Alternatively:
+Help: 
 <pre>
-cd scripts/
-chmod +x *.sh
-./CleanCandDfiles.sh # optional but recommended
-./InstallTools.sh
-./DownloadSequences.sh
-./PreprocessSequences.sh
-# ./CreateSequences.sh # optional
-./CategorizeSeqBySize.sh
-./RunTestsExample.sh
-# ./SaveBenchAsTex.sh # optional 
-./ProcessBenchRes.sh
-./Plot.sh
+./Main.sh -h
+./MainGA.sh -h
 </pre>
