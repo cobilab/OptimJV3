@@ -2,7 +2,7 @@
 #
 # default variables
 POPULATION=100;
-bestN=10;
+bestN=99;
 first_gen=0;
 last_gen=300;
 sizes=("xs" "s" "m" "l" "xl");
@@ -64,10 +64,11 @@ mkdir -p $statsFolder $plotsFolder;
 #
 # get bestN results from each generation
 bestNFile="$statsFolder/best${bestN}.tsv";
-avgAndBestNOutputPlot="$plotsFolder/avgAndBest${bestN}.pdf";
+avgAndDotsBestNOutputPlot="$plotsFolder/avgAndDots_best${bestN}.pdf";
 #
-awk -F'\t' 'NR >= 3 {print $(NF-1)"\t"$4}' "$dsFolder/g${last_gen}_body.tsv" > $bestNFile;
-sort -u $bestNFile -o $bestNFile;
+( for gen in $(seq $first_gen $last_gen); do 
+    awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR<=bestN {str+="$4\t";print gen"\t"$4}' "$dsFolder/g${gen}_body.tsv"; 
+done)| uniq > $bestNFile;
 #
 # get average stats
 avgBestNFile="$statsFolder/avg_best${bestN}.tsv";
@@ -89,16 +90,19 @@ for gen in $(seq $first_gen $last_gen); do
     awk -v bestN=$bestN -v avg=$avg -v d=$denominator -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=($4-avg)^2} END {print sum/d}' "$dsFolder/g$gen.tsv"; 
 done > $varBestNFile;
 #
+sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
+#
 # plot average and bestN results
 gnuplot << EOF
+    set title "Average with $bestN best results of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
-    set output "$avgAndBestNOutputPlot"
-    set xrange [0:300]
-    plot "$bestNFile", "$avgBestNFile" with lines
+    set output "$avgAndDotsBestNOutputPlot"
+    plot "$avgBestNFile" with lines, "$bestNFile"
 EOF
 #
 # plot average
 gnuplot << EOF
+    set title "Average of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNavgOutputPlot"
     plot "$avgBestNFile" with lines
@@ -106,6 +110,7 @@ EOF
 #
 # plot variance
 gnuplot << EOF
+    set title "Variance of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNvarOutputPlot"
     plot "$varBestNFile" with lines
