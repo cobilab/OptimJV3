@@ -9,6 +9,7 @@ POPULATION=100;
 ds_range="1:1";
 nthreads=10;
 seed=1;
+si=10; # to increment seed
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
@@ -16,6 +17,11 @@ ds_sizesBase10="../../DS_sizesBase10.tsv";
 logPath="../logs";
 errPath="../errors";
 mkdir -p $logPath $errPath;
+#
+evalExtraFlags="";
+scmExtraFlags="";
+#
+model="model";
 #
 ### FUNCTIONS ###############################################################################################
 #
@@ -55,6 +61,10 @@ while [[ $# -gt 0 ]]; do
         exit;
         shift;
         ;;
+    --model-folder|--model|-m)
+        model="$2";
+        shift 2; 
+        ;;
     --sequence|--seq|-s)
         sequence="$2";
         shift 2; 
@@ -83,8 +93,9 @@ while [[ $# -gt 0 ]]; do
         MUTATION_RATE=$(echo "scale=3; $2" | bc);
         shift 2;
         ;;
-    --selection|--sel|-s) # elitist, roulette
+    --selection|--sel) # elitist, roulette
         SELECTION_OP="$2";
+        scmExtraFlags+="--sel $SELECTION_OP ";
         shift 2;
         ;;
     --crossover|--xover|-x) # xpoint, uniform
@@ -103,9 +114,40 @@ while [[ $# -gt 0 ]]; do
         LAST_GEN="$2";
         shift 2;
         ;;
+    --moga-weightned-metric|--moga-wm|--moga)
+        evalExtraFlags+="--moga ";
+        shift;
+        ;;
+    --moga-weightned-sum|--moga-ws)
+        evalExtraFlags+="--moga-ws ";
+        shift;
+        ;;
+    --p-expoent|--p-exp)
+        pExp="$2";
+        evalExtraFlags+="--p-exp $pExp ";
+        shift 2;
+        ;;
+    --weight-bps|--w-bps|-w1)
+        w_bPS="$2";
+        evalExtraFlags+="-w1 $w_bPS ";
+        shift 2;
+        ;;
+    --weight-ctime|--w-ctime|-w2)
+        w_CTIME="$2";
+        evalExtraFlags+="-w2 $w_CTIME ";
+        shift 2;
+        ;;
+    --nthreads|-t)
+        nthreads="$2";
+        shift 2;
+        ;;
     --seed|-sd)
         seed="$2";
         RANDOM=$seed;
+        shift 2;
+        ;;
+    --seed-increment|-si)
+        si="$2";
         shift 2;
         ;;
     *) 
@@ -132,32 +174,20 @@ mkdir -p $initErrPath $runErrPath $evalErrPath $scmErrPath;
 gen=$FIRST_GEN;
 #
 if [ $gen -eq 0 ]; then 
-    echo "1. INITIALIZATION";
-    ./Initialization.sh -p $POPULATION -dr "$ds_range" -sd $seed 1> $initLogPath/init.log 2> $initErrPath/init.err; # input: random ---> output: 50 cmds are written into cmds0
-    seed=$((seed+10));
-    #
-    echo "2. RUN - input: cmds0 ----> output: rawRes0";
-    ./Run.sh -g 0 -dr "$ds_range" -t $nthreads 1> $runLogPath/run0.log 2> $runErrPath/run0.err;
-    #
-    echo "3. EVALUATION - input: rawRes0 ----> output: res0";
-    ./Evaluation.sh -g 0 -dr "$ds_range" -p $POPULATION 1> $evalLogPath/eval0.log 2> $evalErrPath/eval0.err;
-    #
-    cat $initLogPath/init.log $runLogPath/run0.log $evalLogPath/eval0.log > $logPath/cga.log;
-    cat $initErrPath/init.err $runErrPath/run0.err $evalErrPath/eval0.err > $errPath/cga.err;
+    echo "1. INITIALIZATION - input: random ---> output: cmds0";
+    ./Initialization.sh -m $model -p $POPULATION -dr "$ds_range" -sd $((seed=seed+si)) 1> $initLogPath/init.log 2> $initErrPath/init.err; 
 fi
 #
-for gen in $(seq $FIRST_GEN $((LAST_GEN-1))); do 
-    nextGen=$(($gen+1));
+for gen in $(seq $FIRST_GEN $LAST_GEN); do 
+    echo "2. RUN - input: cmds$gen ----> output: res$gen";
+    ./Run.sh -m $model -g $gen -dr "$ds_range" -t $nthreads 1> $runLogPath/run$gen.log 2> $runErrPath/run$gen.err;
     #
-    echo "4. SELECTION, 5. CROSSOVER, 6.MUTATION - input: res$gen ----> output: cmds$nextGen";
-    ./SelCrossMut.sh -g $gen -dr "$ds_range" -ns 30 -cr 1 -sd $seed 1> $scmLogPath/scm$gen.log 2> $scmErrPath/scm$gen.err;
-    seed=$((seed+10));
+    echo "3. EVALUATION - input: res from current and previous generations ----> output: res$gen";
+    ./Evaluation.sh $evalExtraFlags -m $model -g $gen -dr "$ds_range" -p $POPULATION 1> $evalLogPath/eval$gen.log 2> $evalErrPath/eval$gen.err;
     #
-    echo "2. RUN - input: cmds$nextGen ----> output: res$nextGen";
-    ./Run.sh -g $nextGen -dr "$ds_range" -t $nthreads 1> $runLogPath/run$nextGen.log 2> $runErrPath/run$nextGen.err;
-    #
-    echo "3. EVALUATION - input: res$gen + res$nextGen ----> output: res$nextGen";
-    ./Evaluation.sh -g $nextGen -dr "$ds_range" -p $POPULATION 1> $evalLogPath/eval$nextGen.log 2> $evalErrPath/eval$nextGen.err;
+    nextGen=$((gen+1));
+    echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - input: res$gen ----> output: cmds$nextGen";
+    ./SelCrossMut.sh $scmExtraFlags -m $model -g $gen -dr "$ds_range" -ns 30 -cr 1 -sd $((seed=seed+si)) -si $si 1> $scmLogPath/scm$gen.log 2> $scmErrPath/scm$gen.err;
     #
     cat $scmLogPath/scm$gen.log $runLogPath/run$gen.log $evalLogPath/eval$gen.log >> $logPath/cga.log;
     cat $scmErrPath/scm$gen.err $runErrPath/run$gen.err $evalErrPath/eval$gen.err >> $errPath/cga.err;

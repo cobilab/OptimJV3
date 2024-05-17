@@ -48,18 +48,13 @@ function ELITIST_SELECTION() {
 function ROULETTE_SELECTION() {
     echo "=========================== ROULETTE SELECTION =====================================";
     # extract the bPS (bits per symbol) as array
-    dsFileInput=$resultsPath/$(basename $cmdsFileInput | sed "s/.sh/.tsv/");
+    dsFileInput=$(echo ${cmdsFileInput/_adultCmds.txt/.tsv});
     echo "ds file input: $dsFileInput; gen num: $gnum";
-    bPSvalsStr=$(awk -F '[\t]' 'NR>2{print $4}' "$dsFileInput");
-    #
-    bPSvalsArr=(); # f(x)
-    while IFS= read -r line; do
-        bPSvalsArr+=("$line")
-    done <<< "$bPSvalsStr"
+    bPSvalsArr=( $(awk -F '[\t]' 'NR>2{print $4}' "$dsFileInput") );
     echo "bPS vals, aka f(x) = ( ${bPSvalsArr[@]} )"
     #
-    bPSvalsSum="${#bPSvalsArr[@]}"
-    echo "num of f(x) vals, aka |f(x)| = $bPSvalsSum"
+    bPSvalsNum="${#bPSvalsArr[@]}"
+    echo "num of f(x) vals, aka |f(x)| = $bPSvalsNum"
     #
     # determine min and max bPS values (they're necessary because it is a minimization problem)
     bPSmin=${bPSvalsArr[0]};
@@ -112,8 +107,7 @@ function ROULETTE_SELECTION() {
     echo "updated sum of probabilities is $bPSprobsSum ~= 1";
     #
     last_bPScumSumProb=${bPScumSumProbs[-1]};
-    rouletteChoices=( $( seq 0 0.0001 $last_bPScumSumProb | sort -R --random-source=<(yes $seed) | head -n $numSelectedCmds ) );
-    seed=$((seed+10));
+    rouletteChoices=( $( seq 0 0.0001 $last_bPScumSumProb | sort -R --random-source=<(yes $((seed=seed+si))) | head -n $numSelectedCmds ) );
     #
     chosenCmds=();
     chosenCmdsIdxs=(); # for debug purposes
@@ -121,8 +115,8 @@ function ROULETTE_SELECTION() {
         for bPScumSumProbIdx in ${!bPScumSumProbs[@]}; do 
             if [ $(echo "$rndNum <= ${bPScumSumProbs[$bPScumSumProbIdx]}"|bc) -eq 1 ]; then
                 chosenCmdIdx=$bPScumSumProbIdx;
-                chosenCmds+=( "${cmds[$chosenCmdIdx]}" )
-                chosenCmdsIdxs+=( $chosenCmdIdx )
+                chosenCmds+=( "${cmds[$chosenCmdIdx]}" );
+                chosenCmdsIdxs+=( $chosenCmdIdx );
                 break
             fi
         done
@@ -132,6 +126,41 @@ function ROULETTE_SELECTION() {
     printf "%s\n" "${chosenCmds[@]}";
 }
 #
+function TOURNAMENT_SELECTION() {
+    winner="";
+    winnerIdxs=();
+    for i in $(seq 1 $numSelectedCmds); do
+        cmdIdx1=$((RANDOM%$numSelectedCmds));
+        cmdIdx2=$((RANDOM%$numSelectedCmds));
+        #
+        while : ; do
+            cmdIdx1=$((RANDOM%$numSelectedCmds));
+            if [ $(printf "%s \n" "${winnerIdxs[@]}" | grep -w $cmdIdx1 -c) -eq 0 ]; then
+                break
+            fi
+        done
+        #
+        while : ; do
+            cmdIdx2=$((RANDOM%$numSelectedCmds));
+            if [ $(printf "%s \n" "${winnerIdxs[@]}" | grep -w $cmdIdx2 -c) -eq 0 ]; then
+                break
+            fi
+        done
+        #
+        if [ $cmdIdx1 -lt $cmdIdx2 ]; then
+            winnerIdx=$cmdIdx1;
+        else
+            winnerIdx=$cmdIdx2;
+        fi
+        #
+        winnerIdxs+=($winnerIdx);
+        winner="[idx $winnerIdx] ${cmds[$winnerIdx]}";
+        printf "$i  winner between [idx $cmdIdx1] and [idx $cmdIdx2]: $winner\n";
+        winner="$(echo $winner | awk -F'] ' '{print $2}')";
+        chosenCmds+=( "$winner" );
+    done
+}
+#
 ### CROSSOVER FUNCTIONS ###############################################################################################
 #
 function XPOINT_CROSSOVER() {              
@@ -139,8 +168,7 @@ function XPOINT_CROSSOVER() {
     # choose cross points indexes
     maxNumCrosspoints=2;
     numCrosspoints=$((RANDOM % $maxNumCrosspoints + 1));
-    crossPointIdxs=( $( seq 0 1 $((NUM_PARAMS_PER_MODEL-1)) | sort -R --random-source=<(yes $seed) | head -n $numCrosspoints | sort ) ); 
-    seed=$((seed+10));
+    crossPointIdxs=( $( seq 0 1 $((NUM_PARAMS_PER_MODEL-1)) | sort -R --random-source=<(yes $((seed=seed+si))) | head -n $numCrosspoints | sort ) ); 
     #
     # xpointCrossoverMask is used to create the actual crossoverMask, where 0 => bit equals previous bit and 1 => bit difers from previous one
     xpointCrossoverMask=(0 0 0 0 0 0 0 0);
@@ -266,8 +294,8 @@ function FLAT_CROSSOVER() {
             cmParamMax=${cmParam1and2sorted[-1]};
             #
             # random real number choosen from U(cmParamMin, cmParamMax)
-            childParam=$( seq $cmParamMin 0.1 $cmParamMax | sort -R --random-source=<(yes $seed) | head -n 1 );
-            seed=$((seed+10));
+            childParam=$( seq $cmParamMin 0.1 $cmParamMax | sort -R --random-source=<(yes $((seed=seed+si))) | head -n 1 );
+    
             #
             # round number to int if param type is int
             if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then
@@ -358,6 +386,9 @@ SEQUENCES=();
 DEFAULT_SEED=0;
 seed=$DEFAULT_SEED;
 RANDOM=$seed;
+si=10; # seed increment
+#
+model="model";
 #
 ### PARSING ###############################################################################################
 #
@@ -373,6 +404,10 @@ while [[ $# -gt 0 ]]; do
         cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
         exit;
         shift;
+        ;;
+    --model-folder|--model|-m)
+        model="$2";
+        shift 2; 
         ;;
     --sequence|--seq|-s)
         sequence="$2";
@@ -409,7 +444,7 @@ while [[ $# -gt 0 ]]; do
         MUTATION_RATE=$(echo "scale=3; $2" | bc);
         shift 2;
         ;;
-    --selection|--sel|-s) # elitist, roulette
+    --selection|--sel) # elitist, roulette, tournament
         SELECTION_OP="$2";
         shift 2;
         ;;
@@ -426,6 +461,10 @@ while [[ $# -gt 0 ]]; do
         RANDOM=$seed;
         shift 2;
         ;;
+    --seed-increment|-si)
+        si="$2";
+        shift 2;
+        ;;
     *) 
         # ignore any other arguments
         shift;
@@ -437,23 +476,23 @@ if [ ${#SEQUENCES[@]} -eq 0 ]; then
   SEQUENCES=( "${ALL_SEQUENCES[@]}" );
 fi
 #
-# cmds input filename
-resultsPath="../res$gnum";
-#
 echo "${SEQUENCES[@]}"
 for sequenceName in "${SEQUENCES[@]}"; do
-    dsX=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
-    size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
-    cmdsFilesInput+=( "../$dsX/g${gnum}_adultCmds.txt" );
+    ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
+    #
+    currentAdultCmdsFile="../${ds}/$model/*adultCmds.txt";
+    cmdsFilesInput+=( $( ls $currentAdultCmdsFile) );
+    #
     echo "cmds files input: ";
     printf "%s\n" ${cmdsFilesInput[@]}; 
 done
 #
-# FILE WITH CMDS TO COMPRESS A $sequence IS HERE
+# 
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
-    cmdsFileOutput="${cmdsFileInput/g${gnum}_adultCmds.txt/g$((gnum+1)).sh}";
-    rm -fr $cmdsFileOutput;
+    dsFolder=$(dirname $cmdsFileInput);
+    nextGen=$((gnum+1));
+    cmdsFileOutput="$dsFolder/g$nextGen.sh";
     #
     echo "========================================================";
     echo "=== ADULT CMDS FILE INPUT: $cmdsFileInput ====";
@@ -468,10 +507,12 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
     ### SELECTION ###############################################################################################
     #
-    if [ "$SELECTION_OP" = "elitist" ]; then
+    if [ "$SELECTION_OP" = "elitist" ] || [ "$SELECTION_OP" = "e" ]; then
         ELITIST_SELECTION;
-    elif [ "$SELECTION_OP" = "roulette" ]; then
+    elif [ "$SELECTION_OP" = "roulette" ] || [ "$SELECTION_OP" = "r" ]; then
         ROULETTE_SELECTION;
+    elif [ "$SELECTION_OP" = "tournament" ] || [ "$SELECTION_OP" = "t" ]; then
+        TOURNAMENT_SELECTION;
     fi
     #
     crossoverNum=1;
@@ -665,11 +706,11 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
         #
         printf "after crossing and possible mutation (without -o arg):\n$command\n$command2\n"
         #
-        # add child only if it's different from any adult cmd and child
-        dsX=$(echo "$cmdsFileInput" | awk -F 'DS|/' '{print $3}');
+        
         #
-        # all children from prev generations that are evaluated become adults so this approach can be done
-        cmd1SameAsParent=$(cat ../DS${dsX}/g*.sh | grep -c "$command");
+        # add child cmd only if it's different from any adult cmd and child
+        allRawRes="${dsFolder}/*allRawRes.tsv";
+        cmd1SameAsParent=$(awk -F'\t' 'NR>2{print $NF}' $allRawRes | grep -c "$command");
         if [ $cmd1SameAsParent -eq 0 ] && [[ ! " ${childCmds[@]} " =~ "$command" ]]; then
             echo "child added to childCmds array: $command";
             childCmds+=("$command");
@@ -677,7 +718,7 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
             echo "already executed: $command";
         fi
         #
-        cmd2SameAsParent=$(cat ../DS${dsX}/g*.sh | grep -c "$command2");
+        cmd2SameAsParent=$(awk -F'\t' 'NR>2{print $NF}' $allRawRes | grep -c "$command2");
         if [ $cmd2SameAsParent -eq 0 ] && [[ ! " ${childCmds[@]} " =~ "$command2" ]]; then
             echo "child added to childCmds array: $command2";
             childCmds+=("$command2");
@@ -700,6 +741,7 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     done
     #
     if [ ${#childCmds[@]} -eq 0 ]; then
+        dsX=$(echo "$cmdsFileInput" | awk -F 'DS|/' '{print $3}');
         echo "NO NEW OFFSPRING - POPULATION STAGNATION OF DS${dsX}";
     fi
     #

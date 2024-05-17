@@ -39,9 +39,15 @@ POPULATION=100;
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
 #
+min_cms=1;
+max_cms=3;
+min_rms=0;
+max_rms=2;
+#
 seed=1; # JV3 seed interval: [1;599999]
 RANDOM=$seed;
 #
+model="model";
 #
 #== PARSING ===========================================================================
 #
@@ -57,6 +63,10 @@ while [[ $# -gt 0 ]]; do
       cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
       exit;
       shift;
+      ;;
+    --model-folder|--model|-m)
+      model="$2";
+      shift 2; 
       ;;
     --sequence|--seq|-s)
       sequence="$2";
@@ -83,6 +93,22 @@ while [[ $# -gt 0 ]]; do
       ;;
     --population|-p)
       POPULATION="$2";
+      shift 2;
+      ;;
+    --min-cm|--m-cm|-mCM)
+      min_cms="$2";
+      shift 2;
+      ;;
+    --max-cm|--M-cm|-MCM)
+      max_cms="$2";
+      shift 2;
+      ;;
+    --min-rm|--m-rm|-mRM)
+      min_rms="$2";
+      shift 2;
+      ;;
+    --max-rm|--M-rm|-MRM)
+      max_rms="$2";
       shift 2; 
       ;;
     --seed|-sd)
@@ -109,7 +135,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     dsX=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
     #
-    dsFolder="../${dsX}";
+    dsFolder="../${dsX}/$model";
     if [ -d $dsFolder ]; then cp -fr $dsFolder ${dsFolder//DS/bkp_DS}; fi
     rm -fr $dsFolder; # rewrite all generation scripts of dsX...
     mkdir -p $dsFolder;
@@ -133,7 +159,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     #
     # RM PARAMETERS
     # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
-    NB_C_rm_lst=(12 13) # RM size. higher values -> more RAM -> better compression
+    NB_C_rm_lst=(12 13 14) # RM size. higher values -> more RAM -> better compression
     NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of repeat models
     NB_B_lst=($(seq 0.5 0.1 0.9)) # (real (0;1]) beta. discards or keeps a repeat model
     NB_L_lst=( {4..9} ) # (integer (1;20]) limit threshold; has dependency with NB_B
@@ -143,8 +169,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
     #
     # write stochastically generated commands
     for ((i=1; i<=POPULATION; i++)); do
-      min_cms=1;
-      max_cms=3;
       #
       # can go from 1 to 5
       num_cms=$((RANDOM % (max_cms - min_cms + 1) + min_cms));
@@ -163,9 +187,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
         #
         CM+="-cm ${NB_C}:${NB_D}:${NB_I}:${NB_G}/${NB_S}:${NB_E}:${NB_R}:${NB_A} ";
       done
-      #
-      min_rms=0;
-      max_rms=1;
       #
       # can go from 0 to 2
       num_rms=$((RANDOM % (max_rms - min_rms + 1) + min_rms));

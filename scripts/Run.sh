@@ -62,7 +62,7 @@ function RUN_TEST() {
   #
   if [ -e "$FILEC" ]; then
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
-    BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc);
+    BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc); # bits per symbol
   else 
     BYTES_CF=-1;
     BPS=-1;
@@ -98,7 +98,8 @@ function RUN_TEST() {
   CMP_SIZE=`ls -la $cmp | awk '{ print $5}'`;
   if [[ "$CMP_SIZE" != "0" ]]; then CMP_SIZE="1"; fi
   #
-  printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t$C_COMMAND\n" 1>> "$resOutput";
+  pattern=" -o ../../sequences/*.seq.jc ";
+  printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t${C_COMMAND/$pattern}\n" 1>> "$resOutput";
   #
   rm -fr $c_time_mem $d_time_mem $cmp;   
   rm -fr $FILEC $FILED;
@@ -120,7 +121,14 @@ ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac)
 SEQUENCES=();
 #
 timeOut=3600;
-nthreads=$(( $(nproc --all)-2 ));
+#
+if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system
+  nthreads=$(( $(nproc --all)/3 )); 
+else
+  nthreads=$(( $(nproc --all)-2 )); 
+fi
+#
+model="model";
 #
 # remove output files and dirs from last time Run.sh was executed
 rm -fr *c_time_mem.txt *d_time_mem.txt *cmp.txt; 
@@ -139,6 +147,10 @@ while [[ $# -gt 0 ]]; do
       cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
       exit;
       shift;
+      ;;
+    --model-folder|--model|-m)
+      model="$2";
+      shift 2; 
       ;;
     --sequence|--seq|-s)
       sequence="$2";
@@ -173,7 +185,7 @@ while [[ $# -gt 0 ]]; do
       shift
       shift
       ;;
-    --threads|-t)
+    --nthreads|-t)
       nthreads="$2";
       shift
       shift
@@ -197,12 +209,12 @@ for sequenceName in "${SEQUENCES[@]}"; do
     dsX=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
     #
-    dsFolder="../${dsX}";
+    dsFolder="../${dsX}/$model";
     cmdsScriptInput="$dsFolder/g${gnum}.sh"; 
     CHECK_INPUT "$cmdsScriptInput";
     #
     resOutput_header="$dsFolder/g${gnum}_header.txt";
-    printf "$dsX - $sequenceName \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tRUN\tC_COMMAND\n" 1> "$resOutput_header";
+    printf "$dsX - $sequenceName - generation${gnum} \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tBIRTH_GEN\tC_COMMAND\n" 1> "$resOutput_header";
     #
     # run tests from generation $gnum
     sequence="$sequencesPath/$sequenceName";
@@ -250,10 +262,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
     resOutput="$dsFolder/g${gnum}_raw.tsv";
     cat $resOutput_header $resOutput_body > $resOutput;
     #
-    # remove splitted cmd scripts and header
-    rm -fr $dsFolder/*"_splitted_"* $resOutput_header;
-    #
-    # remove splitted results and header 
-    # rm -fr $resOutput_body $resOutput_header;
-    #
+    # remove splitted cmd scripts, children script, and header
+    rm -fr $dsFolder/*"_splitted_"* $cmdsScriptInput $resOutput_header;
 done
