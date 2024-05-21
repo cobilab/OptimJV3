@@ -112,15 +112,15 @@ gnuplot << EOF
     set y2tics nomirror
     #
     set output "$avgAndDotsBestNOutputPlot_bps_ctime"
-    plot "$avgBestNFile" with lines title "avg bps", \
+    plot "$avgBestNFile" with lines title "avg bps (best $bestN)", \
     "$bestNFile" title "$bestN best bps", \
-    "$avgBestNFile_ctime" with lines axes x1y2 title "avg c time"
+    "$avgBestNFile_ctime" with lines axes x1y2 title "avg c time (best $bestN)"
 EOF
 #
 # plot bps average, bestN bps results, cumsum ctime avg
 avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime.pdf";
 gnuplot << EOF
-    set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
+    set title "Avg bPS and cumulative sum of avg CTIME of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
     #
@@ -133,15 +133,15 @@ gnuplot << EOF
     set y2tics nomirror
     #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-    plot "$avgBestNFile" with lines title "avg bps", \
+    plot "$avgBestNFile" with lines title "avg bps (best $bestN)", \
     "$bestNFile" title "$bestN best bps", \
-    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time"
+    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)"
 EOF
 #
 # plot bps average
 bestNavgOutputPlot="$plotsFolder/avg_best${bestN}.pdf";
 gnuplot << EOF
-    set title "Average of $sequenceName for the $bestN most optimal bPS values"
+    set title "Average BPS of $sequenceName (best $bestN)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNavgOutputPlot"
     plot "$avgBestNFile" with lines
@@ -150,7 +150,7 @@ EOF
 # plot bps variance
 bestNvarOutputPlot="$plotsFolder/var_best${bestN}.pdf";
 gnuplot << EOF
-    set title "Variance of $sequenceName for the $bestN most optimal bPS values"
+    set title "BPS variance of $sequenceName (best $bestN)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNvarOutputPlot"
     plot "$varBestNFile" with lines

@@ -67,24 +67,28 @@ statsFolder="$dsFolder/cmp_stats";
 plotsFolder="$dsFolder/cmp_plots";
 mkdir -p $statsFolder $plotsFolder;
 #
+statsFolder="$statsFolder/${model1}_minus_${model2}";
+plotsFolder="$plotsFolder/${model1}_minus_${model2}";
+mkdir -p $statsFolder $plotsFolder;
+#
 # get average stats diff (bps)
 avgBestNFile="$statsFolder/avg_best${bestN}.tsv";
-paste $dsFolder/$model1/stats/avg_best${bestN}.tsv $dsFolder/$model2/stats/avg_best${bestN}.tsv | awk '{print $2-$1}' > $avgBestNFile;
+paste $dsFolder/$model1/stats/avg_best${bestN}.tsv $dsFolder/$model2/stats/avg_best${bestN}.tsv | awk '{print $1-$2}' > $avgBestNFile;
 #
 # get cumsum average stats diff (c_time)
 avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime.tsv";
-paste $dsFolder/$model1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$model2/stats/avg_best${bestN}_cctime.tsv | awk '{print $2-$1}' > $avgBestNFile_cctime;
+paste $dsFolder/$model1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$model2/stats/avg_best${bestN}_cctime.tsv | awk '{print $1-$2}' > $avgBestNFile_cctime;
 #
 # get variance stats diff (bps)
 varBestNFile="$statsFolder/var_best${bestN}.tsv";
-paste $dsFolder/$model1/stats/var_best${bestN}.tsv $dsFolder/$model2/stats/var_best${bestN}.tsv | awk '{print $2-$1}' > $varBestNFile;
+paste $dsFolder/$model1/stats/var_best${bestN}.tsv $dsFolder/$model2/stats/var_best${bestN}.tsv | awk '{print $1-$2}' > $varBestNFile;
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
 # plot bps average, bestN bps results, cumsum ctime avg
 avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime.pdf";
 gnuplot << EOF
-    set title "Average bPS with $bestN most optimal bPS values of $sequenceName (diff)"
+    set title "Difference between ${model1//_/} and ${model2//_/} for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
     #
@@ -97,14 +101,14 @@ gnuplot << EOF
     set y2tics nomirror
     #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-    plot "$avgBestNFile" with lines title "avg bps (diff)", \
-    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (diff)"
+    plot "$avgBestNFile" with lines title "avg bps (best $bestN)", \
+    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)"
 EOF
 #
 # plot bps average
 bestNavgOutputPlot="$plotsFolder/avg_best${bestN}.pdf";
 gnuplot << EOF
-    set title "Average of $sequenceName for the $bestN most optimal bPS values (diff)"
+    set title "Difference between avg bPS values of ${model1//_/} and ${model2//_/} (best $bestN) for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNavgOutputPlot"
     plot "$avgBestNFile" with lines
@@ -113,7 +117,7 @@ EOF
 # plot bps variance
 bestNvarOutputPlot="$plotsFolder/var_best${bestN}.pdf";
 gnuplot << EOF
-    set title "Variance of $sequenceName for the $bestN most optimal bPS values (diff)"
+    set title "Difference between var bPS values of ${model1//_/} and ${model2//_/} (best $bestN) for sequence $sequenceName
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNvarOutputPlot"
     plot "$varBestNFile" with lines
