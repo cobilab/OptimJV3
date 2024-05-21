@@ -486,7 +486,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
     echo "cmds files input: ";
     printf "%s\n" ${cmdsFilesInput[@]}; 
 done
-#
 # 
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
@@ -704,9 +703,7 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
         command=$(echo $substr_before_cm_or_rm $cms_str $rms_str $substr_after_cm_and_rm)
         command2=$(echo $substr_before_cm_or_rm2 $cms_str2 $rms_str2 $substr_after_cm_and_rm2)
         #
-        printf "after crossing and possible mutation (without -o arg):\n$command\n$command2\n"
-        #
-        
+        printf "after crossing and possible mutation (without -o arg):\n$command\n$command2\n"   
         #
         # add child cmd only if it's different from any adult cmd and child
         allRawRes="${dsFolder}/*allRawRes.tsv";

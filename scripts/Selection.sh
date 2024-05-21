@@ -157,6 +157,8 @@ function TOURNAMENT_SELECTION() {
     done
 }
 #
+# === CROSSOVER FUNCTIONS ================================================================================================
+#
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
@@ -261,9 +263,9 @@ done
 # 
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
-    dsFolder=$(dirname $cmdsFileInput);
+    dsModelFolder=$(dirname $cmdsFileInput);
     nextGen=$((gnum+1));
-    selCmdsFileOutput="$dsFolder/selAdultCmds.txt";
+    selCmdsFileOutput="$dsModelFolder/selAdultCmds.txt";
     #
     echo "========================================================";
     echo "=== ADULT CMDS FILE INPUT: $cmdsFileInput ====";
@@ -286,6 +288,20 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
         TOURNAMENT_SELECTION;
     fi
     #
-    printf "%s \n" "${chosenCmds[@]}" | nl;
     printf "%s \n" "${chosenCmds[@]}" > $selCmdsFileOutput;
+    #
+    numUniqueCmds=$(sort $selCmdsFileOutput | uniq -c | wc -l);
+    echo $numUniqueCmds;
+    if [ $numUniqueCmds -eq $numSelectedCmds ]; then 
+        echo "There are no duplicated cmds";
+    else
+        echo "These cmds have been chosen more than once:";
+        sort $cmdsFileInput | uniq -dc;
+        #
+        selCmdsFileOutputTMP="$dsModelFolder/selAdultCmdsTMP.txt"
+        sort $selCmdsFileOutput | uniq > $selCmdsFileOutputTMP;
+        cat $selCmdsFileOutputTMP > $cmdsFileInput;
+        rm -fr $selCmdsFileOutputTMP;
+        echo "Duplicate cmds have been removed";
+    fi
 done
