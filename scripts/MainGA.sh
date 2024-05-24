@@ -2,7 +2,7 @@
 #
 ### DEFAULT VALUES ###############################################################################################
 #
-FIRST_GEN=0;
+FIRST_GEN=1;
 LAST_GEN=100;
 POPULATION=100;
 #
@@ -173,7 +173,7 @@ mkdir -p $initErrPath $runErrPath $evalErrPath $scmErrPath;
 #
 gen=$FIRST_GEN;
 #
-if [ $gen -eq 0 ]; then 
+if [ $gen -eq 1 ]; then 
     echo "1. INITIALIZATION - input: random ---> output: cmds0";
     ./Initialization.sh -m $model -p $POPULATION -dr "$ds_range" -sd $((seed=seed+si)) 1> $initLogPath/init.log 2> $initErrPath/init.err; 
 fi

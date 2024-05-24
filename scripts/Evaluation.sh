@@ -127,7 +127,7 @@ for ds in ${datasets[@]}; do
    # get raw results of all generations
    currentRawResFile="$dsFolder/g${gnum}_raw.tsv";
    allRawResFile="$dsFolder/allRawRes.tsv";
-   if [ $gnum -eq 0 ]; then
+   if [ $gnum -eq 1 ]; then
        head -n +2 $currentRawResFile | sed -e 's/ - generation.//' > $allRawResFile;
    fi
    tail -n +3 $currentRawResFile >> $allRawResFile;

@@ -99,6 +99,7 @@ gnuplot << EOF
     # Set up the axis on the right side for C time
     set y2label "C TIME (s)"
     set y2tics nomirror
+    # set y2range [0:300]
     #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
     plot "$avgBestNFile" with lines title "avg bps (best $bestN)", \
