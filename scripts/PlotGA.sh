@@ -2,7 +2,7 @@
 #
 # default variables
 POPULATION=100;
-bestN=90;
+bestN=50;
 first_gen=0;
 last_gen=300;
 dsx="DS1";
@@ -65,26 +65,48 @@ mkdir -p $statsFolder $plotsFolder;
 # get bestN results from each generation (bps)
 bestNFile="$statsFolder/best${bestN}.tsv";
 ( for gen in $(seq $first_gen $last_gen); do 
-    awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR>2 && NR<=2+bestN {str+="$4\t";print gen"\t"$4}' "$dsFolder/g${gen}.tsv"; 
+    awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR>2 && NR<=2+bestN {print gen"\t"$4}' "$dsFolder/g${gen}.tsv"; 
 done ) | sort -n -k1 -k2 | uniq > $bestNFile;
 #
-# get average stats (bps)
+# get best result from each generation (bps)
+bestFile="$statsFolder/best.tsv";
+( for gen in $(seq $first_gen $last_gen); do 
+    awk -F'\t' -v gen=$gen 'NR==3 {print $4}' "$dsFolder/g${gen}.tsv"; 
+done ) > $bestFile;
+#
+# get average stats (bps) (all)
+avgAllFile="$statsFolder/avg_all.tsv";
+for gen in $(seq $first_gen $last_gen); do 
+    awk -v p=$POPULATION -F'\t' 'NR >= 3 {sum+=$4} END {print sum/p}' "$dsFolder/g$gen.tsv"; 
+done > $avgAllFile;
+#
+# get average stats (bps) (bestN)
 avgBestNFile="$statsFolder/avg_best${bestN}.tsv";
 for gen in $(seq $first_gen $last_gen); do 
     awk -v bestN=$bestN -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=$4} END {print sum/bestN}' "$dsFolder/g$gen.tsv"; 
 done > $avgBestNFile;
 #
-# get average stats (c_time)
+# get average stats (c_time) (all)
+avgAllFile_ctime="$statsFolder/avg_all_ctime.tsv";
+for gen in $(seq $first_gen $last_gen); do 
+    awk -v p=$POPULATION -F'\t' 'NR >= 3 {sum+=$5} END {print sum/p}' "$dsFolder/g$gen.tsv"; 
+done > $avgAllFile_ctime;
+#
+# get average stats (c_time) (bestN)
 avgBestNFile_ctime="$statsFolder/avg_best${bestN}_ctime.tsv";
 for gen in $(seq $first_gen $last_gen); do 
     awk -v bestN=$bestN -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=$5} END {print sum/bestN}' "$dsFolder/g$gen.tsv"; 
 done > $avgBestNFile_ctime;
 #
-# get cumsum average stats (c_time)
-avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime.tsv";
-awk -v bestN=$bestN -F'\t' '{csum+=$1; print csum}' "$avgBestNFile_ctime" > $avgBestNFile_cctime;
+# get cumsum average stats (c_time) (all)
+avgAllFile_cctime="$statsFolder/avg_all_cctime.tsv";
+awk -F'\t' '{csum+=$1; print csum}' "$avgAllFile_ctime" > $avgAllFile_cctime;
 #
-# get variance stats (bps)
+# get cumsum average stats (c_time) (bestN)
+avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime.tsv";
+awk -F'\t' '{csum+=$1; print csum}' "$avgBestNFile_ctime" > $avgBestNFile_cctime;
+#
+# get variance stats (bps) (bestN) 
 varBestNFile="$statsFolder/var_best${bestN}.tsv";
 for gen in $(seq $first_gen $last_gen); do 
     avg=$(awk -F'\t' 'NR == gen+1 {print $1}' $avgBestNFile);
@@ -112,9 +134,12 @@ gnuplot << EOF
     set y2tics nomirror
     #
     set output "$avgAndDotsBestNOutputPlot_bps_ctime"
-    plot "$avgBestNFile" with lines title "avg bps (best $bestN)", \
-    "$bestNFile" title "$bestN best bps", \
-    "$avgBestNFile_ctime" with lines axes x1y2 title "avg c time (best $bestN)"
+    plot "$avgAllFile" with lines title "avg bps (all)", \
+    "$avgBestNFile" with lines title "avg bps (best $bestN)", \
+    "$bestFile" with lines title "best bps", \
+    "$avgAllFile_ctime" with lines axes x1y2 title "avg c time (all)", \
+    "$avgBestNFile_ctime" with lines axes x1y2 title "avg c time (best $bestN)", \
+    "$bestNFile" title "$bestN best bps"
 EOF
 #
 # plot bps average, bestN bps results, cumsum ctime avg
@@ -133,9 +158,12 @@ gnuplot << EOF
     set y2tics nomirror
     #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-    plot "$avgBestNFile" with lines title "avg bps (best $bestN)", \
-    "$bestNFile" title "$bestN best bps", \
-    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)"
+    plot "$avgAllFile" with lines title "avg bps (all)", \
+    "$avgBestNFile" with lines title "avg bps (best $bestN)", \
+    "$bestFile" with lines title "best bps", \
+    "$avgAllFile_cctime" with lines axes x1y2 title "csum avg c time (all)", \
+    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)", \
+    "$bestNFile" title "$bestN best bps"
 EOF
 #
 # plot bps average
@@ -144,7 +172,8 @@ gnuplot << EOF
     set title "Average BPS of $sequenceName (best $bestN)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNavgOutputPlot"
-    plot "$avgBestNFile" with lines
+    plot "$avgAllFile" with lines title "avg bps (all)", \
+    "$avgBestNFile" with lines title "avg bps (best $bestN)", \
 EOF
 #
 # plot bps variance
