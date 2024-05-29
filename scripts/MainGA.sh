@@ -70,7 +70,7 @@ while [[ $# -gt 0 ]]; do
         shift 2; 
         ;;
     --dataset|-ds)
-        ds="$2";
+        ds_range="$2:$2";
         shift 2;
         ;;
     --dataset-range|--dsrange|--drange|-dr)
