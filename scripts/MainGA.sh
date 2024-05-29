@@ -157,6 +157,10 @@ logPath="../DS${ds_range/:/_}_logs";
 errPath="../DS${ds_range/:/_}_errors";
 mkdir -p $logPath $errPath;
 #
+logPath="$logPath/$ga";
+errPath="$errPath/$ga";
+mkdir -p $logPath $errPath;
+#
 initLogPath="$logPath/init";
 runLogPath="$logPath/run";
 evalLogPath="$logPath/eval";
