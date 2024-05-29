@@ -140,7 +140,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     rm -fr $dsFolder; # rewrite all generation scripts of dsX...
     mkdir -p $dsFolder;
     #
-    outputScript="$dsFolder/g0.sh";
+    outputScript="$dsFolder/g1.sh";
     #
     sequence="$sequencesPath/$sequenceName";
     #

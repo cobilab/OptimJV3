@@ -174,7 +174,7 @@ mkdir -p $initErrPath $runErrPath $evalErrPath $scmErrPath;
 gen=$FIRST_GEN;
 #
 if [ $gen -eq 1 ]; then 
-    echo "1. INITIALIZATION - input: random ---> output: cmds0";
+    echo "1. INITIALIZATION - input: random ---> output: cmds1";
     ./Initialization.sh -m $model -p $POPULATION -dr "$ds_range" -sd $((seed=seed+si)) 1> $initLogPath/init.log 2> $initErrPath/init.err; 
 fi
 #

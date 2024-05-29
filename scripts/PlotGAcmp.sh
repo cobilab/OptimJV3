@@ -71,11 +71,19 @@ statsFolder="$statsFolder/${model1}_minus_${model2}";
 plotsFolder="$plotsFolder/${model1}_minus_${model2}";
 mkdir -p $statsFolder $plotsFolder;
 #
-# get average stats diff (bps)
+# get average stats diff (bps) (all)
+avgAllFile="$statsFolder/avg_all.tsv";
+paste $dsFolder/$model1/stats/avg_all.tsv $dsFolder/$model2/stats/avg_all.tsv | awk '{print $1-$2}' > $avgAllFile;
+#
+# get average stats diff (bps) (bestN)
 avgBestNFile="$statsFolder/avg_best${bestN}.tsv";
 paste $dsFolder/$model1/stats/avg_best${bestN}.tsv $dsFolder/$model2/stats/avg_best${bestN}.tsv | awk '{print $1-$2}' > $avgBestNFile;
 #
-# get cumsum average stats diff (c_time)
+# get cumsum average stats diff (c_time) (all)
+avgAllFile_cctime="$statsFolder/avg_all_cctime.tsv";
+paste $dsFolder/$model1/stats/avg_all_cctime.tsv $dsFolder/$model2/stats/avg_all_cctime.tsv | awk '{print $1-$2}' > $avgAllFile_cctime;
+#
+# get cumsum average stats diff (c_time) (bestN)
 avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime.tsv";
 paste $dsFolder/$model1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$model2/stats/avg_best${bestN}_cctime.tsv | awk '{print $1-$2}' > $avgBestNFile_cctime;
 #
@@ -85,8 +93,8 @@ paste $dsFolder/$model1/stats/var_best${bestN}.tsv $dsFolder/$model2/stats/var_b
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
-# plot bps average, bestN bps results, cumsum ctime avg
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime.pdf";
+# plot bps average, bestN bps results, cumsum ctime avg (all and best)
+avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_cctime.pdf";
 gnuplot << EOF
     set title "Difference between ${model1//_/} and ${model2//_/} for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -101,15 +109,55 @@ gnuplot << EOF
     set y2tics nomirror
     # set y2range [0:300]
     #
+    # set up the axis below for generation
+    set xlabel "Generation"
+    set xtics nomirror
+    #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-    plot "$avgBestNFile" with lines title "avg bps (best $bestN)", \
+    plot "$avgAllFile" with lines title "avg bps (all)", \
+    "$avgBestNFile" with lines title "avg bps (best $bestN)", \
+    "$avgAllFile_cctime" with lines axes x1y2 title "csum avg c time (all)", \
     "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)"
+EOF
+#
+# plot bps average, bestN bps results, cumsum ctime avg
+avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime.pdf";
+gnuplot << EOF
+    set title "Average bPS with $bestN most optimal bPS values of $sequenceName (diff)"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    #
+    # Set up the axis on the left side for bps
+    set ylabel "bPS"
+    set ytics nomirror
+    #
+    # Set up the axis on the right side for C time
+    set y2label "C TIME (s)"
+    set y2tics nomirror
+    #
+    # set up the axis below for generation
+    set xlabel "Generation"
+    set xtics nomirror
+    #
+    set output "$avgAndDotsBestNOutputPlot_bps_cctime"
+    plot "$avgBestNFile" with lines title "avg bps (diff)", \
+    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (diff)"
+EOF
+#
+# plot bps average (all and best)
+bestNavgOutputPlot="$plotsFolder/avg_allAndbest${bestN}.pdf";
+gnuplot << EOF
+    set title "Difference between avg bPS values of ${model1//_/} and ${model2//_/} (best $bestN) for sequence $sequenceName"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set output "$bestNavgOutputPlot"
+    plot "$avgAllFile" with lines title "avg bps (all)", \
+    "$avgBestNFile" with lines title "avg bps (best $bestN)",
 EOF
 #
 # plot bps average
 bestNavgOutputPlot="$plotsFolder/avg_best${bestN}.pdf";
 gnuplot << EOF
-    set title "Difference between avg bPS values of ${model1//_/} and ${model2//_/} (best $bestN) for sequence $sequenceName"
+    set title "Average of $sequenceName for the $bestN most optimal bPS values (diff)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNavgOutputPlot"
     plot "$avgBestNFile" with lines
