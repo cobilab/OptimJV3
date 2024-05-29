@@ -3,14 +3,14 @@
 # default variables
 POPULATION=100;
 bestN=50;
-first_gen=0;
+first_gen=1;
 last_gen=300;
 dsx="DS1";
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-model="model";
+ga="ga";
 #
 # ==============================================================================
 #
@@ -29,8 +29,8 @@ function CHECK_INPUT () {
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    --model-folder|--model|-m)
-        model="$2";
+    --genetic-algorithm|--algorithm|--ga|-ga|-a)
+        ga="$2";
         shift 2; 
         ;;
     --dataset|-ds)
@@ -57,7 +57,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-dsFolder="../${dsx}/$model";
+dsFolder="../${dsx}/$ga";
 statsFolder="$dsFolder/stats";
 plotsFolder="$dsFolder/plots";
 mkdir -p $statsFolder $plotsFolder;

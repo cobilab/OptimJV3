@@ -221,7 +221,7 @@ si=10; # seed increment
 SELECTION_OP="elitist";
 numSelectedCmds=30; # number of selected commands
 #
-model="model";
+ga="ga";
 #
 # === PARSING ================================================================================================
 #
@@ -238,8 +238,8 @@ while [[ $# -gt 0 ]]; do
         exit;
         shift;
         ;;
-    --model-folder|--model|-m)
-        model="$2";
+    --genetic-algorithm|--algorithm|--ga|-ga|-a)
+        ga="$2";
         shift 2; 
         ;;
     --sequence|--seq|-s)
@@ -301,7 +301,7 @@ echo "${SEQUENCES[@]}"
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
-    currentAdultCmdsFile="../${ds}/$model/*selAdultCmds.txt";
+    currentAdultCmdsFile="../${ds}/$ga/*selAdultCmds.txt";
     cmdsFilesInput+=( $( ls $currentAdultCmdsFile ) );
     #
     echo "cmds files input: ";

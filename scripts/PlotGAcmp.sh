@@ -10,8 +10,8 @@ dsx="DS10";
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-model1="model";
-model2="model";
+ga1="ga1";
+ga2="ga2";
 #
 # ==============================================================================
 #
@@ -30,12 +30,12 @@ function CHECK_INPUT () {
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    --model-folder1|--model1|-m1)
-        model1="$2";
+    --genetic-algorithm1|--algorithm1|--ga1|-ga1|-a1)
+        ga1="$2";
         shift 2; 
         ;;
-    --model-folder2|--model2|-m2)
-        model2="$2";
+    --genetic-algorithm2|--algorithm2|--ga2|-ga2|-a2)
+        ga2="$2";
         shift 2; 
         ;;
     --dataset|-ds)
@@ -67,36 +67,36 @@ statsFolder="$dsFolder/cmp_stats";
 plotsFolder="$dsFolder/cmp_plots";
 mkdir -p $statsFolder $plotsFolder;
 #
-statsFolder="$statsFolder/${model1}_minus_${model2}";
-plotsFolder="$plotsFolder/${model1}_minus_${model2}";
+statsFolder="$statsFolder/${ga1}_minus_${ga2}";
+plotsFolder="$plotsFolder/${ga1}_minus_${ga2}";
 mkdir -p $statsFolder $plotsFolder;
 #
 # get average stats diff (bps) (all)
 avgAllFile="$statsFolder/avg_all.tsv";
-paste $dsFolder/$model1/stats/avg_all.tsv $dsFolder/$model2/stats/avg_all.tsv | awk '{print $1-$2}' > $avgAllFile;
+paste $dsFolder/$ga1/stats/avg_all.tsv $dsFolder/$ga2/stats/avg_all.tsv | awk '{print $1-$2}' > $avgAllFile;
 #
 # get average stats diff (bps) (bestN)
 avgBestNFile="$statsFolder/avg_best${bestN}.tsv";
-paste $dsFolder/$model1/stats/avg_best${bestN}.tsv $dsFolder/$model2/stats/avg_best${bestN}.tsv | awk '{print $1-$2}' > $avgBestNFile;
+paste $dsFolder/$ga1/stats/avg_best${bestN}.tsv $dsFolder/$ga2/stats/avg_best${bestN}.tsv | awk '{print $1-$2}' > $avgBestNFile;
 #
 # get cumsum average stats diff (c_time) (all)
 avgAllFile_cctime="$statsFolder/avg_all_cctime.tsv";
-paste $dsFolder/$model1/stats/avg_all_cctime.tsv $dsFolder/$model2/stats/avg_all_cctime.tsv | awk '{print $1-$2}' > $avgAllFile_cctime;
+paste $dsFolder/$ga1/stats/avg_all_cctime.tsv $dsFolder/$ga2/stats/avg_all_cctime.tsv | awk '{print $1-$2}' > $avgAllFile_cctime;
 #
 # get cumsum average stats diff (c_time) (bestN)
 avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime.tsv";
-paste $dsFolder/$model1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$model2/stats/avg_best${bestN}_cctime.tsv | awk '{print $1-$2}' > $avgBestNFile_cctime;
+paste $dsFolder/$ga1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$ga2/stats/avg_best${bestN}_cctime.tsv | awk '{print $1-$2}' > $avgBestNFile_cctime;
 #
 # get variance stats diff (bps)
 varBestNFile="$statsFolder/var_best${bestN}.tsv";
-paste $dsFolder/$model1/stats/var_best${bestN}.tsv $dsFolder/$model2/stats/var_best${bestN}.tsv | awk '{print $1-$2}' > $varBestNFile;
+paste $dsFolder/$ga1/stats/var_best${bestN}.tsv $dsFolder/$ga2/stats/var_best${bestN}.tsv | awk '{print $1-$2}' > $varBestNFile;
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
 avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_cctime.pdf";
 gnuplot << EOF
-    set title "Difference between ${model1//_/} and ${model2//_/} for sequence $sequenceName"
+    set title "Difference between ${ga1//_/} and ${ga2//_/} for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
     #
@@ -147,7 +147,7 @@ EOF
 # plot bps average (all and best)
 bestNavgOutputPlot="$plotsFolder/avg_allAndbest${bestN}.pdf";
 gnuplot << EOF
-    set title "Difference between avg bPS values of ${model1//_/} and ${model2//_/} (best $bestN) for sequence $sequenceName"
+    set title "Difference between avg bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNavgOutputPlot"
     plot "$avgAllFile" with lines title "avg bps (all)", \
@@ -166,7 +166,7 @@ EOF
 # plot bps variance
 bestNvarOutputPlot="$plotsFolder/var_best${bestN}.pdf";
 gnuplot << EOF
-    set title "Difference between var bPS values of ${model1//_/} and ${model2//_/} (best $bestN) for sequence $sequenceName
+    set title "Difference between var bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNvarOutputPlot"
     plot "$varBestNFile" with lines
