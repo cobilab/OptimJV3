@@ -64,8 +64,8 @@ function RUN_TEST() {
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
     BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc); # bits per symbol
   else 
-    BYTES_CF=-1;
-    BPS=-1;
+    BYTES_CF=$BYTES; # baseline value
+    BPS=2; # baseline value
   fi
   #
   # DECOMPRESSION is not needed for optimization
@@ -81,8 +81,8 @@ function RUN_TEST() {
     C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
     C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`; 
   else
-    C_TIME=-1;
-    C_MEME=-1;
+    C_TIME=$((timeOut+1));
+    C_MEME=$((timeOut+1));
   fi
   #
   # register D_TIME and D_MEME
@@ -128,7 +128,7 @@ else
   nthreads=$(( $(nproc --all)-2 )); 
 fi
 #
-model="model";
+ga="ga";
 #
 # remove output files and dirs from last time Run.sh was executed
 rm -fr *c_time_mem.txt *d_time_mem.txt *cmp.txt; 
@@ -148,8 +148,8 @@ while [[ $# -gt 0 ]]; do
       exit;
       shift;
       ;;
-    --model-folder|--model|-m)
-      model="$2";
+    --genetic-algorithm|--algorithm|--ga|-ga|-a)
+      ga="$2";
       shift 2; 
       ;;
     --sequence|--seq|-s)
@@ -209,7 +209,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     dsX=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
     #
-    dsFolder="../${dsX}/$model";
+    dsFolder="../${dsX}/$ga";
     cmdsScriptInput="$dsFolder/g${gnum}.sh"; 
     CHECK_INPUT "$cmdsScriptInput";
     #

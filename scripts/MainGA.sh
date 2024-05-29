@@ -14,14 +14,10 @@ si=10; # to increment seed
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-logPath="../logs";
-errPath="../errors";
-mkdir -p $logPath $errPath;
-#
 evalExtraFlags="";
 scmExtraFlags="";
 #
-model="model";
+ga="ga";
 #
 ### FUNCTIONS ###############################################################################################
 #
@@ -61,8 +57,8 @@ while [[ $# -gt 0 ]]; do
         exit;
         shift;
         ;;
-    --model-folder|--model|-m)
-        model="$2";
+    --genetic-algorithm|--algorithm|--ga|-ga|-a)
+        ga="$2";
         shift 2; 
         ;;
     --sequence|--seq|-s)
@@ -157,16 +153,20 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-initLogPath="$logPath/init${ds_range/:/_}";
-runLogPath="$logPath/run${ds_range/:/_}";
-evalLogPath="$logPath/eval${ds_range/:/_}";
-scmLogPath="$logPath/scm${ds_range/:/_}";
+logPath="../DS${ds_range/:/_}_logs";
+errPath="../DS${ds_range/:/_}_errors";
+mkdir -p $logPath $errPath;
+#
+initLogPath="$logPath/init";
+runLogPath="$logPath/run";
+evalLogPath="$logPath/eval";
+scmLogPath="$logPath/scm";
 mkdir -p $initLogPath $runLogPath $evalLogPath $scmLogPath;
 #
-initErrPath="$errPath/init${ds_range/:/_}";
-runErrPath="$errPath/run${ds_range/:/_}";
-evalErrPath="$errPath/eval${ds_range/:/_}";
-scmErrPath="$errPath/scm${ds_range/:/_}";
+initErrPath="$errPath/init";
+runErrPath="$errPath/run";
+evalErrPath="$errPath/eval";
+scmErrPath="$errPath/scm";
 mkdir -p $initErrPath $runErrPath $evalErrPath $scmErrPath;
 #
 ### MAIN GA ########################################################################################################
@@ -175,19 +175,19 @@ gen=$FIRST_GEN;
 #
 if [ $gen -eq 1 ]; then 
     echo "1. INITIALIZATION - input: random ---> output: cmds1";
-    ./Initialization.sh -m $model -p $POPULATION -dr "$ds_range" -sd $((seed=seed+si)) 1> $initLogPath/init.log 2> $initErrPath/init.err; 
+    ./Initialization.sh -ga $ga -p $POPULATION -dr "$ds_range" -sd $((seed=seed+si)) 1> $initLogPath/init.log 2> $initErrPath/init.err; 
 fi
 #
 for gen in $(seq $FIRST_GEN $LAST_GEN); do 
     echo "2. RUN - input: cmds$gen ----> output: res$gen";
-    ./Run.sh -m $model -g $gen -dr "$ds_range" -t $nthreads 1> $runLogPath/run$gen.log 2> $runErrPath/run$gen.err;
+    ./Run.sh -ga $ga -g $gen -dr "$ds_range" -t $nthreads 1> $runLogPath/run$gen.log 2> $runErrPath/run$gen.err;
     #
     echo "3. EVALUATION - input: res from current and previous generations ----> output: res$gen";
-    ./Evaluation.sh $evalExtraFlags -m $model -g $gen -dr "$ds_range" -p $POPULATION 1> $evalLogPath/eval$gen.log 2> $evalErrPath/eval$gen.err;
+    ./Evaluation.sh $evalExtraFlags -ga $ga -g $gen -dr "$ds_range" -p $POPULATION 1> $evalLogPath/eval$gen.log 2> $evalErrPath/eval$gen.err;
     #
     nextGen=$((gen+1));
     echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - input: res$gen ----> output: cmds$nextGen";
-    ./SelCrossMut.sh $scmExtraFlags -m $model -g $gen -dr "$ds_range" -ns 30 -cr 1 -sd $((seed=seed+si)) -si $si 1> $scmLogPath/scm$gen.log 2> $scmErrPath/scm$gen.err;
+    ./SelCrossMut.sh $scmExtraFlags -ga $ga -g $gen -dr "$ds_range" -ns 30 -cr 1 -sd $((seed=seed+si)) -si $si 1> $scmLogPath/scm$gen.log 2> $scmErrPath/scm$gen.err;
     #
     cat $scmLogPath/scm$gen.log $runLogPath/run$gen.log $evalLogPath/eval$gen.log >> $logPath/cga.log;
     cat $scmErrPath/scm$gen.err $runErrPath/run$gen.err $evalErrPath/eval$gen.err >> $errPath/cga.err;

@@ -345,14 +345,14 @@ NB_D_lst=( 1 2 5 10 20 50 100 200 500 1000 2000 ) # (integer [1;5000]) alpha=1/N
 NB_G_cm_lst=(0.9) # (real [0;1)) gamma; decayment forgetting factor of CM
 NB_S_lst=( {0..6} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
 NB_E_lst=( 1 2 5 10 20 50 100 ) # ! (integer [1;5000]) denominator that builds alpha on STCM
-NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant model on STCM
+NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga on STCM
 NB_A_lst=($(seq 0 0.1 0.9)) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
 #
 # RM PARAMETERS - these arrs are used in mutation
 # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
 NB_C_rm_lst=(12 13) # RM size. higher values -> more RAM -> better compression
 NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of repeat models
-NB_B_lst=($(seq 0.5 0.1 0.9)) # (real (0;1]) beta. discards or keeps a repeat model
+NB_B_lst=($(seq 0.5 0.1 0.9)) # (real (0;1]) beta. discards or keeps a repeat ga
 NB_L_lst=( {4..9} ) # (integer (1;20]) limit threshold; has dependency with NB_B
 NB_G_rm_lst=(0.7) # (real [0;1)) gamma; decayment forgetting factor
 NB_W_lst=(0.06) # (real (0;1)) initial weight for repeat classes
@@ -388,7 +388,7 @@ seed=$DEFAULT_SEED;
 RANDOM=$seed;
 si=10; # seed increment
 #
-model="model";
+ga="ga";
 #
 ### PARSING ###############################################################################################
 #
@@ -405,8 +405,8 @@ while [[ $# -gt 0 ]]; do
         exit;
         shift;
         ;;
-    --model-folder|--model|-m)
-        model="$2";
+    --genetic-algorithm|--algorithm|--ga|-ga|-a)
+        ga="$2";
         shift 2; 
         ;;
     --sequence|--seq|-s)
@@ -480,7 +480,7 @@ echo "${SEQUENCES[@]}"
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
-    currentAdultCmdsFile="../${ds}/$model/*adultCmds.txt";
+    currentAdultCmdsFile="../${ds}/$ga/*adultCmds.txt";
     cmdsFilesInput+=( $( ls $currentAdultCmdsFile) );
     #
     echo "cmds files input: ";

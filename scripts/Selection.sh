@@ -174,7 +174,7 @@ si=10; # seed increment
 SELECTION_OP="elitist";
 numSelectedCmds=30; # number of selected commands
 #
-model="model";
+ga="ga";
 #
 # === PARSING ================================================================================================
 #
@@ -191,8 +191,8 @@ while [[ $# -gt 0 ]]; do
         exit;
         shift;
         ;;
-    --model-folder|--model|-m)
-        model="$2";
+    --genetic-algorithm|--algorithm|--ga|-ga|-a)
+        ga="$2";
         shift 2; 
         ;;
     --sequence|--seq|-s)
@@ -254,7 +254,7 @@ echo "${SEQUENCES[@]}"
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
-    cmdsFilesInput+=( "../${ds}/$model/adultCmds.txt" );
+    cmdsFilesInput+=( "../${ds}/$ga/adultCmds.txt" );
     #
     echo "cmds files input: ";
     printf "%s\n" ${cmdsFilesInput[@]}; 
@@ -263,9 +263,9 @@ done
 # 
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
-    dsModelFolder=$(dirname $cmdsFileInput);
+    dsGAfolder=$(dirname $cmdsFileInput);
     nextGen=$((gnum+1));
-    selCmdsFileOutput="$dsModelFolder/selAdultCmds.txt";
+    selCmdsFileOutput="$dsGAfolder/selAdultCmds.txt";
     #
     echo "========================================================";
     echo "=== ADULT CMDS FILE INPUT: $cmdsFileInput ====";
@@ -298,7 +298,7 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
         echo "These cmds have been chosen more than once:";
         sort $cmdsFileInput | uniq -dc;
         #
-        selCmdsFileOutputTMP="$dsModelFolder/selAdultCmdsTMP.txt"
+        selCmdsFileOutputTMP="$dsgaFolder/selAdultCmdsTMP.txt"
         sort $selCmdsFileOutput | uniq > $selCmdsFileOutputTMP;
         cat $selCmdsFileOutputTMP > $cmdsFileInput;
         rm -fr $selCmdsFileOutputTMP;

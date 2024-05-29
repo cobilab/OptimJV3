@@ -14,7 +14,7 @@ pExp=2; # p value required for moga (weight metric method)
 w_bPS=0.999999; # weight bPS required for moga
 w_CTIME=$(echo "1-$w_bPS" | bc); # weight C_TIME required for moga
 #
-model="model";
+ga="ga";
 #
 # === FUNCTIONS ===========================================================================
 #
@@ -41,77 +41,77 @@ function SHOW_HELP() {
 # === PARSING ===========================================================================
 #
 while [[ $# -gt 0 ]]; do
-   key="$1"
-   case $key in
-       --help|-h)
-           SHOW_HELP;
-           exit;
-           shift;
-           ;;
-       --view-datasets|--view-ds|-v)
-           cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
-           exit;
-           shift;
-           ;;
-        --model-folder|--model|-m)
-           model="$2";
-           shift 2; 
-           ;;
-       --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
-           size="$2";
-           SEQUENCES+=( $(awk '/[[:space:]]'$size'/ { print $2 }' "$ds_sizesBase2") );
-           shift 2; 
-           ;;
-           --dataset|-ds)
-           dsnum=$(echo "$2" | tr -d "dsDS");
-           SEQUENCES+=( "$(awk '/DS'$dsnum'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
-           shift 2;
-           ;;
-       --dataset-range|--dsrange|--drange|-dr)
-           input=( $(echo "$2" | sed 's/[:/]/ /g') );
-           sortedInput=( $(printf "%s\n" ${input[@]} | sort -n ) );
-           dsmin="${sortedInput[0]}";
-           dsmax="${sortedInput[1]}";
-           SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
-           shift 2;
-           ;;
-       --gen-num|--gen|-g)
-           gnum="$2";
-           shift 2;
-           ;;
-       --population|--pop|-p)
-           POPULATION="$2";
-           shift 2; 
-           ;;
-       --moga-weightned-metric|--moga-wm|--moga)
-           soga=false;
-           moga_wm=true;
-           shift;
-           ;;
-       --moga-weightned-sum|--moga-ws)
-           soga=false;
-           moga_ws=true;
-           shift;
-           ;;
-       --p-expoent|--p-exp|-pe)
-           pExp="$2";
-           shift 2;
-           ;;
-       --weight-bps|--w-bps|-wBPS|-w1)
-           w_bPS="$2";
-           w_CTIME=$(echo "1-$w_bPS" | bc);
-           shift 2;
-           ;;
-       --weight-ctime|--w-ctime|-wCTIME|-w2)
-           w_CTIME="$2";
-           w_bPS=$(echo "1-$w_CTIME" | bc);
-           shift 2;
-           ;;
-       *) 
-           # ignore any other arguments
-           shift
-       ;;
-   esac
+    key="$1"
+    case $key in
+        --help|-h)
+            SHOW_HELP;
+            exit;
+            shift;
+            ;;
+        --view-datasets|--view-ds|-v)
+            cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
+            exit;
+            shift;
+            ;;
+        --genetic-algorithm|--algorithm|--ga|-ga|-a)
+            ga="$2";
+            shift 2; 
+            ;;
+        --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
+            size="$2";
+            SEQUENCES+=( $(awk '/[[:space:]]'$size'/ { print $2 }' "$ds_sizesBase2") );
+            shift 2; 
+            ;;
+            --dataset|-ds)
+            dsnum=$(echo "$2" | tr -d "dsDS");
+            SEQUENCES+=( "$(awk '/DS'$dsnum'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
+            shift 2;
+            ;;
+        --dataset-range|--dsrange|--drange|-dr)
+            input=( $(echo "$2" | sed 's/[:/]/ /g') );
+            sortedInput=( $(printf "%s\n" ${input[@]} | sort -n ) );
+            dsmin="${sortedInput[0]}";
+            dsmax="${sortedInput[1]}";
+            SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
+            shift 2;
+            ;;
+        --gen-num|--gen|-g)
+            gnum="$2";
+            shift 2;
+            ;;
+        --population|--pop|-p)
+            POPULATION="$2";
+            shift 2; 
+            ;;
+        --moga-weightned-metric|--moga-wm|--moga)
+            soga=false;
+            moga_wm=true;
+            shift;
+            ;;
+        --moga-weightned-sum|--moga-ws)
+            soga=false;
+            moga_ws=true;
+            shift;
+            ;;
+        --p-expoent|--p-exp|-pe)
+            pExp="$2";
+            shift 2;
+            ;;
+        --weight-bps|--w-bps|-wBPS|-w1)
+            w_bPS="$2";
+            w_CTIME=$(echo "1-$w_bPS" | bc);
+            shift 2;
+            ;;
+        --weight-ctime|--w-ctime|-wCTIME|-w2)
+            w_CTIME="$2";
+            w_bPS=$(echo "1-$w_CTIME" | bc);
+            shift 2;
+            ;;
+        *) 
+            # ignore any other arguments
+            shift
+        ;;
+    esac
 done
 #
 # === MAIN ===========================================================================
@@ -122,7 +122,7 @@ for sequenceName in ${SEQUENCES[@]}; do
 done
 #
 for ds in ${datasets[@]}; do
-    dsFolder="../${ds}/$model";
+    dsFolder="../${ds}/$ga";
     #
     # get raw results of all generations
     currentRawResFile="$dsFolder/g${gnum}_raw.tsv";
@@ -138,7 +138,7 @@ for ds in ${datasets[@]}; do
         numCmds=$(awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print $(NF-1)} }' $allRawResFile | wc -l);
         if [ $numCmds -ge $POPULATION ]; then 
             ( head -n +2 $currentRawResFile;
-                awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print} }' $allRawResFile;
+            awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print} }' $allRawResFile;
             )> $rawFilterResFile;
             break; 
         fi; 
