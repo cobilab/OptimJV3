@@ -83,6 +83,10 @@ function RUN_TEST() {
   else
     C_TIME=$((timeOut+1));
     C_MEME=$((timeOut+1));
+    #
+    # if timeout happened, it's as if no compression happened
+    BYTES_CF=$BYTES; # baseline value
+    BPS=2; # baseline value
   fi
   #
   # register D_TIME and D_MEME
