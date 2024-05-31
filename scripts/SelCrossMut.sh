@@ -493,6 +493,11 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     nextGen=$((gnum+1));
     cmdsFileOutput="$dsFolder/g$nextGen.sh";
     #
+    populationSize=$(cat $cmdsFileInput | sed '/^\s*$/d' | wc -l); # only counts non-empty lines
+    if [ $populationSize -lt $numSelectedCmds ]; then
+        numSelectedCmds=$populationSize;
+    fi
+    #
     echo "========================================================";
     echo "=== ADULT CMDS FILE INPUT: $cmdsFileInput ====";
     echo "=== CHILD CMDS FILE OUTPUT: $cmdsFileOutput ==============";
@@ -733,9 +738,9 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     echo "=========================== CHILDREN CMDS =====================================";
     printf "%s \n" "${childCmds[@]}";
     echo "Number of child cmds: ${#childCmds[@]}";
-    for child in "${childCmds[@]}"; do
-        echo "$child" >> $cmdsFileOutput;
-    done
+    ( for child in "${childCmds[@]}"; do
+        echo "$child";
+    done ) > $cmdsFileOutput;
     #
     if [ ${#childCmds[@]} -eq 0 ]; then
         dsX=$(echo "$cmdsFileInput" | awk -F 'DS|/' '{print $3}');

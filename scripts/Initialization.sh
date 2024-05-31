@@ -136,7 +136,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
     #
     dsFolder="../${dsX}/$ga";
-    if [ -d $dsFolder ]; then cp -fr $dsFolder ${dsFolder//DS/bkp_DS}; fi
+    if [ -d $dsFolder ]; then cp -fr $dsFolder ${dsFolder}_bkp; fi
     rm -fr $dsFolder; # rewrite all generation scripts of dsX...
     mkdir -p $dsFolder;
     #
