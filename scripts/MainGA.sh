@@ -128,6 +128,12 @@ while [[ $# -gt 0 ]]; do
         initFlags+="-lr $lr ";
         shift 2;
         ;; 
+    --hidden-size|-hs) 
+        # hidden size of the NN
+        hs="$2";
+        initFlags+="-hs $hs ";
+        shift 2;
+        ;; 
     #
     # RUN
     #

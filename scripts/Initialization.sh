@@ -117,6 +117,11 @@ while [[ $# -gt 0 ]]; do
       lr="$2";
       shift 2;
       ;; 
+    --hidden-size|-hs) 
+      # hidden size of the NN
+      hs="$2";
+      shift 2;
+      ;; 
     --seed|-sd)
       seed="$2";
       RANDOM=$seed;
