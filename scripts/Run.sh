@@ -47,6 +47,14 @@ function RUN_TEST() {
   D_COMMAND="$6";
   nrun="$7";
   #
+  c_time_mem_tmp="${sequenceName}${output_ext}c_time_mem_tmp.txt";
+  c_time_mem="${c_time_mem_tmp//_tmp.txt/.txt}";
+  d_time_mem="${sequenceName}${output_ext}d_time_mem.txt";
+  cmp="${sequenceName}${output_ext}cmp.txt";
+  #
+  rm -fr $c_time_mem $d_time_mem $cmp;   
+  rm -fr $FILEC $FILED;
+  #
   BYTES=`ls -la $IN_FILE | awk '{ print $5 }'`;
   #
   # COMPRESSION
@@ -54,8 +62,6 @@ function RUN_TEST() {
   # %e: (Not in tcsh(1).)  Elapsed real time (in seconds).
   # %M: Maximum resident set size of the process during its lifetime, in Kbytes, HOWEVER
   # Kbyte/1024/1024 => Gibyte
-  c_time_mem_tmp="${sequenceName}${output_ext}c_time_mem_tmp.txt";
-  c_time_mem="${c_time_mem_tmp//_tmp.txt/.txt}";
   timeout "$timeOut" /bin/time -o $c_time_mem_tmp -f "TIME\t%e\tMEM\t%M" $C_COMMAND;
   cat "$c_time_mem_tmp" | grep "TIME" | awk '{ printf $2"\t"$4/1024/1024"\n" }' 1> "${c_time_mem}";
   rm -fr $c_time_mem_tmp;
@@ -69,11 +75,9 @@ function RUN_TEST() {
   fi
   #
   # DECOMPRESSION is not needed for optimization
-  d_time_mem="${sequenceName}${output_ext}d_time_mem.txt";
   printf "%d\t%d\n" -1 -1 > $d_time_mem;
   #
   # CMP file is not needed for optimization
-  cmp="${sequenceName}${output_ext}cmp.txt";
   touch $cmp;
   #
   # register C_TIME and C_MEME 

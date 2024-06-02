@@ -448,7 +448,7 @@ while [[ $# -gt 0 ]]; do
         SELECTION_OP="$2";
         shift 2;
         ;;
-    --crossover|--xover|-x) # xpoint, uniform
+    --crossover|--xover|-x|-c) # xpoint, uniform
         CROSSOVER_OP="$2";
         shift 2;
         ;;

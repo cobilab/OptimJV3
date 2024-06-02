@@ -3,7 +3,7 @@
 # default variables
 POPULATION=100;
 bestN=90;
-first_gen=0;
+first_gen=1;
 last_gen=300;
 dsx="DS10";
 #
@@ -72,24 +72,24 @@ plotsFolder="$plotsFolder/${ga1}_minus_${ga2}";
 mkdir -p $statsFolder $plotsFolder;
 #
 # get average stats diff (bps) (all)
-avgAllFile="$statsFolder/avg_all.tsv";
-paste $dsFolder/$ga1/stats/avg_all.tsv $dsFolder/$ga2/stats/avg_all.tsv | awk '{print $1-$2}' > $avgAllFile;
+avgAllFile="$statsFolder/avg_bps_all.tsv";
+paste $dsFolder/$ga1/stats/avg_bps_all.tsv $dsFolder/$ga2/stats/avg_bps_all.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile;
 #
 # get average stats diff (bps) (bestN)
-avgBestNFile="$statsFolder/avg_best${bestN}.tsv";
-paste $dsFolder/$ga1/stats/avg_best${bestN}.tsv $dsFolder/$ga2/stats/avg_best${bestN}.tsv | awk '{print $1-$2}' > $avgBestNFile;
+avgBestNFile="$statsFolder/avg_bps_best${bestN}.tsv";
+paste $dsFolder/$ga1/stats/avg_bps_best${bestN}.tsv $dsFolder/$ga2/stats/avg_bps_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile;
 #
 # get cumsum average stats diff (c_time) (all)
 avgAllFile_cctime="$statsFolder/avg_all_cctime.tsv";
-paste $dsFolder/$ga1/stats/avg_all_cctime.tsv $dsFolder/$ga2/stats/avg_all_cctime.tsv | awk '{print $1-$2}' > $avgAllFile_cctime;
+paste $dsFolder/$ga1/stats/avg_all_cctime.tsv $dsFolder/$ga2/stats/avg_all_cctime.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgAllFile_cctime;
 #
 # get cumsum average stats diff (c_time) (bestN)
 avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime.tsv";
-paste $dsFolder/$ga1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$ga2/stats/avg_best${bestN}_cctime.tsv | awk '{print $1-$2}' > $avgBestNFile_cctime;
+paste $dsFolder/$ga1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$ga2/stats/avg_best${bestN}_cctime.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile_cctime;
 #
 # get variance stats diff (bps)
 varBestNFile="$statsFolder/var_best${bestN}.tsv";
-paste $dsFolder/$ga1/stats/var_best${bestN}.tsv $dsFolder/$ga2/stats/var_best${bestN}.tsv | awk '{print $1-$2}' > $varBestNFile;
+paste $dsFolder/$ga1/stats/var_best${bestN}.tsv $dsFolder/$ga2/stats/var_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $varBestNFile;
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
@@ -112,6 +112,7 @@ gnuplot << EOF
     # set up the axis below for generation
     set xlabel "Generation"
     set xtics nomirror
+    set xrange [$first_gen:$last_gen]
     #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
     plot "$avgAllFile" with lines title "avg bps (all)", \
@@ -138,6 +139,7 @@ gnuplot << EOF
     # set up the axis below for generation
     set xlabel "Generation"
     set xtics nomirror
+    set xrange [$first_gen:$last_gen]
     #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
     plot "$avgBestNFile" with lines title "avg bps (diff)", \

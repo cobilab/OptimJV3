@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # default variables and constants
-POPULATION=100;
+POPULATION_SIZE=100;
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
@@ -79,9 +79,9 @@ while [[ $# -gt 0 ]]; do
             gnum="$2";
             shift 2;
             ;;
-        --population|--pop|-p)
-            POPULATION="$2";
-            shift 2; 
+        --population-size|--population|--psize|-ps)
+            POPULATION_SIZE="$2";
+            shift 2;
             ;;
         --moga-weightned-metric|--moga-wm|--moga)
             soga=false;
@@ -132,11 +132,11 @@ for ds in ${datasets[@]}; do
     fi
     tail -n +3 $currentRawResFile >> $allRawResFile;
     #
-    # filter raw results by last N generations (num of filtered results cannot be less than $POPULATION)
+    # filter raw results by last N generations (num of filtered results cannot be less than $POPULATION_SIZE)
     rawFilterResFile="$dsFolder/aRawFilterRes.tsv";
     for ((oldestGen=$gnum; oldestGen>=0; oldestGen--)); do
         numCmds=$(awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print $(NF-1)} }' $allRawResFile | wc -l);
-        if [ $numCmds -ge $POPULATION ]; then 
+        if [ $numCmds -ge $POPULATION_SIZE ]; then 
             ( head -n +2 $currentRawResFile;
             awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print} }' $allRawResFile;
             )> $rawFilterResFile;
@@ -189,7 +189,7 @@ for ds in ${datasets[@]}; do
     #
     # update population
     currentPopFile="$dsFolder/g${gnum}.tsv";
-    ( awk -v population=$POPULATION 'NR<=2+population {print}' $sortedResFile; echo )>> $currentPopFile;
+    awk -v population=$POPULATION_SIZE 'NR<=2+population {print}' $sortedResFile > $currentPopFile;
     #
     # get adult cmds
     currentAdultCmdsFile="$dsFolder/adultCmds.txt";

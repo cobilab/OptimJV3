@@ -23,7 +23,6 @@ function SHOW_HELP() {
   echo " -------------------------------------------------------";
 }
 #
-#
 # === DEFAULT VALUES ===========================================================================
 #
 sequencesPath="../../sequences";
@@ -34,7 +33,7 @@ ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
 sizes=("grp1" "grp2" "grp3" "grp4" "grp5"); # sequence size groups
 #
-POPULATION=100;
+POPULATION_SIZE=100;
 #
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
@@ -43,6 +42,8 @@ min_cms=1;
 max_cms=3;
 min_rms=0;
 max_rms=2;
+#
+lr=0.03; # learning rate
 #
 seed=1; # JV3 seed interval: [1;599999]
 RANDOM=$seed;
@@ -91,8 +92,8 @@ while [[ $# -gt 0 ]]; do
       SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
       shift 2;
       ;;
-    --population|-p)
-      POPULATION="$2";
+    --population-size|--population|--psize|-ps)
+      POPULATION_SIZE="$2";
       shift 2;
       ;;
     --min-cm|--m-cm|-mCM)
@@ -111,6 +112,11 @@ while [[ $# -gt 0 ]]; do
       max_rms="$2";
       shift 2; 
       ;;
+    --learning-rate|-lr) 
+      # 0 value turns the NN off
+      lr="$2";
+      shift 2;
+      ;; 
     --seed|-sd)
       seed="$2";
       RANDOM=$seed;
@@ -130,7 +136,7 @@ fi
 #
 #echo ${SEQUENCES[7]};
 for sequenceName in "${SEQUENCES[@]}"; do
-    echo "sequence name: $sequenceName";
+    sequence="$sequencesPath/$sequenceName";
     #
     dsX=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
@@ -141,8 +147,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
     mkdir -p $dsFolder;
     #
     outputScript="$dsFolder/g1.sh";
-    #
-    sequence="$sequencesPath/$sequenceName";
     #
     # PARAMETERS COMMON TO CM AND RM
     NB_I_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
@@ -168,7 +172,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     NB_Y_lst=( $(seq 1 1 5) ) # (integer {0}, [1;50]) max cache size
     #
     # write stochastically generated commands
-    for ((i=1; i<=POPULATION; i++)); do
+    ( for ((i=1; i<=POPULATION_SIZE; i++)); do
       #
       # can go from 1 to 5
       num_cms=$((RANDOM % (max_cms - min_cms + 1) + min_cms));
@@ -206,12 +210,13 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
       done
       #
-      printf "${jv3Path}JARVIS3 $CM$RM$sequence.seq \n" >> $outputScript;
-      seed=$((seed+10));
-    done
+      printf "${jv3Path}JARVIS3 -lr $lr $CM$RM$sequence.seq \n";
+    done ) > $outputScript;
     #
-    echo "$POPULATION cmds have been written to $outputScript";
     chmod +x $outputScript;
+    #
+    echo "sequence name: $sequenceName";
+    echo "$POPULATION_SIZE cmds have been written to $outputScript";
     echo "$outputScript is executable";
     echo "--------------------------------------------------";
     #

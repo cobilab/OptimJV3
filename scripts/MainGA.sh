@@ -4,18 +4,23 @@
 #
 FIRST_GEN=1;
 LAST_GEN=100;
-POPULATION=100;
+POPULATION_SIZE=100;
 #
 ds_range="1:1";
 nthreads=10;
 seed=1;
 si=10; # to increment seed
 #
+lr=0.03; # learning rate
+#
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-evalExtraFlags="";
-scmExtraFlags="";
+flags="";
+initFlags="";
+runFlags="";
+evalFlags="";
+scmFlags="";
 #
 ga="ga";
 #
@@ -57,51 +62,6 @@ while [[ $# -gt 0 ]]; do
         exit;
         shift;
         ;;
-    --genetic-algorithm|--algorithm|--ga|-ga|-a)
-        ga="$2";
-        shift 2; 
-        ;;
-    --sequence|--seq|-s)
-        sequence="$2";
-        shift 2; 
-        ;;
-    --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
-        size="$2";
-        shift 2; 
-        ;;
-    --dataset|-ds)
-        ds_range="$2:$2";
-        shift 2;
-        ;;
-    --dataset-range|--dsrange|--drange|-dr)
-        ds_range="$2";
-        shift 2;
-        ;;
-    --num-sel-cmds|-ns)
-        topN="$2";
-        shift 2;
-        ;;
-    --crossover-rate|--xover-rate|--xrate|-xr|-cr)
-        CROSSOVER_RATE=$(echo "scale=3; $2" | bc);
-        shift 2;
-        ;;
-    --mutation-rate|--mrate|-mr)
-        MUTATION_RATE=$(echo "scale=3; $2" | bc);
-        shift 2;
-        ;;
-    --selection|--sel) # elitist, roulette
-        SELECTION_OP="$2";
-        scmExtraFlags+="--sel $SELECTION_OP ";
-        shift 2;
-        ;;
-    --crossover|--xover|-x) # xpoint, uniform
-        CROSSOVER_OP="$2";
-        shift 2;
-        ;;
-    --population|--pop|-p)
-        POPULATION="$2";
-        shift 2;
-        ;;
     --first-generation|--first-gen|-fg)
         FIRST_GEN="$2";
         shift 2;
@@ -110,40 +70,127 @@ while [[ $# -gt 0 ]]; do
         LAST_GEN="$2";
         shift 2;
         ;;
-    --moga-weightned-metric|--moga-wm|--moga)
-        evalExtraFlags+="--moga ";
-        shift;
+    --genetic-algorithm|--algorithm|--ga|-ga|-a)
+        ga="$2";
+        flags+="-ga $ga ";
+        shift 2; 
         ;;
-    --moga-weightned-sum|--moga-ws)
-        evalExtraFlags+="--moga-ws ";
-        shift;
-        ;;
-    --p-expoent|--p-exp)
-        pExp="$2";
-        evalExtraFlags+="--p-exp $pExp ";
+    --sequence|--seq|-s)
+        sequence="$2";
+        flags+="-s $sequence ";
         shift 2;
         ;;
-    --weight-bps|--w-bps|-w1)
-        w_bPS="$2";
-        evalExtraFlags+="-w1 $w_bPS ";
+    --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
+        size="$2";
+        flags+="-sg $size";
+        shift 2; 
+        ;;
+    --dataset|-ds)
+        ds="$2";
+        flags+="-ds $ds";
         shift 2;
         ;;
-    --weight-ctime|--w-ctime|-w2)
-        w_CTIME="$2";
-        evalExtraFlags+="-w2 $w_CTIME ";
+    --dataset-range|--dsrange|--drange|-dr)
+        ds_range="$2";
+        flags+="-drange $ds_range";
         shift 2;
         ;;
-    --nthreads|-t)
-        nthreads="$2";
+    --population-size|--population|--psize|-ps)
+        POPULATION_SIZE="$2";
+        initFlags+=" -ps $POPULATION_SIZE";
+        evalFlags+=" -ps $POPULATION_SIZE";
         shift 2;
         ;;
     --seed|-sd)
         seed="$2";
         RANDOM=$seed;
+        initFlags+=" -sd $seed";
+        scmFlags+=" -sd $seed";
         shift 2;
         ;;
     --seed-increment|-si)
         si="$2";
+        initFlags+=" -si $si";
+        scmFlags+=" -si $si";
+        shift 2;
+        ;;
+    #
+    # INIT
+    #
+    --learning-rate|-lr) 
+        # 0 value turns the NN off
+        lr="$2";
+        initFlags+="-lr $lr ";
+        shift 2;
+        ;; 
+    #
+    # RUN
+    #
+    --nthreads|-t)
+        nthreads="$2";
+        runFlags+="-t $nthreads ";
+        shift 2;
+        ;;
+    #
+    # EVALUATION
+    #
+    --moga-weightned-metric|--moga-wm|--moga)
+        evalFlags+="--moga ";
+        shift;
+        ;;
+    --moga-weightned-sum|--moga-ws)
+        evalFlags+="--moga-ws ";
+        shift;
+        ;;
+    --p-expoent|--p-exp)
+        pExp="$2";
+        evalFlags+="--p-exp $pExp ";
+        shift 2;
+        ;;
+    --weight-bps|--w-bps|-w1)
+        w_bPS="$2";
+        evalFlags+="-w1 $w_bPS ";
+        shift 2;
+        ;;
+    --weight-ctime|--w-ctime|-w2)
+        w_CTIME="$2";
+        evalFlags+="-w2 $w_CTIME ";
+        shift 2;
+        ;;
+    #
+    # SELECTION
+    #
+    --num-sel-cmds|-ns)
+        ns="$2";
+        scmFlags+="-ns $ns ";
+        shift 2;
+        ;;
+    --selection|--sel) 
+        # elitist, roulette
+        SELECTION_OP="$2";
+        scmFlags+="--sel $SELECTION_OP ";
+        shift 2;
+        ;;
+    #
+    # CROSSOVER
+    #
+    --crossover-rate|--xover-rate|--xrate|-xr|-cr)
+        CROSSOVER_RATE=$(echo "scale=3; $2" | bc);
+        scmFlags+="-cr $CROSSOVER_RATE ";
+        shift 2;
+        ;;
+    --crossover|--xover|-x|-c) 
+        # xpoint, uniform
+        CROSSOVER_OP="$2";
+        scmFlags+="-c $CROSSOVER_OP ";
+        shift 2;
+        ;;
+    #
+    # MUTATION
+    #
+    --mutation-rate|--mrate|-mr)
+        MUTATION_RATE=$(echo "scale=3; $2" | bc);
+        scmFlags+="-mr $MUTATION_RATE ";
         shift 2;
         ;;
     *) 
@@ -179,20 +226,17 @@ gen=$FIRST_GEN;
 #
 if [ $gen -eq 1 ]; then 
     echo "1. INITIALIZATION - input: random ---> output: cmds1";
-    ./Initialization.sh -ga $ga -p $POPULATION -dr "$ds_range" -sd $((seed=seed+si)) 1> $initLogPath/init.log 2> $initErrPath/init.err; 
+    bash -x ./Initialization.sh $flags $initFlags 1> $initLogPath/init.log 2> $initErrPath/init.err; 
 fi
 #
 for gen in $(seq $FIRST_GEN $LAST_GEN); do 
     echo "2. RUN - input: cmds$gen ----> output: res$gen";
-    ./Run.sh -ga $ga -g $gen -dr "$ds_range" -t $nthreads 1> $runLogPath/run$gen.log 2> $runErrPath/run$gen.err;
+    bash -x ./Run.sh -g $gen $flags $runFlags 1> $runLogPath/run$gen.log 2> $runErrPath/run$gen.err;
     #
     echo "3. EVALUATION - input: res from current and previous generations ----> output: res$gen";
-    ./Evaluation.sh $evalExtraFlags -ga $ga -g $gen -dr "$ds_range" -p $POPULATION 1> $evalLogPath/eval$gen.log 2> $evalErrPath/eval$gen.err;
+    bash -x ./Evaluation.sh -g $gen $flags $evalFlags 1> $evalLogPath/eval$gen.log 2> $evalErrPath/eval$gen.err;
     #
     nextGen=$((gen+1));
     echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - input: res$gen ----> output: cmds$nextGen";
-    ./SelCrossMut.sh $scmExtraFlags -ga $ga -g $gen -dr "$ds_range" -ns 30 -cr 1 -sd $((seed=seed+si)) -si $si 1> $scmLogPath/scm$gen.log 2> $scmErrPath/scm$gen.err;
-    #
-    cat $scmLogPath/scm$gen.log $runLogPath/run$gen.log $evalLogPath/eval$gen.log >> $logPath/cga.log;
-    cat $scmErrPath/scm$gen.err $runErrPath/run$gen.err $evalErrPath/eval$gen.err >> $errPath/cga.err;
+    bash -x ./SelCrossMut.sh -g $gen $flags $scmFlags 1> $scmLogPath/scm$gen.log 2> $scmErrPath/scm$gen.err;
 done
