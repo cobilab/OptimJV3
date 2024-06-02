@@ -70,6 +70,7 @@ function RUN_TEST() {
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
     BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc); # bits per symbol
   else 
+    echo -e "\e[31mINVALID COMPRESSION COMMAND: $C_COMMAND\e[0m";
     BYTES_CF=$BYTES; # baseline value
     BPS=2; # baseline value
   fi
@@ -85,6 +86,7 @@ function RUN_TEST() {
     C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
     C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`; 
   else
+    echo -e "\e[31mINVALID COMPRESSION COMMAND: $C_COMMAND\e[0m";
     C_TIME=$((timeOut+1));
     C_MEME=$((timeOut+1));
     #

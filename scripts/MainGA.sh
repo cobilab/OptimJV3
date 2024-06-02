@@ -2,6 +2,7 @@
 #
 ### DEFAULT VALUES ###############################################################################################
 #
+INIT_GEN=1;
 FIRST_GEN=1;
 LAST_GEN=100;
 POPULATION_SIZE=100;
@@ -23,6 +24,10 @@ evalFlags="";
 scmFlags="";
 #
 ga="ga";
+#
+logPath="../logs";
+rm -fr $logPath;
+mkdir -p $logPath;
 #
 ### FUNCTIONS ###############################################################################################
 #
@@ -82,36 +87,36 @@ while [[ $# -gt 0 ]]; do
         ;;
     --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
         size="$2";
-        flags+="-sg $size";
+        flags+="-sg $size ";
         shift 2; 
         ;;
     --dataset|-ds)
         ds="$2";
-        flags+="-ds $ds";
+        flags+="-ds $ds ";
         shift 2;
         ;;
     --dataset-range|--dsrange|--drange|-dr)
         ds_range="$2";
-        flags+="-drange $ds_range";
+        flags+="-drange $ds_range ";
         shift 2;
         ;;
     --population-size|--population|--psize|-ps)
         POPULATION_SIZE="$2";
-        initFlags+=" -ps $POPULATION_SIZE";
-        evalFlags+=" -ps $POPULATION_SIZE";
+        initFlags+="-ps $POPULATION_SIZE ";
+        evalFlags+="-ps $POPULATION_SIZE ";
         shift 2;
         ;;
     --seed|-sd)
         seed="$2";
         RANDOM=$seed;
-        initFlags+=" -sd $seed";
-        scmFlags+=" -sd $seed";
+        initFlags+="-sd $seed ";
+        scmFlags+="-sd $seed ";
         shift 2;
         ;;
     --seed-increment|-si)
         si="$2";
-        initFlags+=" -si $si";
-        scmFlags+=" -si $si";
+        initFlags+="-si $si ";
+        scmFlags+="-si $si ";
         shift 2;
         ;;
     #
@@ -200,43 +205,26 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-logPath="../DS${ds_range/:/_}_logs";
-errPath="../DS${ds_range/:/_}_errors";
-mkdir -p $logPath $errPath;
-#
-logPath="$logPath/$ga";
-errPath="$errPath/$ga";
-mkdir -p $logPath $errPath;
-#
-initLogPath="$logPath/init";
-runLogPath="$logPath/run";
-evalLogPath="$logPath/eval";
-scmLogPath="$logPath/scm";
-mkdir -p $initLogPath $runLogPath $evalLogPath $scmLogPath;
-#
-initErrPath="$errPath/init";
-runErrPath="$errPath/run";
-evalErrPath="$errPath/eval";
-scmErrPath="$errPath/scm";
-mkdir -p $initErrPath $runErrPath $evalErrPath $scmErrPath;
-#
 ### MAIN GA ########################################################################################################
 #
 gen=$FIRST_GEN;
 #
-if [ $gen -eq 1 ]; then 
-    echo "1. INITIALIZATION - input: random ---> output: cmds1";
-    bash -x ./Initialization.sh $flags $initFlags 1> $initLogPath/init.log 2> $initErrPath/init.err; 
+if [ $gen -eq $INIT_GEN ]; then 
+    echo "1. INITIALIZATION";
+    echo "./Initialization.sh $flags $initFlags"
+    bash -x ./Initialization.sh $flags $initFlags 1> $logPath/init.log 2> $logPath/init.err; 
 fi
 #
-for gen in $(seq $FIRST_GEN $LAST_GEN); do 
-    echo "2. RUN - input: cmds$gen ----> output: res$gen";
-    bash -x ./Run.sh -g $gen $flags $runFlags 1> $runLogPath/run$gen.log 2> $runErrPath/run$gen.err;
+for gen in $(seq $FIRST_GEN $LAST_GEN); do
+    echo "=== GENERATION $gen ===";
     #
-    echo "3. EVALUATION - input: res from current and previous generations ----> output: res$gen";
-    bash -x ./Evaluation.sh -g $gen $flags $evalFlags 1> $evalLogPath/eval$gen.log 2> $evalErrPath/eval$gen.err;
+    echo "2. RUN";
+    bash -x ./Run.sh -g $gen $flags $runFlags 1> $logPath/run$gen.log 2> $logPath/run$gen.err;
+    #
+    echo "3. EVALUATION";
+    bash -x ./Evaluation.sh -g $gen $flags $evalFlags 1> $logPath/eval$gen.log 2> $logPath/eval$gen.err;
     #
     nextGen=$((gen+1));
-    echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - input: res$gen ----> output: cmds$nextGen";
-    bash -x ./SelCrossMut.sh -g $gen $flags $scmFlags 1> $scmLogPath/scm$gen.log 2> $scmErrPath/scm$gen.err;
+    echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION";
+    bash -x ./SelCrossMut.sh -g $gen $flags $scmFlags 1> $logPath/scm$gen.log 2> $logPath/scm$gen.err;
 done
