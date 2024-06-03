@@ -215,7 +215,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
       done
       #
-      printf "${jv3Path}JARVIS3 -lr $lr $CM$RM$sequence.seq \n";
+      printf "${jv3Path}JARVIS3 -lr $lr -hs $hs $CM$RM$sequence.seq \n";
     done ) > $outputScript;
     #
     chmod +x $outputScript;
