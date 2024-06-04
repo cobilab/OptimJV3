@@ -263,6 +263,10 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd}" "${d_cmd}" "$gnum"
         #
         echo "results stored in: $resOutput";
+        #
+        # this line prevents from having to rerun the whole population if this script is interrupted
+        cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
+        awk 'NR>1' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput;
       done < <(cat $splittedScript) ) &
     done
     wait; # wait until all splitted scripts, that compress a specific sequence, are executed in parallel
