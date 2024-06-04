@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 #
 # default variables
-POPULATION=100;
-bestN=90;
+bestN=50;
 first_gen=1;
-last_gen=300;
 dsx="DS10";
+ga1="ga1";
+ga2="ga2";
+#
+timeFormats=("s" "m" "h");
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
-#
-ga1="ga1";
-ga2="ga2";
 #
 # ==============================================================================
 #
@@ -56,13 +55,21 @@ while [[ $# -gt 0 ]]; do
         shift 2;
         ;;
     *) 
-        # ignore any other arguments
-        shift;
-    ;;
+        echo "Invalid option: $1"
+        exit 1;
+        ;;
     esac
 done
 #
 dsFolder="../${dsx}";
+ga1Folder="$dsFolder/$ga1";
+ga2Folder="$dsFolder/$ga2";
+if [ -z "$last_gen" ]; then
+    last_gen_ga1=$(ls $ga1Folder/g*.tsv | wc -l);
+    last_gen_ga2=$(ls $ga2Folder/g*.tsv | wc -l);
+    last_gen=$(( $last_gen_ga1 > $last_gen_ga2 ? $last_gen_ga1 : $last_gen_ga2 ));
+fi
+#
 statsFolder="$dsFolder/cmp_stats";
 plotsFolder="$dsFolder/cmp_plots";
 mkdir -p $statsFolder $plotsFolder;
@@ -79,22 +86,27 @@ paste $dsFolder/$ga1/stats/avg_bps_all.tsv $dsFolder/$ga2/stats/avg_bps_all.tsv 
 avgBestNFile="$statsFolder/avg_bps_best${bestN}.tsv";
 paste $dsFolder/$ga1/stats/avg_bps_best${bestN}.tsv $dsFolder/$ga2/stats/avg_bps_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile;
 #
-# get cumsum average stats diff (c_time) (all)
-avgAllFile_cctime="$statsFolder/avg_all_cctime.tsv";
-paste $dsFolder/$ga1/stats/avg_all_cctime.tsv $dsFolder/$ga2/stats/avg_all_cctime.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgAllFile_cctime;
-#
-# get cumsum average stats diff (c_time) (bestN)
-avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime.tsv";
-paste $dsFolder/$ga1/stats/avg_best${bestN}_cctime.tsv $dsFolder/$ga2/stats/avg_best${bestN}_cctime.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile_cctime;
-#
 # get variance stats diff (bps)
 varBestNFile="$statsFolder/var_best${bestN}.tsv";
 paste $dsFolder/$ga1/stats/var_best${bestN}.tsv $dsFolder/$ga2/stats/var_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $varBestNFile;
 #
+for tf in ${timeFormats[@]}; do
+    #
+    # get cumsum average stats diff (c_time) (all)
+    avgAllFile_cctime="$statsFolder/avg_all_cctime_$tf.tsv";
+    paste $dsFolder/$ga1/stats/avg_all_cctime_$tf.tsv $dsFolder/$ga2/stats/avg_all_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgAllFile_cctime;
+    #
+    # get cumsum average stats diff (c_time) (bestN)
+    avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime_$tf.tsv";
+    paste $dsFolder/$ga1/stats/avg_best${bestN}_cctime_$tf.tsv $dsFolder/$ga2/stats/avg_best${bestN}_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile_cctime;
+done
+#
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
+for tf in ${timeFormats[@]}; do
+#
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_cctime.pdf";
+avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_cctime_$tf.pdf";
 gnuplot << EOF
     set title "Difference between ${ga1//_/} and ${ga2//_/} for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -122,7 +134,7 @@ gnuplot << EOF
 EOF
 #
 # plot bps average, bestN bps results, cumsum ctime avg
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime.pdf";
+avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime_$tf.pdf";
 gnuplot << EOF
     set title "Average bPS with $bestN most optimal bPS values of $sequenceName (diff)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -145,6 +157,7 @@ gnuplot << EOF
     plot "$avgBestNFile" with lines title "avg bps (diff)", \
     "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (diff)"
 EOF
+done
 #
 # plot bps average (all and best)
 bestNavgOutputPlot="$plotsFolder/avg_allAndbest${bestN}.pdf";

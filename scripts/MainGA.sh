@@ -100,7 +100,7 @@ while [[ $# -gt 0 ]]; do
         flags+="-drange $ds_range ";
         shift 2;
         ;;
-    --population-size|--population|--psize|-ps)
+    --population-size|--population|--psize|-ps|-p)
         POPULATION_SIZE="$2";
         initFlags+="-ps $POPULATION_SIZE ";
         evalFlags+="-ps $POPULATION_SIZE ";
@@ -205,8 +205,8 @@ while [[ $# -gt 0 ]]; do
         shift 2;
         ;;
     *) 
-        # ignore any other arguments
-        shift;
+        echo "Invalid option: $1"
+        exit 1;
     ;;
     esac
 done
@@ -230,7 +230,6 @@ for gen in $(seq $FIRST_GEN $LAST_GEN); do
     echo "3. EVALUATION";
     bash -x ./Evaluation.sh -g $gen $flags $evalFlags 1> $logPath/eval$gen.log 2> $logPath/eval$gen.err;
     #
-    nextGen=$((gen+1));
     echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION";
     bash -x ./SelCrossMut.sh -g $gen $flags $scmFlags 1> $logPath/scm$gen.log 2> $logPath/scm$gen.err;
 done

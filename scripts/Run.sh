@@ -201,8 +201,8 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     *) 
-      # ignore any other arguments
-      shift
+      echo "Invalid option: $1"
+      exit 1;
       ;;
   esac
 done
@@ -230,6 +230,9 @@ for sequenceName in "${SEQUENCES[@]}"; do
     sequence="$sequencesPath/$sequenceName";
     echo "sequence to compress: $sequence.seq";
     echo "start splitting and running cmds from $cmdsScriptInput file...";
+    #
+    # remove old splitted scripts if there are any 
+    rm -fr $dsFolder/*"_splitted_"*;
     #
     # split child cmds
     numCmds=$(cat $cmdsScriptInput | wc -l);
@@ -264,12 +267,14 @@ for sequenceName in "${SEQUENCES[@]}"; do
         #
         echo "results stored in: $resOutput";
         #
-        # this line prevents from having to rerun the whole population if this script is interrupted
+        # this prevents from having to rerun the whole population if this script is interrupted
         cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
         awk 'NR>1' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput;
       done < <(cat $splittedScript) ) &
     done
-    wait; # wait until all splitted scripts, that compress a specific sequence, are executed in parallel
+    #
+    # wait until all splitted scripts have been executed in parallel
+    wait; 
     #
     # merge results
     resOutput_body="$dsFolder/g${gnum}_splitted_*.txt";

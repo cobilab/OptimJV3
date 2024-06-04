@@ -5,4 +5,3 @@
 ./PreprocessSequences.sh
 # ./CreateSequences.sh # optional
 ./GetDSinfo.sh
-./MainGA.sh

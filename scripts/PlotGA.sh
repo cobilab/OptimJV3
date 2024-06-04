@@ -3,7 +3,6 @@
 # default variables
 bestN=50;
 first_gen=1;
-last_gen=300;
 dsx="DS1";
 ga="ga";
 #
@@ -51,44 +50,49 @@ while [[ $# -gt 0 ]]; do
         shift 2;
         ;;
     *) 
-        # ignore any other arguments
-        shift;
-    ;;
+        echo "Invalid option: $1"
+        exit 1;
+        ;;
     esac
 done
 #
-dsFolder="../${dsx}/$ga";
-statsFolder="$dsFolder/stats";
-plotsFolder="$dsFolder/plots";
+dsFolder="../${dsx}";
+gaFolder="$dsFolder/$(ls $dsFolder | grep $ga)";
+statsFolder="$gaFolder/stats";
+plotsFolder="$gaFolder/plots";
 mkdir -p $statsFolder $plotsFolder;
 #
+if [ -z "$last_gen" ]; then
+    last_gen=$(ls $gaFolder/g*.tsv | wc -l);
+fi
+#
 # gets population size by counting num of non-empty lines and excluding header
-POPULATION=$(( $(cat $dsFolder/g1.tsv | sed '/^\s*#/d;/^\s*$/d' | wc -l) - 2 ));
+POPULATION_SIZE=$(( $(cat $gaFolder/g1.tsv | sed '/^\s*#/d;/^\s*$/d' | wc -l) - 2 ));
 #
 # === STATS ===========================================================================
 #
 # get bestN results from each generation (bps)
 bestNFile="$statsFolder/best${bestN}.tsv";
 ( for gen in $(seq $first_gen $last_gen); do 
-    awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR>2 && NR<=2+bestN {print gen"\t"$4}' "$dsFolder/g$gen.tsv"; 
+    awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR>2 && NR<=2+bestN {print gen"\t"$4}' "$gaFolder/g$gen.tsv"; 
 done ) | sort -n -k1 -k2 | uniq > $bestNFile;
 #
 # get best1 result from each generation (bps)
 best1File="$statsFolder/best1.tsv";
 ( for gen in $(seq $first_gen $last_gen); do 
-    awk -F'\t' -v gen=$gen 'NR==3 {print gen"\t"$4}' "$dsFolder/g$gen.tsv"; 
+    awk -F'\t' -v gen=$gen 'NR==3 {print gen"\t"$4}' "$gaFolder/g$gen.tsv"; 
 done ) > $best1File;
 #
 # get average stats (bps) (all)
 avgBPSallFile="$statsFolder/avg_bps_all.tsv";
 for gen in $(seq $first_gen $last_gen); do 
-    awk -v gen=$gen -v p=$POPULATION -F'\t' 'NR >= 3 {sum+=$4} END {print gen"\t"sum/p}' "$dsFolder/g$gen.tsv"; 
+    awk -v gen=$gen -v p=$POPULATION_SIZE -F'\t' 'NR >= 3 {sum+=$4} END {print gen"\t"sum/p}' "$gaFolder/g$gen.tsv"; 
 done > $avgBPSallFile;
 #
 # get average stats (bps) (bestN)
 avgBestNFile="$statsFolder/avg_bps_best${bestN}.tsv";
 for gen in $(seq $first_gen $last_gen); do 
-    awk -v gen=$gen -v bestN=$bestN -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=$4} END {print gen"\t"sum/bestN}' "$dsFolder/g$gen.tsv"; 
+    awk -v gen=$gen -v bestN=$bestN -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=$4} END {print gen"\t"sum/bestN}' "$gaFolder/g$gen.tsv"; 
 done > $avgBestNFile;
 #
 # get variance stats (bps) (bestN) 
@@ -97,8 +101,8 @@ for gen in $(seq $first_gen $last_gen); do
     avg=$(awk -F'\t' 'NR == gen+1 {print $1}' $avgBestNFile);
     #
     # var equals sum(xi-X)/(n-1) for samples, but var equals sum(xi-X)/N for whole population
-    if [ $bestN -ne $POPULATION ]; then denominator=$(($bestN-1)); else denominator=$POPULATION; fi
-    awk -v gen=$gen -v bestN=$bestN -v avg=$avg -v d=$denominator -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=($4-avg)^2} END {print gen"\t"sum/d}' "$dsFolder/g$gen.tsv"; 
+    if [ $bestN -ne $POPULATION_SIZE ]; then denominator=$(($bestN-1)); else denominator=$POPULATION_SIZE; fi
+    awk -v gen=$gen -v bestN=$bestN -v avg=$avg -v d=$denominator -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=($4-avg)^2} END {print gen"\t"sum/d}' "$gaFolder/g$gen.tsv"; 
 done > $varBestNFile;
 #
 for timeFormat in ${timeFormats[@]}; do
@@ -112,18 +116,16 @@ for timeFormat in ${timeFormats[@]}; do
         timeDenominator=3600;
     fi
     #
-    echo $timeFormat $timeDenominator
-    #
     # get average stats (c_time) (all)
     avgAllFile_ctime="$statsFolder/avg_all_ctime_$timeFormat.tsv";
     for gen in $(seq $first_gen $last_gen); do 
-        awk -F'\t' -v gen=$gen -v p=$POPULATION -v d=$timeDenominator 'NR >= 3 {sum+=$5/d} END {print gen"\t"sum/p}' "$dsFolder/g$gen.tsv"; 
+        awk -F'\t' -v gen=$gen -v p=$POPULATION_SIZE -v d=$timeDenominator 'NR >= 3 {sum+=$5/d} END {print gen"\t"sum/p}' "$gaFolder/g$gen.tsv"; 
     done > $avgAllFile_ctime;
     #
     # get average stats (c_time) (bestN)
     avgBestNFile_ctime="$statsFolder/avg_best${bestN}_ctime_$timeFormat.tsv";
     for gen in $(seq $first_gen $last_gen); do 
-        awk -F'\t' -v gen=$gen -v bestN=$bestN -v d=$timeDenominator 'NR >= 3 && NR <= 2+bestN {sum+=$5/d} END {print gen"\t"sum/bestN}' "$dsFolder/g$gen.tsv"; 
+        awk -F'\t' -v gen=$gen -v bestN=$bestN -v d=$timeDenominator 'NR >= 3 && NR <= 2+bestN {sum+=$5/d} END {print gen"\t"sum/bestN}' "$gaFolder/g$gen.tsv"; 
     done > $avgBestNFile_ctime;
     #
     # get cumsum average stats (cc_time) (all)
@@ -152,6 +154,7 @@ gnuplot << EOF
     set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    #     set key bottom right
     #
     # set up the axis on the left side for bps
     set ylabel "bPS"
@@ -175,6 +178,7 @@ gnuplot << EOF
     "$best1File" with lines title "best bps", \
     "$avgAllFile_ctime" with lines axes x1y2 title "avg c time (all)", \
     "$avgBestNFile_ctime" with lines axes x1y2 title "avg c time (best $bestN)"
+    set key bottom right
     
 EOF
 #
@@ -184,6 +188,7 @@ EOF
 #     set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
 #     set terminal pdfcairo enhanced color font 'Verdade,12'
 #     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+#     set key bottom right
 #     #
 #     # Set up the axis on the left side for bps
 #     set ylabel "bPS"
@@ -206,9 +211,10 @@ EOF
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
 avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_cctime_$timeFormat.pdf";
 gnuplot << EOF
-    set title "Avg bPS and cumulative sum of avg CTIME of $sequenceName"
+    set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    set key bottom right
     #
     # set up the axis on the left side for bps
     set ylabel "bPS"
@@ -230,14 +236,16 @@ gnuplot << EOF
     "$best1File" with lines title "best bps", \
     "$avgAllFile_cctime" with lines axes x1y2 title "csum avg c time (all)", \
     "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)" 
+    
 EOF
 # #
 # # plot bps average, bestN bps results, cumsum ctime avg (best)
 # avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime_$timeFormat.pdf";
 # gnuplot << EOF
-#     set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
+#     set title "$sequenceName - Average bPS with $bestN most optimal bPS values"
 #     set terminal pdfcairo enhanced color font 'Verdade,12'
 #     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+#     set key bottom right
 #     #
 #     # Set up the axis on the left side for bps
 #     set ylabel "bPS"
@@ -261,7 +269,7 @@ done
 # # plot bps average (all and best)
 # bestNavgOutputPlot="$plotsFolder/avg_allAndbest${bestN}.pdf";
 # gnuplot << EOF
-#     set title "Average BPS of $sequenceName (best $bestN)"
+#     set title "$sequenceName - Average BPS (best $bestN)"
 #     set terminal pdfcairo enhanced color font 'Verdade,12'
 #     set output "$bestNavgOutputPlot"
 #     plot "$avgBPSallFile" with lines title "avg bps (all)", \
@@ -271,7 +279,7 @@ done
 # # plot bps average (best)
 # bestNavgOutputPlot="$plotsFolder/avg_best${bestN}.pdf";
 # gnuplot << EOF
-#     set title "Average of $sequenceName for the $bestN most optimal bPS values"
+#     set title "$sequenceName - BPS average (best $bestN)"
 #     set terminal pdfcairo enhanced color font 'Verdade,12'
 #     set output "$bestNavgOutputPlot"
 #     plot "$avgBestNFile" with lines
@@ -280,7 +288,7 @@ done
 # # plot bps variance
 # bestNvarOutputPlot="$plotsFolder/var_best${bestN}.pdf";
 # gnuplot << EOF
-#     set title "BPS variance of $sequenceName (best $bestN)"
+#     set title "$sequenceName - BPS variance (best $bestN)"
 #     set terminal pdfcairo enhanced color font 'Verdade,12'
 #     set output "$bestNvarOutputPlot"
 #     plot "$varBestNFile" with lines

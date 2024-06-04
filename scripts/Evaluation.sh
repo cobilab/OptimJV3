@@ -108,9 +108,9 @@ while [[ $# -gt 0 ]]; do
             shift 2;
             ;;
         *) 
-            # ignore any other arguments
-            shift
-        ;;
+            echo "Invalid option: $1"
+            exit 1;
+            ;;
     esac
 done
 #
@@ -134,7 +134,7 @@ for ds in ${datasets[@]}; do
     #
     # sort all results by BPS, then CTIME (s)
     allSortedRes_bps="$dsFolder/allSortedRes_bps_ctime_s.tsv";
-    cat $allRawRes | sort -k4n -k5n > $allSortedRes_bps;
+    cat $allRawResFile | sort -k4n -k5n > $allSortedRes_bps;
     #
     # sort all results by BPS, then CTIME (converted to minutes)
     allSortedRes_bps_ctime_m="$dsFolder/allSortedRes_bps_ctime_m.tsv";
@@ -187,7 +187,7 @@ for ds in ${datasets[@]}; do
         printf "PROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBPSn\tC_TIMEn (s)\tC_MEMn (GB)\tDOMINANCE\tD_TIME (s)\tD_MEM (GB)\tDIFF\tGEN_BIRTH\tC_COMMAND\n";
         awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"(w1*$2^p+w2*$3^p)^(1/p)"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n )> $sortedResFile;
         rm -fr $mogaTMP;
-        echo "moga wm done";
+        echo "moga weight metric method done";
     elif $moga_ws; then
         sortedResFile="$dsFolder/aSortedRes_moga_ws.tsv";
         mogaTMP="$dsFolder/aRawFilterRes_moga_ws_tmp.tsv";
@@ -196,7 +196,7 @@ for ds in ${datasets[@]}; do
         printf "PROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBPSn\tC_TIMEn (s)\tC_MEMn (GB)\tDOMINANCE\tD_TIME (s)\tD_MEM (GB)\tDIFF\tGEN_BIRTH\tC_COMMAND\n";
         awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"w1*$2+w2*$3"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n )> $sortedResFile;
         rm -fr $mogaTMP;
-        echo "moga ws done";
+        echo "moga weight sum method done";
     fi
     #
     # update population

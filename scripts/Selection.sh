@@ -240,9 +240,9 @@ while [[ $# -gt 0 ]]; do
         shift 2;
         ;;
     *) 
-        # ignore any other arguments
-        shift;
-    ;;
+        echo "Invalid option: $1"
+        exit 1;
+        ;;
     esac
 done
 #
