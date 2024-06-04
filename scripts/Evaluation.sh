@@ -132,6 +132,18 @@ for ds in ${datasets[@]}; do
     fi
     tail -n +3 $currentRawResFile >> $allRawResFile;
     #
+    # sort all results by BPS, then CTIME (s)
+    allSortedRes_bps="$dsFolder/allSortedRes_bps_ctime_s.tsv";
+    cat $allRawRes | sort -k4n -k5n > $allSortedRes_bps;
+    #
+    # sort all results by BPS, then CTIME (converted to minutes)
+    allSortedRes_bps_ctime_m="$dsFolder/allSortedRes_bps_ctime_m.tsv";
+    awk -v OFS="\t" -F'\t' '{if (NR==2) {$5="C_TIME (m)"} else if (NR>2) {$5=$5/60} print}' $allSortedRes_bps > $allSortedRes_bps_ctime_m;
+    #
+    # sort all results by BPS, then CTIME (converted to hours)
+    allSortedRes_bps_ctime_h="$dsFolder/allSortedRes_bps_ctime_h.tsv";
+    awk -v OFS="\t" -F'\t' '{if (NR==2) {$5="C_TIME (h)"} else if (NR>2) {$5=$5/3600} print}' $allSortedRes_bps > $allSortedRes_bps_ctime_h;
+    #
     # filter raw results by last N generations (num of filtered results cannot be less than $POPULATION_SIZE)
     rawFilterResFile="$dsFolder/aRawFilterRes.tsv";
     for ((oldestGen=$gnum; oldestGen>=0; oldestGen--)); do

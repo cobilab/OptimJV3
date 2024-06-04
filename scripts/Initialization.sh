@@ -43,7 +43,8 @@ max_cms=3;
 min_rms=0;
 max_rms=2;
 #
-lr=0.03; # learning rate
+lr=0.03; # learning rate of NN
+hs=40; # hidden size of NN
 #
 seed=1; # JV3 seed interval: [1;599999]
 RANDOM=$seed;
