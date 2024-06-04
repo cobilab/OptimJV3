@@ -62,8 +62,9 @@ while [[ $# -gt 0 ]]; do
 done
 #
 dsFolder="../${dsx}";
-ga1Folder="$dsFolder/$ga1";
-ga2Folder="$dsFolder/$ga2";
+ga1Folder="$dsFolder/$(ls $dsFolder | grep $ga1)";
+ga2Folder="$dsFolder/$(ls $dsFolder | grep $ga2)";
+#
 if [ -z "$last_gen" ]; then
     last_gen_ga1=$(ls $ga1Folder/g*.tsv | wc -l);
     last_gen_ga2=$(ls $ga2Folder/g*.tsv | wc -l);
@@ -80,25 +81,25 @@ mkdir -p $statsFolder $plotsFolder;
 #
 # get average stats diff (bps) (all)
 avgAllFile="$statsFolder/avg_bps_all.tsv";
-paste $dsFolder/$ga1/stats/avg_bps_all.tsv $dsFolder/$ga2/stats/avg_bps_all.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile;
+paste $ga1Folder/stats/avg_bps_all.tsv $ga2Folder/stats/avg_bps_all.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile;
 #
 # get average stats diff (bps) (bestN)
 avgBestNFile="$statsFolder/avg_bps_best${bestN}.tsv";
-paste $dsFolder/$ga1/stats/avg_bps_best${bestN}.tsv $dsFolder/$ga2/stats/avg_bps_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile;
+paste $ga1Folder/stats/avg_bps_best${bestN}.tsv $ga2Folder/stats/avg_bps_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile;
 #
 # get variance stats diff (bps)
 varBestNFile="$statsFolder/var_best${bestN}.tsv";
-paste $dsFolder/$ga1/stats/var_best${bestN}.tsv $dsFolder/$ga2/stats/var_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $varBestNFile;
+paste $ga1Folder/stats/var_best${bestN}.tsv $ga2Folder/stats/var_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $varBestNFile;
 #
 for tf in ${timeFormats[@]}; do
     #
     # get cumsum average stats diff (c_time) (all)
     avgAllFile_cctime="$statsFolder/avg_all_cctime_$tf.tsv";
-    paste $dsFolder/$ga1/stats/avg_all_cctime_$tf.tsv $dsFolder/$ga2/stats/avg_all_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgAllFile_cctime;
+    paste $ga1Folder/stats/avg_all_cctime_$tf.tsv $ga2Folder/stats/avg_all_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgAllFile_cctime;
     #
     # get cumsum average stats diff (c_time) (bestN)
     avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime_$tf.tsv";
-    paste $dsFolder/$ga1/stats/avg_best${bestN}_cctime_$tf.tsv $dsFolder/$ga2/stats/avg_best${bestN}_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile_cctime;
+    paste $ga1Folder/stats/avg_best${bestN}_cctime_$tf.tsv $ga2Folder/stats/avg_best${bestN}_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile_cctime;
 done
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
