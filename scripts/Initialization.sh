@@ -43,9 +43,6 @@ max_cms=3;
 min_rms=0;
 max_rms=2;
 #
-lr=0.03; # learning rate of NN
-hs=40; # hidden size of NN
-#
 seed=1; # JV3 seed interval: [1;599999]
 RANDOM=$seed;
 #
@@ -115,12 +112,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --learning-rate|-lr) 
       # 0 value turns the NN off
-      lr="$2";
+      lr="-lr $2 ";
       shift 2;
       ;; 
     --hidden-size|-hs) 
       # hidden size of the NN
-      hs="$2";
+      hs="-hs $2 ";
       shift 2;
       ;; 
     --seed|-sd)
@@ -217,7 +214,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
       done
       #
-      printf "${jv3Path}JARVIS3 -lr $lr -hs $hs $CM$RM$sequence.seq \n";
+      printf "${jv3Path}JARVIS3 -v $lr$hs$RM$CM$sequence.seq \n";
     done ) > $outputScript;
     #
     chmod +x $outputScript;

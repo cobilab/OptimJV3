@@ -297,15 +297,11 @@ if [ ${#SEQUENCES[@]} -eq 0 ]; then
   SEQUENCES=( "${ALL_SEQUENCES[@]}" );
 fi
 #
-echo "${SEQUENCES[@]}"
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
-    currentAdultCmdsFile="../${ds}/$ga/*selAdultCmds.txt";
+    currentAdultCmdsFile="../${ds}/$ga/g${gnum}_selection.txt";
     cmdsFilesInput+=( $( ls $currentAdultCmdsFile ) );
-    #
-    echo "cmds files input: ";
-    printf "%s\n" ${cmdsFilesInput[@]}; 
 done
 #
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
@@ -315,9 +311,8 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     cmdsFileOutput="$dsModelFolder/crossoverCmds.sh";
     #
     echo "========================================================";
-    echo "=== ADULT CMDS FILE INPUT: $cmdsFileInput ====";
-    echo "=== CHILD CMDS FILE OUTPUT: $cmdsFileOutput ==============";
-    echo "========================================================";
+    echo "SEL CMDS FILE INPUT: $cmdsFileInput";
+    echo "CROSS CMDS FILE OUTPUT: $cmdsFileOutput";
     #
     while read line; do
         chosenCmds+=( "$line" );

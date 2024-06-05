@@ -64,7 +64,6 @@ mkdir -p $statsFolder $plotsFolder;
 #
 if [ -z "$last_gen" ]; then
     last_gen=$(ls $gaFolder/g*.tsv | wc -l);
-    echo $last_gen
 fi
 #
 # gets population size by counting num of non-empty lines and excluding header

@@ -39,14 +39,15 @@ function ELITIST_SELECTION() {
     echo "=========================== ELITIST SELECTION =====================================";
     chosenCmds=();
     while IFS= read -r line; do
-        chosenCmds+=( "${line}" );
+        chosenCmds+=( "$line" );
     done < <( head -n +$numSelectedCmds $cmdsFileInput );
 }
 #
 function ROULETTE_SELECTION() {
     echo "=========================== ROULETTE SELECTION =====================================";
+    #
     # extract the bPS (bits per symbol) as array
-    dsFileInput=$(echo ${cmdsFileInput/_adultCmds.txt/.tsv});
+    dsFileInput="../${ds}/$ga/g$gnum.tsv";
     echo "ds file input: $dsFileInput; gen num: $gnum";
     bPSvalsArr=( $(awk -F '[\t]' 'NR>2{print $4}' "$dsFileInput") );
     echo "bPS vals, aka f(x) = ( ${bPSvalsArr[@]} )"
@@ -113,7 +114,7 @@ function ROULETTE_SELECTION() {
         for bPScumSumProbIdx in ${!bPScumSumProbs[@]}; do 
             if [ $(echo "$rndNum <= ${bPScumSumProbs[$bPScumSumProbIdx]}"|bc) -eq 1 ]; then
                 chosenCmdIdx=$bPScumSumProbIdx;
-                chosenCmds+=( "${cmds[$chosenCmdIdx]}" );
+                chosenCmds+=( "$(awk -v idx=$chosenCmdIdx 'NR==idx' $cmdsFileInput)" );
                 chosenCmdsIdxs+=( $chosenCmdIdx );
                 break
             fi
@@ -222,7 +223,7 @@ while [[ $# -gt 0 ]]; do
         numSelectedCmds="$2";
         shift 2;
         ;;
-    --selection|--sel) # elitist, roulette, tournament
+    --selection|--sel|-s) # elitist, roulette, tournament
         SELECTION_OP="$2";
         shift 2;
         ;;
@@ -250,27 +251,22 @@ if [ ${#SEQUENCES[@]} -eq 0 ]; then
   SEQUENCES=( "${ALL_SEQUENCES[@]}" );
 fi
 #
-echo "${SEQUENCES[@]}"
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
     cmdsFilesInput+=( "../${ds}/$ga/adultCmds.txt" );
-    #
-    echo "cmds files input: ";
-    printf "%s\n" ${cmdsFilesInput[@]}; 
 done
 #
-# 
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
     dsGAfolder=$(dirname $cmdsFileInput);
+    echo $dsGAfolder ds ga folder
     nextGen=$((gnum+1));
-    selCmdsFileOutput="$dsGAfolder/selAdultCmds.txt";
+    selCmdsFileOutput="$dsGAfolder/g${gnum}_selection.txt";
     #
     echo "========================================================";
-    echo "=== ADULT CMDS FILE INPUT: $cmdsFileInput ====";
-    echo "=== SEL ADULT CMDS FILE OUTPUT: $selCmdsFileOutput ==============";
-    echo "========================================================";
+    echo "ADULT CMDS FILE INPUT: $cmdsFileInput";
+    echo "SEL CMDS FILE OUTPUT: $selCmdsFileOutput";
     #
     # adult cmds that have already been executed
     cmds=();
@@ -291,17 +287,16 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     printf "%s \n" "${chosenCmds[@]}" > $selCmdsFileOutput;
     #
     numUniqueCmds=$(sort $selCmdsFileOutput | uniq -c | wc -l);
-    echo $numUniqueCmds;
+    #
     if [ $numUniqueCmds -eq $numSelectedCmds ]; then 
-        echo "There are no duplicated cmds";
+        echo "$numUniqueCmds unique selected commands";
     else
-        echo "These cmds have been chosen more than once:";
-        sort $cmdsFileInput | uniq -dc;
-        #
-        selCmdsFileOutputTMP="$dsgaFolder/selAdultCmdsTMP.txt"
-        sort $selCmdsFileOutput | uniq > $selCmdsFileOutputTMP;
-        cat $selCmdsFileOutputTMP > $cmdsFileInput;
-        rm -fr $selCmdsFileOutputTMP;
-        echo "Duplicate cmds have been removed";
+        selCmdsFileOutputTMP="${selCmdsFileOutput/.txt/TMP.txt}"
+        echo "$numSelectedCmds selected commands, $numUniqueCmds of them are unique";
+        echo "Duplicates of these commands will be removed:";
+        sort $selCmdsFileOutput | uniq -c | awk '$1>1';
+        sort $selCmdsFileOutput | uniq -c | awk '{$1=""; print}' > $selCmdsFileOutputTMP;
+        rm -fr $selCmdsFileOutput;
+        mv $selCmdsFileOutputTMP $selCmdsFileOutput;
     fi
 done
