@@ -45,7 +45,7 @@ function RUN_TEST() {
   FILED="$4";
   C_COMMAND="$5";
   D_COMMAND="$6";
-  nrun="$7";
+  gnum="$7";
   #
   c_time_mem_tmp="${sequenceName}${output_ext}c_time_mem_tmp.txt";
   c_time_mem="${c_time_mem_tmp//_tmp.txt/.txt}";
@@ -66,11 +66,18 @@ function RUN_TEST() {
   cat "$c_time_mem_tmp" | grep "TIME" | awk '{ printf $2"\t"$4/1024/1024"\n" }' 1> "${c_time_mem}";
   rm -fr $c_time_mem_tmp;
   #
-  if [ -e "$FILEC" ]; then
+  if [ -e "$FILEC" ] || [[ -s "$c_time_mem" ]]; then
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
     BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc); # bits per symbol
+    C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
+    C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`; 
   else 
-    echo -e "\e[31mINVALID COMPRESSION COMMAND: $C_COMMAND\e[0m";
+    invalidCmds="$dsFolder/invalidCmds.txt";
+    printf "$gnum\t$C_COMMAND" 1>> $invalidCmds; 
+    C_TIME=$((timeOut+1));
+    C_MEME=$((timeOut+1));
+    #
+    # if timeout happened, it's as if no compression happened
     BYTES_CF=$BYTES; # baseline value
     BPS=2; # baseline value
   fi
@@ -80,20 +87,6 @@ function RUN_TEST() {
   #
   # CMP file is not needed for optimization
   touch $cmp;
-  #
-  # register C_TIME and C_MEME 
-  if [[ -s "$c_time_mem" ]]; then # if file is not empty...
-    C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
-    C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`; 
-  else
-    echo -e "\e[31mINVALID COMPRESSION COMMAND: $C_COMMAND\e[0m";
-    C_TIME=$((timeOut+1));
-    C_MEME=$((timeOut+1));
-    #
-    # if timeout happened, it's as if no compression happened
-    BYTES_CF=$BYTES; # baseline value
-    BPS=2; # baseline value
-  fi
   #
   # register D_TIME and D_MEME
   if [[ -s "$d_time_mem" ]]; then # if file is not empty...
@@ -109,7 +102,7 @@ function RUN_TEST() {
   if [[ "$CMP_SIZE" != "0" ]]; then CMP_SIZE="1"; fi
   #
   pattern=" -o ../../sequences/*.seq.jc ";
-  printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$nrun\t${C_COMMAND/$pattern}\n" 1>> "$resOutput";
+  printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$gnum\t${C_COMMAND/$pattern}\n" 1>> "$resOutput";
   #
   rm -fr $c_time_mem $d_time_mem $cmp;   
   rm -fr $FILEC $FILED;
@@ -223,6 +216,8 @@ for sequenceName in "${SEQUENCES[@]}"; do
     cmdsScriptInput="$dsFolder/g${gnum}.sh"; 
     CHECK_INPUT "$cmdsScriptInput";
     #
+    invalidCmds="$dsFolder/invalidCmds.txt";
+    #
     resOutput_header="$dsFolder/g${gnum}_header.txt";
     printf "$dsX - $sequenceName - generation${gnum} \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tBIRTH_GEN\tC_COMMAND\n" 1> "$resOutput_header";
     #
@@ -236,7 +231,8 @@ for sequenceName in "${SEQUENCES[@]}"; do
     #
     # split child cmds
     numCmds=$(cat $cmdsScriptInput | wc -l);
-    maxNumCmds=$(echo "$numCmds/$nthreads + 1" | bc);
+    extraLine=$(( $numCmds%$nthreads == 0 ? 0 : 1 ));
+    maxNumCmds=$(echo "$numCmds/$nthreads + $extraLine" | bc);
     split --lines=$maxNumCmds "$dsFolder/g${gnum}.sh" "$dsFolder/g${gnum}_splitted_" --additional-suffix ".sh"
     chmod +x $dsFolder/*"_splitted_"*;
     #
