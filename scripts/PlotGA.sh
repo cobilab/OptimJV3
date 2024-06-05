@@ -64,6 +64,7 @@ mkdir -p $statsFolder $plotsFolder;
 #
 if [ -z "$last_gen" ]; then
     last_gen=$(ls $gaFolder/g*.tsv | wc -l);
+    echo $last_gen
 fi
 #
 # gets population size by counting num of non-empty lines and excluding header
@@ -154,7 +155,7 @@ gnuplot << EOF
     set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
-    #     set key bottom right
+    set key bottom right
     #
     # set up the axis on the left side for bps
     set ylabel "bPS"
