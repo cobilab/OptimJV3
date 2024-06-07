@@ -10,14 +10,16 @@ function SHOW_HELP() {
   echo " Program options ---------------------------------------";
   echo "                                                        ";
   echo " --help|-h.....................................Show this";
-  echo " --view-datasets|--view-ds|-v....View sequence names, the size"; 
-  echo "                 of each in bytes, MB, and BG, and their group";
+  echo " --view-datasets|--view-ds|-v..View sequence names, size";
+  echo "           of each in bytes, MB, and BG, and their group";
   echo "--sequence|--seq|-s..........Select sequence by its name";
   echo "--sequence-group|--seq-grp|-sg.Select group of sequences";
   echo "                                           by their size";
   echo "--dataset|-ds......Select sequence by its dataset number";
   echo "--dataset-range|--dsrange|--drange|-dr............Select";
   echo "                   sequences by range of dataset numbers";
+  echo "--nthreads|-t...........num of threads to run JARVIS3 in"; 
+  echo "                                                parallel";
   echo "--seed|-sd..............Pseudo-random seed. Value: $seed";
   echo "                                                        ";
   echo " -------------------------------------------------------";
@@ -25,10 +27,8 @@ function SHOW_HELP() {
 #
 function CHECK_DS_INPUT () {
     FILE1=$1
-    FILE2=$1
-    if [ -f "$FILE1" ] && [ -f "$FILE2" ]; then
-        cat $FILE1; echo; cat $FILE2;
-    else
+    FILE2=$2
+    if [ ! -f "$FILE1" ] && [ ! -f "$FILE2" ]; then
         echo -e "\e[31mERROR: one of these files or both were not found: $FILE1 and $FILE2"
         echo -e "Run Setup.sh or GetDSinfo.sh to fix issue\e[0m";
         exit 1;
@@ -39,7 +39,7 @@ function CHECK_DS_INPUT () {
 #
 INIT_GEN=1;
 FIRST_GEN=1;
-LAST_GEN=20;
+LAST_GEN=100;
 POPULATION_SIZE=100;
 #
 ds_range="1:1";
@@ -223,18 +223,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-### MAIN GA ########################################################################################################
-#
 if [ ${#SEQUENCES[@]} -ne 0 ]; then 
     echo "Sequences to run: "
     printf "%s \n" "${SEQUENCES[@]}"
 else 
     echo -e "\e[31mERROR: The program does not know which sequences to run"
-    echo -e "run ./Setup.sh if required, then rerun this script with --ds argument, or -v to view datasets, or -h for help \e[0m";
+    echo -e "run ./Setup.sh if required, then rerun this script with -v to view all datasets, or -h for help \e[0m";
     exit 1;
 fi
 #
-gen=$FIRST_GEN;
+### GA ########################################################################################################
 #
 for sequence in ${SEQUENCES[@]}; do
     #
@@ -261,7 +259,7 @@ for sequence in ${SEQUENCES[@]}; do
     #
     ( echo "./MainGA.sh $allArgs"
     #
-    if [ $gen -eq $INIT_GEN ]; then 
+    if [ $FIRST_GEN -eq $INIT_GEN ]; then 
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
@@ -286,4 +284,8 @@ for sequence in ${SEQUENCES[@]}; do
         echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
         bash -x ./SelCrossMut.sh -s $sequence -g $gen $flags $scmFlags 1> $scmLog 2> $scmErr;
     done ) 1> $logFile 2> $errFile &
+    #
+    echo "$dsx, $ga is running in the background..."
+    wait # to run one GA at a time
+    echo "$dsx, $ga program is complete"
 done
