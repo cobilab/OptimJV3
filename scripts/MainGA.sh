@@ -24,13 +24,13 @@ function SHOW_HELP() {
 }
 #
 function CHECK_DS_INPUT () {
-    FILE=$1
+    FILE1=$1
     FILE2=$1
     if [ -f "$FILE1" ] && [ -f "$FILE2" ]; then
         cat $FILE1; echo; cat $FILE2;
     else
         echo -e "\e[31mERROR: one of these files or both were not found: $FILE1 and $FILE2"
-        echo -e "Rerun Setup.sh or GetDSinfo.sh to fix issue\e[0m";
+        echo -e "Run Setup.sh or GetDSinfo.sh to fix issue\e[0m";
         exit 1;
     fi
 }
@@ -60,6 +60,8 @@ rm -fr $logPath;
 mkdir -p $logPath;
 #
 ### PARSING ###############################################################################################
+#
+allArgs="$@";
 #
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -99,7 +101,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     --dataset|-ds)
         ds="$2";
-        SEQUENCES+=( "$(awk '/DS'$dsnum'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
+        SEQUENCES+=( "$(awk '/DS'$ds'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
         shift 2;
         ;;
     --dataset-range|--dsrange|--drange|-dr)
@@ -241,17 +243,27 @@ for sequence in ${SEQUENCES[@]}; do
     mkdir -p $dsFolder;
     gaFolder="$dsFolder/$ga";
     if [ -d $gaFolder ]; then mv $gaFolder ${gaFolder}_bkp; fi
-    logFolder="$gaFolder/log";
+    logFolder="$gaFolder/logs";
     mkdir -p $logFolder;
     #
-    logFile="$logFolder/ds${dsx}_ga$ga.log"
-    errFile="$logFolder/ds${dsx}_ga$ga.log"
+    logFile="$logFolder/${dsx}_$ga.log"
+    errFile="$logFolder/${dsx}_$ga.err"
     echo "log file: $logFile"
     echo "error file: $errFile"
     #
-    ( if [ $gen -eq $INIT_GEN ]; then 
-        initLog="$logFolder/init.log"
-        errLog="$logFolder/init.err"
+    initLogFolder="$logFolder/init"
+    runLogFolder="$logFolder/run"
+    evalLogFolder="$logFolder/eval"
+    scmLogFolder="$logFolder/scm"
+    mkdir -p $initLogFolder $runLogFolder $evalLogFolder $scmLogFolder
+    #
+    echo "./MainGA.sh $allArgs" > "$gaFolder/ga.sh";
+    #
+    ( echo "./MainGA.sh $allArgs"
+    #
+    if [ $gen -eq $INIT_GEN ]; then 
+        initLog="$initLogFolder/init.log"
+        initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
         bash -x ./Initialization.sh -s $sequence $flags $initFlags 1> $initLog 2> $initErr; 
     fi
@@ -259,18 +271,18 @@ for sequence in ${SEQUENCES[@]}; do
     for gen in $(seq $FIRST_GEN $LAST_GEN); do
         echo "=== GENERATION $gen ===";
         #
-        runLog="$logFolder/run$gen.log"
-        runErr="$logFolder/run$gen.err"
+        runLog="$runLogFolder/run$gen.log"
+        runErr="$runLogFolder/run$gen.err"
         echo "2. RUN - log file: $runLog ; err file: $runErr";
         bash -x ./Run.sh -s $sequence -g $gen $flags $runFlags 1> $runLog 2> $runErr;
         #
-        evalLog="$logFolder/eval$gen.log"
-        evalErr="logFolder/eval$gen.err"
+        evalLog="$evalLogFolder/eval$gen.log"
+        evalErr="$evalLogFolder/eval$gen.err"
         echo "3. EVALUATION - log file: $evalLog ; err file: $evalErr";
         bash -x ./Evaluation.sh -s $sequence -g $gen $flags $evalFlags 1> $evalLog 2> $evalErr;
         #
-        scmLog="$logFolder/scm$gen.log"
-        scmErr="$logFolder/scm$gen.err"
+        scmLog="$scmLogFolder/scm$gen.log"
+        scmErr="$scmLogFolder/scm$gen.err"
         echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
         bash -x ./SelCrossMut.sh -s $sequence -g $gen $flags $scmFlags 1> $scmLog 2> $scmErr;
     done ) 1> $logFile 2> $errFile &
