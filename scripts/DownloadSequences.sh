@@ -62,7 +62,7 @@ for url in "${urls_rev[@]}"; do
     rawFile=$(echo $url | rev | cut -d'/' -f1 | rev | sed 's/-/_/g' | sed 's/\.fa\|\.fna\|\.fasta/_raw.fa/')
     #
     if [[ ! -f "$rawSequencesPath/$rawFile" ]]; then 
-        echo "downloading $origFile file..."
+        echo -e "\033[32mdownloading $origFile file... \033[0m"
         wget -c $url -O "$rawSequencesPath/$rawFile"
     else
         # no need to download a file that already exists
@@ -71,7 +71,7 @@ for url in "${urls_rev[@]}"; do
     #
     # unzip file if it ends with .gz
     if [[ "$rawSequencesPath/$rawFile" == *.gz ]]; then
-        echo "$rawFile is being gunzipped..."
+        echo -e "$\033[32mrawFile is being gunzipped... \033[0m"
         gunzip "$rawSequencesPath/$rawFile"
     fi
 done

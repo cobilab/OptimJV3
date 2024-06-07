@@ -1,34 +1,5 @@
 #!/bin/bash
 #
-### DEFAULT VALUES ###############################################################################################
-#
-INIT_GEN=1;
-FIRST_GEN=1;
-LAST_GEN=100;
-POPULATION_SIZE=100;
-#
-ds_range="1:1";
-nthreads=10;
-seed=1;
-si=10; # to increment seed
-#
-lr=0.03; # learning rate
-#
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
-#
-flags="";
-initFlags="";
-runFlags="";
-evalFlags="";
-scmFlags="";
-#
-ga="ga";
-#
-logPath="../logs";
-rm -fr $logPath;
-mkdir -p $logPath;
-#
 ### FUNCTIONS ###############################################################################################
 #
 function SHOW_HELP() {
@@ -51,6 +22,42 @@ function SHOW_HELP() {
   echo "                                                        ";
   echo " -------------------------------------------------------";
 }
+#
+function CHECK_DS_INPUT () {
+    FILE=$1
+    FILE2=$1
+    if [ -f "$FILE1" ] && [ -f "$FILE2" ]; then
+        cat $FILE1; echo; cat $FILE2;
+    else
+        echo -e "\e[31mERROR: one of these files or both were not found: $FILE1 and $FILE2"
+        echo -e "Rerun Setup.sh or GetDSinfo.sh to fix issue\e[0m";
+        exit 1;
+    fi
+}
+#
+### DEFAULT VALUES ###############################################################################################
+#
+INIT_GEN=1;
+FIRST_GEN=1;
+LAST_GEN=20;
+POPULATION_SIZE=100;
+#
+ds_range="1:1";
+nthreads=10;
+seed=1;
+si=10; # to increment seed
+#
+lr=0.03; # learning rate
+#
+ds_sizesBase2="../../DS_sizesBase2.tsv"
+ds_sizesBase10="../../DS_sizesBase10.tsv"
+CHECK_DS_INPUT "$ds_sizesBase2" "$ds_sizesBase10"
+#
+ga="ga";
+#
+logPath="../logs";
+rm -fr $logPath;
+mkdir -p $logPath;
 #
 ### PARSING ###############################################################################################
 #
@@ -82,22 +89,25 @@ while [[ $# -gt 0 ]]; do
         ;;
     --sequence|--seq|-s)
         sequence="$2";
-        flags+="-s $sequence ";
+        SEQUENCES+=( "$sequence" );
         shift 2;
         ;;
     --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
         size="$2";
-        flags+="-sg $size ";
+        SEQUENCES+=( $(awk '/[[:space:]]'$size'/ { print $2 }' "$ds_sizesBase2") );
         shift 2; 
         ;;
     --dataset|-ds)
         ds="$2";
-        flags+="-ds $ds ";
+        SEQUENCES+=( "$(awk '/DS'$dsnum'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
         shift 2;
         ;;
     --dataset-range|--dsrange|--drange|-dr)
-        ds_range="$2";
-        flags+="-drange $ds_range ";
+        dsrange=( $(echo "$2" | sed 's/[:/]/ /g') );
+        sorted_dsrange=( $(printf "%s\n" ${dsrange[@]} | sort -n ) );
+        dsmin="${sorted_dsrange[0]}";
+        dsmax="${sorted_dsrange[1]}";
+        SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
         shift 2;
         ;;
     --population-size|--population|--psize|-ps|-p)
@@ -213,23 +223,55 @@ done
 #
 ### MAIN GA ########################################################################################################
 #
-gen=$FIRST_GEN;
-#
-if [ $gen -eq $INIT_GEN ]; then 
-    echo "1. INITIALIZATION";
-    echo "./Initialization.sh $flags $initFlags"
-    bash -x ./Initialization.sh $flags $initFlags 1> $logPath/init.log 2> $logPath/init.err; 
+if [ ${#SEQUENCES[@]} -ne 0 ]; then 
+    echo "Sequences to run: "
+    printf "%s \n" "${SEQUENCES[@]}"
+else 
+    echo -e "\e[31mERROR: The program does not know which sequences to run"
+    echo -e "run ./Setup.sh if required, then rerun this script with --ds argument, or -v to view datasets, or -h for help \e[0m";
+    exit 1;
 fi
 #
-for gen in $(seq $FIRST_GEN $LAST_GEN); do
-    echo "=== GENERATION $gen ===";
+gen=$FIRST_GEN;
+#
+for sequence in ${SEQUENCES[@]}; do
     #
-    echo "2. RUN";
-    bash -x ./Run.sh -g $gen $flags $runFlags 1> $logPath/run$gen.log 2> $logPath/run$gen.err;
+    dsx=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
+    dsFolder="../$dsx";
+    mkdir -p $dsFolder;
+    gaFolder="$dsFolder/$ga";
+    if [ -d $gaFolder ]; then mv $gaFolder ${gaFolder}_bkp; fi
+    logFolder="$gaFolder/log";
+    mkdir -p $logFolder;
     #
-    echo "3. EVALUATION";
-    bash -x ./Evaluation.sh -g $gen $flags $evalFlags 1> $logPath/eval$gen.log 2> $logPath/eval$gen.err;
+    logFile="$logFolder/ds${dsx}_ga$ga.log"
+    errFile="$logFolder/ds${dsx}_ga$ga.log"
+    echo "log file: $logFile"
+    echo "error file: $errFile"
     #
-    echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION";
-    bash -x ./SelCrossMut.sh -g $gen $flags $scmFlags 1> $logPath/scm$gen.log 2> $logPath/scm$gen.err;
+    ( if [ $gen -eq $INIT_GEN ]; then 
+        initLog="$logFolder/init.log"
+        errLog="$logFolder/init.err"
+        echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
+        bash -x ./Initialization.sh -s $sequence $flags $initFlags 1> $initLog 2> $initErr; 
+    fi
+    #
+    for gen in $(seq $FIRST_GEN $LAST_GEN); do
+        echo "=== GENERATION $gen ===";
+        #
+        runLog="$logFolder/run$gen.log"
+        runErr="$logFolder/run$gen.err"
+        echo "2. RUN - log file: $runLog ; err file: $runErr";
+        bash -x ./Run.sh -s $sequence -g $gen $flags $runFlags 1> $runLog 2> $runErr;
+        #
+        evalLog="$logFolder/eval$gen.log"
+        evalErr="logFolder/eval$gen.err"
+        echo "3. EVALUATION - log file: $evalLog ; err file: $evalErr";
+        bash -x ./Evaluation.sh -s $sequence -g $gen $flags $evalFlags 1> $evalLog 2> $evalErr;
+        #
+        scmLog="$logFolder/scm$gen.log"
+        scmErr="$logFolder/scm$gen.err"
+        echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
+        bash -x ./SelCrossMut.sh -s $sequence -g $gen $flags $scmFlags 1> $scmLog 2> $scmErr;
+    done ) 1> $logFile 2> $errFile &
 done
