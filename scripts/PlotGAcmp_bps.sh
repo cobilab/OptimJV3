@@ -92,7 +92,7 @@ mkdir -p $statsFolder $plotsFolder;
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
-bps_avg="$plotsFolder/bps_avg_zoom.pdf";
+bps_avg="$plotsFolder/bps_avg.pdf";
 gnuplot << EOF
     set title "BPS average"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -110,9 +110,8 @@ gnuplot << EOF
     #
     set output "$bps_avg"
     plot "../$dsx/ga1_cga/stats/avg_bps_all.tsv" with lines title "GA1 - cga", \
-    "../$dsx/ga2_moga_wbps10/stats/avg_bps_all.tsv" with lines title "GA2 - moga wBPS=0.1", \
-    "../$dsx/ga3_moga_wbps25/stats/avg_bps_all.tsv" with lines title "GA3 - moga wBPS=0.25", \
-    "../$dsx/ga4_moga_wbps50/stats/avg_bps_all.tsv" with lines title "GA4 - moga wBPS=0.5", \
-    "../$dsx/ga5_moga_wbps75/stats/avg_bps_all.tsv" with lines title "GA5 - moga wBPS=0.75", \
-    "../$dsx/ga6_moga_wbps90/stats/avg_bps_all.tsv" with lines title "GA6 - moga wBPS=0.9"
+    "../$dsx/ga3_cga_p20_ns6/stats/avg_bps_all.tsv" with lines title "GA3 - ps=20, ns=6"
+    # "../$dsx/ga4_moga_wbps50/stats/avg_bps_all.tsv" with lines title "GA4 - moga wBPS=0.5", \
+    # "../$dsx/ga5_moga_wbps75/stats/avg_bps_all.tsv" with lines title "GA5 - moga wBPS=0.75", \
+    # "../$dsx/ga6_moga_wbps90/stats/avg_bps_all.tsv" with lines title "GA6 - moga wBPS=0.9"
 EOF

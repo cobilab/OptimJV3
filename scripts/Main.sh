@@ -112,52 +112,48 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-if [ ${#SEQUENCES[@]} -ne 0 ]; then 
-    echo "Sequences to run: "
-    printf "%s \n" "${SEQUENCES[@]}"
-else 
-    echo -e "\e[31mERROR: The program does not know which sequences to run"
-    echo -e "run ./Setup.sh if required, then rerun this script with -v to view all datasets, or -h for help \e[0m";
-    exit 1;
-fi
-#
 ### GA ########################################################################################################
 #
+min_gen=1
+gen_range=20
+max_gen=50
+#
 for sequence in ${SEQUENCES[@]}; do
-    #
-    sequence="${sequence//.seq/}"
-    #
-    if [ "${sequence^^}" == "CASSAVA" ]; then 
-        sequence="TME204.HiFi_HiC.haplotig1"
-    elif [ "${sequence^^}" == "HUMAN" ]; then
-        sequence="chm13v2.0"
-    fi
-    #
-    # canonical GA
-    ./GA.sh -s "$sequence" -ga "ga$((++i))"
-    #
-    # GAs that vary in population size
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p10_ns4" -ps 10 -ns 4
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p20_ns6" -ps 20 -ns 6
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p50_ns16" -ps 50 -ns 16
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p80_ns24" -ps 80 -ns 24
-    #
-    # GAs that vary in population size (learning rate=0)
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p10_ns4_cr1" -ps 10 -ns 4 -lr 0
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p20_ns6_cr1" -ps 20 -ns 6 -lr 0
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p50_ns16_cr1" -ps 50 -ns 16 -lr 0
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p80_ns24_cr1" -ps 80 -ns 24 -lr 0
-    #
-    # GAs that vary in population size (crossover rate=1)
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p10_ns4_cr1" -ps 10 -ns 4 -cr 1
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p20_ns6_cr1" -ps 20 -ns 6 -cr 1
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p50_ns16_cr1" -ps 50 -ns 16 -cr 1
-    ./GA.sh -s "$sequence" -ga "ga$((++i))_p80_ns24_cr1" -ps 80 -ns 24 -cr 1    
-    #
-    # MOGAs (multiple-objective GAs)
-    ./MainGA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS10" --moga -wBPS 0.1 -pe 2
-    ./MainGA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS25" --moga -wBPS 0.25 -pe 2
-    ./MainGA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS75" --moga -wBPS 0.75 -pe 2
-    ./MainGA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS90" --moga -wBPS 0.9 -pe 2
+    for fg in $(seq $min_gen $gen_range $max_gen); do
+        #
+        lg=$((fg+gen_range-1))
+        if [ $lg -gt $max_gen ]; then lg=$max_gen; fi
+        #
+        # canonical GA
+        ./GA.sh -s "$sequence" -ga "ga$((++i))" -fg $fg -lg $lg -t $nthreads
+        #
+        # GAs that vary in population size
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p10_ns4" -ps 10 -ns 4 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p20_ns6" -ps 20 -ns 6 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p50_ns16" -ps 50 -ns 16 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p80_ns24" -ps 80 -ns 24 -fg $fg -lg $lg -t $nthreads
+        #
+        # GAs that vary in population size (learning rate=0)
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p10_ns4_cr1" -ps 10 -ns 4 -lr 0 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p20_ns6_cr1" -ps 20 -ns 6 -lr 0 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p50_ns16_cr1" -ps 50 -ns 16 -lr 0 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p80_ns24_cr1" -ps 80 -ns 24 -lr 0 -fg $fg -lg $lg -t $nthreads
+        #
+        # GAs that vary in population size (crossover rate=1)
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p10_ns4_cr1" -ps 10 -ns 4 -cr 1 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p20_ns6_cr1" -ps 20 -ns 6 -cr 1 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p50_ns16_cr1" -ps 50 -ns 16 -cr 1 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_p80_ns24_cr1" -ps 80 -ns 24 -cr 1 -fg $fg -lg $lg -t $nthreads
+        #
+        # MOGAs (multiple-objective GAs)
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS10" --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS25" --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS75" --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_mogawm_wBPS90" --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
+        #
+        # tournament and roulette selection
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_sel_t" --sel "t" -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga$((++i))_sel_r" --sel "r" -fg $fg -lg $lg -t $nthreads
+    done
 done
     

@@ -57,12 +57,24 @@ while [[ $# -gt 0 ]]; do
             ga="$2";
             shift 2; 
             ;;
+        --sequence|--seq|-s)
+            sequence="${$2//.seq/}"
+            #
+            if [ "${sequence^^}" == "CASSAVA" ]; then 
+                sequence="TME204.HiFi_HiC.haplotig1"
+            elif [ "${sequence^^}" == "HUMAN" ]; then
+                sequence="chm13v2.0"
+            fi
+            #
+            SEQUENCES+=( "$sequence" );
+            shift 2; 
+            ;;
         --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
             size="$2";
             SEQUENCES+=( $(awk '/[[:space:]]'$size'/ { print $2 }' "$ds_sizesBase2") );
             shift 2; 
             ;;
-            --dataset|-ds)
+        --dataset|-ds)
             dsnum=$(echo "$2" | tr -d "dsDS");
             SEQUENCES+=( "$(awk '/DS'$dsnum'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
             shift 2;

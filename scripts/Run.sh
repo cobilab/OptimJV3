@@ -156,7 +156,14 @@ while [[ $# -gt 0 ]]; do
       shift 2; 
       ;;
     --sequence|--seq|-s)
-      sequence="$2";
+      sequence="${$2//.seq/}"
+      #
+      if [ "${sequence^^}" == "CASSAVA" ]; then 
+          sequence="TME204.HiFi_HiC.haplotig1"
+      elif [ "${sequence^^}" == "HUMAN" ]; then
+          sequence="chm13v2.0"
+      fi
+      #
       SEQUENCES+=( "$sequence" );
       shift 2; 
       ;;

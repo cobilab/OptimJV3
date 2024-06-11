@@ -191,7 +191,7 @@ while [[ $# -gt 0 ]]; do
     --selection|--sel) 
         # elitist, roulette
         SELECTION_OP="$2";
-        scmFlags+="--sel $SELECTION_OP ";
+        scmFlags+="-s $SELECTION_OP ";
         shift 2;
         ;;
     #
