@@ -34,9 +34,13 @@ while [[ $# -gt 0 ]]; do
         ;;
     --dataset|-ds)
         dsx="DS$(echo "$2" | tr -d "dsDS")";
-        size=$(awk '/'$dsx'[[:space:]]/{print $NF}' $ds_sizesBase2);
         shift 2;
-        ;;  
+        ;;
+    --sequence|--seq|-s)
+        sequence="$2";
+        ds=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
+        shift 2;
+        ;;
     --first-generation|--first-gen|-fg)
         first_gen="$2";
         shift 2;
@@ -69,7 +73,7 @@ POPULATION_SIZE=$(( $(cat $gaFolder/g1.tsv | sed '/^\s*#/d;/^\s*$/d' | wc -l) - 
 #
 allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
 allBPS="$statsFolder/histBPS.tsv";
-awk 'NR>2 {print $4}' $allSortedRes_bps | uniq -c > $allBPS;
+awk 'NR>2 {print $4}' $allSortedRes_bps | uniq -c | awk '{print $2"\t"$1}' > $allBPS;
 #
 # === HISTOGRAM ===========================================================================
 #
@@ -91,9 +95,10 @@ gnuplot << EOF
     #
     # histogram style
     set style data histogram
+    set boxwidth 0.005 absolute
     set style fill solid 0.5 border -1
     set grid y
     #
     set output "$allBPSpdf"
-    plot "$allBPS" u 2:1 smooth freq with boxes lc rgb"blue" notitle
+    plot "$allBPS" using 1:2 with boxes lc rgb "blue" notitle
 EOF

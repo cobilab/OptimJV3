@@ -36,6 +36,24 @@ function CHECK_INPUT () {
 #
 # ==============================================================================
 #
+function FIX_SEQUENCE_NAME() {
+    sequence="$1"
+    echo $sequence
+    sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
+    #
+    if [ "${sequence^^}" == "CY" ]; then 
+        sequence="CY"
+    elif [ "${sequence^^}" == "CASSAVA" ]; then 
+        sequence="TME204.HiFi_HiC.haplotig1"
+    elif [ "${sequence^^}" == "HUMAN" ]; then
+        sequence="chm13v2.0"
+    fi
+    #
+    echo "$sequence"
+}
+#
+# ==============================================================================
+#
 # RUN_TEST "compressor_name" "original_file" "compressed_file" "decompressed_file" "c_command" "d_command" "$run"; run=$((run+1));
 function RUN_TEST() {
   #
@@ -156,14 +174,8 @@ while [[ $# -gt 0 ]]; do
       shift 2; 
       ;;
     --sequence|--seq|-s)
-      sequence="${$2//.seq/}"
-      #
-      if [ "${sequence^^}" == "CASSAVA" ]; then 
-          sequence="TME204.HiFi_HiC.haplotig1"
-      elif [ "${sequence^^}" == "HUMAN" ]; then
-          sequence="chm13v2.0"
-      fi
-      #
+      sequence="$2";
+      FIX_SEQUENCE_NAME "$sequence"
       SEQUENCES+=( "$sequence" );
       shift 2; 
       ;;

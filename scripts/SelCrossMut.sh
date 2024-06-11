@@ -33,6 +33,23 @@ function CHECK_INPUT () {
   fi
 }
 #
+#
+function FIX_SEQUENCE_NAME() {
+    sequence="$1"
+    echo $sequence
+    sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
+    #
+    if [ "${sequence^^}" == "CY" ]; then 
+        sequence="CY"
+    elif [ "${sequence^^}" == "CASSAVA" ]; then 
+        sequence="TME204.HiFi_HiC.haplotig1"
+    elif [ "${sequence^^}" == "HUMAN" ]; then
+        sequence="chm13v2.0"
+    fi
+    #
+    echo "$sequence"
+}
+#
 ### SELECTION FUNCTIONS ###############################################################################################
 #
 function ELITIST_SELECTION() {
@@ -411,12 +428,8 @@ while [[ $# -gt 0 ]]; do
         ;;
     --sequence|--seq|-s)
         sequence="${$2//.seq/}"
-        #
-        if [ "${sequence^^}" == "CASSAVA" ]; then 
-            sequence="TME204.HiFi_HiC.haplotig1"
-        elif [ "${sequence^^}" == "HUMAN" ]; then
-            sequence="chm13v2.0"
-        fi
+        sequence="$2";
+        FIX_SEQUENCE_NAME "$sequence"
         #
         SEQUENCES+=( "$sequence" );
         shift 2; 

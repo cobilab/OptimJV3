@@ -35,6 +35,22 @@ function CHECK_DS_INPUT () {
     fi
 }
 #
+function FIX_SEQUENCE_NAME() {
+    sequence="$1"
+    echo $sequence
+    sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
+    #
+    if [ "${sequence^^}" == "CY" ]; then 
+        sequence="CY"
+    elif [ "${sequence^^}" == "CASSAVA" ]; then 
+        sequence="TME204.HiFi_HiC.haplotig1"
+    elif [ "${sequence^^}" == "HUMAN" ]; then
+        sequence="chm13v2.0"
+    fi
+    #
+    echo "$sequence"
+}
+#
 ### DEFAULT VALUES ###############################################################################################
 #
 INIT_GEN=1;
@@ -46,8 +62,6 @@ ds_range="1:1";
 nthreads=10;
 seed=1;
 si=10; # to increment seed
-#
-lr=0.03; # learning rate
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv"
 ds_sizesBase10="../../DS_sizesBase10.tsv"
@@ -91,6 +105,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     --sequence|--seq|-s)
         sequence="$2";
+        FIX_SEQUENCE_NAME "$sequence";
         SEQUENCES+=( "$sequence" );
         shift 2;
         ;;
@@ -255,7 +270,7 @@ for sequence in ${SEQUENCES[@]}; do
     scmLogFolder="$logFolder/scm"
     mkdir -p $initLogFolder $runLogFolder $evalLogFolder $scmLogFolder
     #
-    echo "./MainGA.sh $allArgs" > "$gaFolder/ga.sh";
+    echo "./MainGA.sh $allArgs" >> "$gaFolder/ga.sh";
     #
     ( echo "./MainGA.sh $allArgs"
     #
