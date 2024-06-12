@@ -167,12 +167,13 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         # MOGAs (multiple-objective GAs)
         ./GA.sh -s "$sequence" -ga "ga14_mogawm_wBPS10" --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
         ./GA.sh -s "$sequence" -ga "ga15_mogawm_wBPS25" --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
-        ./GA.sh -s "$sequence" -ga "ga16_mogawm_wBPS75" --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
-        ./GA.sh -s "$sequence" -ga "ga17_mogawm_wBPS90" --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga16_mogawm_wBPS50" --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga17_mogawm_wBPS75" --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga18_mogawm_wBPS90" --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
         #
         # tournament and roulette selection
-        ./GA.sh -s "$sequence" -ga "ga18_sel_t" --sel "t" -fg $fg -lg $lg -t $nthreads
-        ./GA.sh -s "$sequence" -ga "ga19_sel_r" --sel "r" -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga19_sel_t" --sel "t" -fg $fg -lg $lg -t $nthreads
+        ./GA.sh -s "$sequence" -ga "ga20_sel_r" --sel "r" -fg $fg -lg $lg -t $nthreads
     done
 done
     
