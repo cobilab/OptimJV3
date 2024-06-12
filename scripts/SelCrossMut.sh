@@ -33,7 +33,6 @@ function CHECK_INPUT () {
   fi
 }
 #
-#
 function FIX_SEQUENCE_NAME() {
     sequence="$1"
     echo $sequence
@@ -427,9 +426,9 @@ while [[ $# -gt 0 ]]; do
         shift 2; 
         ;;
     --sequence|--seq|-s)
-        sequence="${$2//.seq/}"
         sequence="$2";
         FIX_SEQUENCE_NAME "$sequence"
+        echo $sequence
         #
         SEQUENCES+=( "$sequence" );
         shift 2; 
@@ -474,6 +473,7 @@ while [[ $# -gt 0 ]]; do
         ;;
     --gen-num|-g)
         gnum="$2";
+        echo $gnum
         shift 2;
         ;;
     --seed|-sd)

@@ -115,7 +115,7 @@ while [[ $# -gt 0 ]]; do
             moga_ws=true;
             shift;
             ;;
-        --p-expoent|--p-exp|-pe)
+        --p-expoent|--p-exp|--pexp|-pe)
             pExp="$2";
             shift 2;
             ;;

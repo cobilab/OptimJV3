@@ -8,6 +8,8 @@ first_gen=1;
 dsx="DS1";
 ga="ga";
 #
+interval=0.1
+#
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
@@ -49,6 +51,10 @@ while [[ $# -gt 0 ]]; do
         last_gen="$2";
         shift 2;
         ;;
+    --interval)
+        interval="$2"
+        shift 2
+        ;;
     *) 
         echo "Invalid option: $1"
         exit 1;
@@ -72,33 +78,70 @@ POPULATION_SIZE=$(( $(cat $gaFolder/g1.tsv | sed '/^\s*#/d;/^\s*$/d' | wc -l) - 
 # === STATS ===========================================================================
 #
 allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
-allBPS="$statsFolder/histBPS.tsv";
+allBPS="$statsFolder/allBPS.tsv";
 awk 'NR>2 {print $4}' $allSortedRes_bps | uniq -c | awk '{print $2"\t"$1}' > $allBPS;
+#
+minBPS=$(awk 'NR==1 {print $1}' $allBPS)
+histBPS="$statsFolder/histBPS.tsv";
+awk -v m=$minBPS -v i=$interval '{ if ($1-m < i) sum+=$2; else { print m"\t"sum; m=$1; sum=$2 } } END {print m"\t"sum}' $allBPS > $histBPS
+#
+histBPSrel="$statsFolder/histBPSrel.tsv"
+sum=$(awk '{ sum+=$2 } END { print sum }' $histBPS)
+awk -v s=$sum '{printf "%.3f\t%.3f\n", $1, $2/s}' $histBPS > $histBPSrel
 #
 # === HISTOGRAM ===========================================================================
 #
-allBPSpdf="$plotsFolder/histBPS.pdf";
+histBPSpdf="$plotsFolder/histBPS.pdf";
 gnuplot << EOF
-    set title "BPS histogram"
+    set title "Absolute frequency of bPS with interval = $interval"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set style histogram rows
     set boxwidth 0.8
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
     #
     # Set up the axis on the left side for bps
-    set ylabel "bPS absolute frequency"
+    set ylabel "Absolute Frequency"
     set ytics nomirror
     #
     # set up the axis below for generation
-    set xlabel "bPS value"
+    set xlabel "bPS"
     set xtics nomirror
     #
     # histogram style
     set style data histogram
-    set boxwidth 0.005 absolute
+    set boxwidth $interval absolute
     set style fill solid 0.5 border -1
     set grid y
     #
-    set output "$allBPSpdf"
-    plot "$allBPS" using 1:2 with boxes lc rgb "blue" notitle
+    set output "$histBPSpdf"
+    plot "$histBPS" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels offset char 0,0.5 notitle
+EOF
+#
+histBPSrelPdf="$plotsFolder/histBPSrel.pdf";
+gnuplot << EOF
+    set title "Relative frequency of bPS with interval = $interval"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set style histogram rows
+    set boxwidth 0.8
+    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    #
+    # Set up the axis on the left side for bps
+    set ylabel "Relative Frequency"
+    set ytics nomirror
+    #
+    # set up the axis below for generation
+    set xlabel "bPS"
+    set xtics nomirror
+    #
+    # "z axis" are the labels above the bars
+    set ztics rotate by 45 offset -0.8,-1.8
+    #
+    # histogram style
+    set style data histogram
+    set boxwidth $interval absolute
+    set style fill solid 0.5 border -1
+    set grid y
+    #
+    set output "$histBPSrelPdf"
+    plot "$histBPSrel" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels rotate by 60 offset char 1,1.5 notitle
 EOF

@@ -56,7 +56,7 @@ SEQUENCES=();
 #
 min_cms=1;
 max_cms=3;
-min_rms=0;
+min_rms=1;
 max_rms=2;
 #
 seed=1; # JV3 seed interval: [1;599999]
@@ -163,10 +163,17 @@ for sequenceName in "${SEQUENCES[@]}"; do
     dsX=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     size=$(awk '/'$sequenceName'[[:space:]]/ { print $NF }' "$ds_sizesBase2");
     #
-    dsFolder="../${dsX}/$ga";
+    dsFolder="../${dsX}";
     mkdir -p $dsFolder;
     #
-    outputScript="$dsFolder/g1.sh";
+    # if GA folder is not empty, it becomes backup
+    gaFolder="$dsFolder/$ga"
+    if [ ! -d $(ll $gaFolder 2> /dev/null) ]; then 
+        mv $gaFolder ${gaFolder}_bkp
+    fi
+    mkdir -p $gaFolder
+    #
+    outputScript="$gaFolder/g1.sh";
     #
     # PARAMETERS COMMON TO CM AND RM
     NB_I_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
@@ -230,7 +237,8 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
       done
       #
-      printf "${jv3Path}JARVIS3 -v $lr$hs$RM$CM$sequence.seq \n";
+      flags="$lr$hs$CM$RM$mRM"
+      printf "${jv3Path}JARVIS3 -v $flags$sequence.seq \n";
     done ) > $outputScript;
     #
     chmod +x $outputScript;

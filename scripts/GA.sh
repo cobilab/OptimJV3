@@ -37,7 +37,6 @@ function CHECK_DS_INPUT () {
 #
 function FIX_SEQUENCE_NAME() {
     sequence="$1"
-    echo $sequence
     sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
     #
     if [ "${sequence^^}" == "CY" ]; then 
@@ -47,8 +46,6 @@ function FIX_SEQUENCE_NAME() {
     elif [ "${sequence^^}" == "HUMAN" ]; then
         sequence="chm13v2.0"
     fi
-    #
-    echo "$sequence"
 }
 #
 ### DEFAULT VALUES ###############################################################################################
@@ -180,17 +177,17 @@ while [[ $# -gt 0 ]]; do
         evalFlags+="--moga-ws ";
         shift;
         ;;
-    --p-expoent|--p-exp)
+    --p-expoent|--p-exp|--pexp|-pe)
         pExp="$2";
         evalFlags+="--p-exp $pExp ";
         shift 2;
         ;;
-    --weight-bps|--w-bps|-w1)
+    --weight-bps|--w-bps|-wBPS|-w1)
         w_bPS="$2";
         evalFlags+="-w1 $w_bPS ";
         shift 2;
         ;;
-    --weight-ctime|--w-ctime|-w2)
+    --weight-ctime|--w-ctime|-wCTIME|-w2)
         w_CTIME="$2";
         evalFlags+="-w2 $w_CTIME ";
         shift 2;
@@ -254,8 +251,25 @@ for sequence in ${SEQUENCES[@]}; do
     dsx=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     dsFolder="../$dsx";
     mkdir -p $dsFolder;
-    gaFolder="$dsFolder/$ga";
-    if [ -d $gaFolder ]; then mv $gaFolder ${gaFolder}_bkp; fi
+    # 
+    gaFolder="$dsFolder/$ga"
+    # if GA folder isn't empty
+    if [ ! -d $(ll $gaFolder 2> /dev/null) ]; then 
+        genScript="$gaFolder/*.sh"
+        genNumSh=$(basename $(ls '$genScript') | grep -o -E '[0-9]+')
+        # copy folder as bkp if  gen to run != initial gen AND gen to run == first gen to run
+        if [ $genNumSh -ne $INIT_GEN ] && [ $genNumSh -eq $FIRST_GEN ]; then 
+            cp $gaFolder ${gaFolder}_bkp
+        # rename folder as bkp if GA folder isn't empty AND gen to run == initial gen
+        elif [ $genNumSh -eq $INIT_GEN ]; then 
+            mv $gaFolder ${gaFolder}_bkp
+        else 
+            echo -e "\e[31mERROR: --first-gen|-fg value given is $FIRST_GEN != $genNumSh (should run $genScript)"
+            exit 1
+        fi
+    fi
+    mkdir -p $gaFolder
+    #
     logFolder="$gaFolder/logs";
     mkdir -p $logFolder;
     #
@@ -270,9 +284,9 @@ for sequence in ${SEQUENCES[@]}; do
     scmLogFolder="$logFolder/scm"
     mkdir -p $initLogFolder $runLogFolder $evalLogFolder $scmLogFolder
     #
-    echo "./MainGA.sh $allArgs" >> "$gaFolder/ga.sh";
+    echo "./GA.sh $allArgs" >> "$gaFolder/ga.sh";
     #
-    ( echo "./MainGA.sh $allArgs"
+    ( echo "./GA.sh $allArgs"
     #
     if [ $FIRST_GEN -eq $INIT_GEN ]; then 
         initLog="$initLogFolder/init.log"

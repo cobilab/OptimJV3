@@ -90,7 +90,7 @@ function RUN_TEST() {
     C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
     C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`; 
   else 
-    invalidCmds="$dsFolder/invalidCmds.tsv";
+    invalidCmds="$dsFolder/aInvalidCmds.tsv";
     printf "$gnum\t$C_COMMAND" 1>> $invalidCmds; 
     C_TIME=$((timeOut+1));
     C_MEME=$((timeOut+1));

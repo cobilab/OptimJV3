@@ -101,125 +101,6 @@ function XPOINT_CROSSOVER() {
     done
 }
 #
-function UNIFORM_CROSSOVER() {
-    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UNIFORM CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    #
-    # create mask
-    for (( i=0; i < $NUM_PARAMS_PER_MODEL; i++)); 
-        do crossoverMask+=( $(( RANDOM % 2 )) ); 
-    done;
-    #
-    # to make sure that the mask has at least one elem equal to 1
-    crossoverMasksum=$(IFS="+"; echo "scale=3;${crossoverMask[*]}" | bc);
-    if [ $crossoverMasksum -eq 0 ]; then 
-        crossoverMask[$((RANDOM % ${#crossoverMask[@]}))]=1;
-    fi
-    #
-    echo "crossover mask -------------------------------> ${crossoverMask[*]}";
-    #
-    for paramIdx in ${!crossoverMask[@]}; do
-        if [ ${crossoverMask[$paramIdx]} -eq 1 ]; then
-            # param ("gene") crossover itself
-            temp=${cm_params_arr[$paramIdx]};
-            cm_params_arr[$paramIdx]=${cm_params_arr2[$paramIdx]};
-            cm_params_arr2[$paramIdx]=$temp;
-        fi;
-    done
-}
-#
-function AVG_CROSSOVER() {
-    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ AVG CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    for paramIdx in ${!CM_IS_PARAM_INT[@]}; do
-        cmParam1=${cm_params_arr[$paramIdx]} # parent 1
-        cmParam2=${cm_params_arr2[$paramIdx]} # parent 2
-        #
-        # the avg of two params within integer domains must be integer
-        if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then 
-            avgParam=$(echo "scale=0;($cmParam1+$cmParam2)/2" | bc);
-        else # avg of two real nums
-            avgParam=$(echo "scale=3;($cmParam1+$cmParam2)/2" | bc | sed '/\./ s/\.\{0,1\}0\{1,\}$//');
-        fi
-        #
-        cm_params_arr[$paramIdx]=$avgParam;
-        #
-        # this child may become a duplicate of other, but if that is the case, then it is removed later in the script
-        cm_params_arr2[$paramIdx]=$avgParam; 
-    done
-}
-#
-function DISCRETE_CROSSOVER() {
-    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DISCRETE CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    # r=random.choice({x, y}), if r==0, childParam=p1Param; elif r==1, childParam=p2Param
-    for paramIdx in $(seq 0 1 $((NUM_PARAMS_PER_MODEL-1)) ); do
-        cmParam1="${cm_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
-        cmParam2="${cm_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
-        # 
-        cmParamChoices=( "$cmParam1" "$cmParam2" ); # chose param with idx=$paramIdx from either parent1 or parent2
-        rndIdx=$((RANDOM % 2)); # random value taken from U(0,1)
-        chosenCmParam=${cmParamChoices[$rndIdx]};
-        #
-        # one child may become duplicate of another, but if that is the case, then it is removed later in the script
-        cm_params_arr[$paramIdx]=$chosenCmParam;
-        cm_params_arr2[$paramIdx]=${cm_params_arr[$paramIdx]};
-    done;
-}
-#
-function FLAT_CROSSOVER() {
-    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FLAT CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    for paramIdx in ${!CM_IS_PARAM_INT[@]}; do
-        cmParam1="${cm_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
-        cmParam2="${cm_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
-        #
-        # child param is same as its parents if both parents' params are equal
-        childParam=$cmParam1;
-        #
-        # choose a rnd number from U(lowerCmParam, greaterCmParam) if parents' params are diff
-        if [ $(echo "$cmParam1 != $cmParam2" | bc -l) -eq 1 ]; then
-            cmParam1and2=( $cmParam1 $cmParam2 );
-            IFS=$'\n'; cmParam1and2sorted=($(sort -n <<<"${cmParam1and2[*]}")); unset IFS;
-            #
-            cmParamMin=${cmParam1and2sorted[0]};
-            cmParamMax=${cmParam1and2sorted[-1]};
-            #
-            # random real number choosen from U(cmParamMin, cmParamMax)
-            childParam=$( seq $cmParamMin 0.1 $cmParamMax | sort -R --random-source=<(yes $((seed=seed+si))) | head -n 1 );
-    
-            #
-            # round number to int if param type is int
-            if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then
-                childParam=$(echo "scale=0; $childParam/1" | bc);
-            fi
-        fi
-        #
-        # one child may become duplicate of another, but if that is the case, then it is removed later in the script
-        cm_params_arr[paramIdx]=$childParam;
-        cm_params_arr2[paramIdx]=${cm_params_arr[paramIdx]};
-    done
-}
-#
-function HEURISTIC_CROSSOVER() {
-    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEURISTIC CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    # formula to produces ONE child (per param) = p1 + random * ratio_weight * (p2 - p1)
-    for paramIdx in ${!CM_IS_PARAM_INT[@]}; do
-        cmParam1="${cm_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
-        cmParam2="${cm_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
-        #
-        randomNum="0.$((RANDOM%999))";
-        ratioWeight=1;
-        #
-        childParam=$(echo "scale=3; $cmParam1 + $randomNum * $ratioWeight * ($cmParam2 - $cmParam1)" | bc | sed '/\./ s/\.\{0,1\}0\{1,\}$//');
-        #
-        if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then # round value to int if params are int
-            childParam=$(echo "scale=0; $childParam/1" | bc);
-        fi
-        #
-        cm_params_arr[$paramIdx]=$childParam;
-        #
-        # this child may become a duplicate of other, but if that is the case, then it is removed later in the script
-        cm_params_arr2[$paramIdx]=$childParam;
-    done
-}
-#
 # === DEFAULT VALUES ================================================================================================
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv";
@@ -233,9 +114,6 @@ DEFAULT_SEED=0;
 seed=$DEFAULT_SEED;
 RANDOM=$seed;
 si=10; # seed increment
-#
-SELECTION_OP="elitist";
-numSelectedCmds=30; # number of selected commands
 #
 ga="ga";
 #
