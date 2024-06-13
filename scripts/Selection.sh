@@ -84,7 +84,7 @@ function ROULETTE_SELECTION() {
         print "f(x)\tp(x)\tr(x)\tcmds"
     } NR>2{
         f=$col # f(x), bps or domain values
-        p=(1-$col/F)/(n-1) # p(x), https://stackoverflow.com/questions/8760473/roulette-wheel-selection-for-function-minimization
+        if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x), https://stackoverflow.com/questions/8760473/roulette-wheel-selection-for-function-minimization
         r+=p # r(x), cumulative sum of p(x)
         cmd=$NF
         print f"\t"p"\t"r"\t"cmd
@@ -119,7 +119,7 @@ function ROULETTE_SELECTION() {
             print "f(x)\tp(x)\tr(x)\tcmds"
         } NR>1{
             f=$1 # f(x)
-            p=(1-f/F)/(n-1) # p(x)
+            if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x)
             r+=p # r(x)
             cmd=$NF # command
             print f"\t"p"\t"r"\t"cmd
@@ -280,7 +280,8 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     cmds=();
     while IFS= read -r line; do
         cmds+=("${line}");
-    done < <( cat $cmdsFileInput );     
+    done < <( cat $cmdsFileInput );
+    if [ $numSelectedCmds -gt ${#cmds[@]} ]; then numSelectedCmds="${#cmds[@]}"; fi 
     #
     # === SELECTION ================================================================================================
     #
