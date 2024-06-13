@@ -63,54 +63,67 @@ function ROULETTE_SELECTION() {
     echo "=========================== ROULETTE SELECTION =====================================";
     # 
     # input file with values required for creating a roulette
-    dsFileInput="$gaFolder/g$gnum.tsv";
-    echo "ds file input: $dsFileInput; gen num: $gnum";
+    dsFileInput="$gaFolder/g$gnum.tsv"
+    echo "ds file input: $dsFileInput; gen num: $gnum"
     #
-    # roulette where one slice at a time is removed, and the remanining slices grow proportionaly to stay "whole"
-    roulette="$scmFolder/roulette.tsv"
-    cat $cmdsFileInput > $roulette
-    #
-    # extract the DOMINANCE values, or bPS (bits per symbol) if DOMINANCE column does not exist, f(x)
-    f=( $(awk -F'\t' 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{print $col}' "$dsFileInput") )
-    echo "bPS vals, f(x) = ( ${f[@]} )"
+    roulette="$scmFolder/roulette.txt"
+    initialRoulette="${roulette/roulette/initialRoulette}"
+    echo "roulette file: $roulette; initial roulette: $initialRoulette"
     #
     # f size
     fSize=$(awk 'NR>2' $dsFileInput | sed -n '/[^[:space:]]/p' | wc -l)
-    echo "num of f(x) vals, |f(x)| = $fSize"
+    echo "|f(x)| = $fSize"
     #
-    # determine min and max
-    fmin=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR==3{print $col}' $dsFileInput)
-    fMax=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } END{print $col}' $dsFileInput)
-    echo "min f(x) = $fmin; max f(x) = $fMax";
-    #
-    # calculate sum of all f values, F
+    # sum of all f values, F
     F=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{sum+=$col} END{print sum}' $dsFileInput)
+    echo "sum f(x) = F = $F"
     #
-    # calculate probabilities of each value, p_max(x), as if it were a maximization problem
-    p4max=( $(awk -v F=$F 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{print $col/F}' $dsFileInput) )
-    echo "each probability for minimization problem, p_max(x) = ( ${p4max[@]} )";
+    # initialize roulette with f(x), p(x), r(x) and cmd columns
+    (   awk -F'\t' -v F=$F -v n=$fSize 'NR==2{ 
+        if ($10 ~ /DOMINANCE/) {col=10} else {col=4} # column number
+        print "f(x)\tp(x)\tr(x)\tcmds"
+    } NR>2{
+        f=$col # f(x), bps or domain values
+        p=(1-$col/F)/(n-1) # p(x), https://stackoverflow.com/questions/8760473/roulette-wheel-selection-for-function-minimization
+        r+=p # r(x), cumulative sum of p(x)
+        cmd=$NF
+        print f"\t"p"\t"r"\t"cmd
+    }' "$dsFileInput" ) > $roulette
+    cat $roulette > $initialRoulette
     #
-    # calculate cumulative sum of p_max(x), r_max(x)
-    r4max=( $(awk -v F=$F 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{r+=$col/F; print r}' $dsFileInput) )
-    echo "cumulative sum of probabilities for minimization problem, r_max(x) = ( ${r4max[@]} )";
-    #
-    # calculate probabilities of each value, p(x), as minimization problem
-    # https://stackoverflow.com/questions/8760473/roulette-wheel-selection-for-function-minimization
-    p=( $(awk -v F=$F -v n=$fSize 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{print (1-$col/F)/(n-1)}' $dsFileInput) )
-    echo "each probability for minimization problem, p(x) = ( ${p[@]} )";
-    #
-    # calculate cumulative sum of p(x), r(x)
-    r=( $(awk -v F=$F -v n=$fSize 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{r+=(1-$col/F)/(n-1); print r}' $dsFileInput) )
-    echo "cumulative sum of probabilities for minimization problem, r_max(x) = ( ${r[@]} )";
-    #
-    # pick a random number between 0 and 1 to choose a command
-    rndNum=0.$((RANDOM%99999))$((RANDOM%9))
-    for r_idx in ${!r[@]}; do 
-        if [ $(echo "$rndNum <= ${r[$r_idx]}" | bc) -eq 1 ]; then
-            chosenIdxs+=( $r_idx )
-            chosenCmds+=( $(awk -v idx=$r_idx 'NR==idx' $cmdsFileInput) )
-            break
-        fi
+    for i in $(seq 1 $numSelectedCmds); do
+        #
+        # pick a random number between 0 and 1 to choose a command
+        rmin=$(awk 'NR==2{print $3}' $roulette)
+        rmax=$(awk 'END{print $3}' $roulette)
+        rndNum=0.$((RANDOM%99999))$((RANDOM%9))
+        #
+        # find selected cmd
+        chosenCmd="$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$3) {print $NF;exit}}' $roulette)"
+        chosenCmds+=( "$chosenCmd" )
+        chosenRowNum=$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$3) {print NR;exit}}' $roulette)
+        #
+        # remove selected cmd from roulette to not choose it again
+        ( awk -v nr=$chosenRowNum 'NR!=nr {print}' $roulette ) > $roulette.bak && mv $roulette.bak $roulette
+        #
+        # update f size
+        fSize=$(awk 'NR>1' $roulette | sed -n '/[^[:space:]]/p' | wc -l)
+        echo "|f(x)| = $fSize"
+        #
+        # update sum of all f values, F
+        F=$(awk 'NR>1{sum+=$1} END{print sum}' $roulette)
+        echo "sum f(x) = F = $F"
+        #
+        # update roulette stats
+        (   awk -F'\t' -v F=$F -v n=$fSize 'NR==1{
+            print "f(x)\tp(x)\tr(x)\tcmds"
+        } NR>1{
+            f=$1 # f(x)
+            p=(1-f/F)/(n-1) # p(x)
+            r+=p # r(x)
+            cmd=$NF # command
+            print f"\t"p"\t"r"\t"cmd
+        }' $roulette ) > $roulette.bak && mv $roulette.bak $roulette
     done
 }
 #
