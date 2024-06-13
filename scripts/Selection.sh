@@ -61,91 +61,65 @@ function ELITIST_SELECTION() {
 #
 function ROULETTE_SELECTION() {
     echo "=========================== ROULETTE SELECTION =====================================";
-    #
-    # extract the bPS (bits per symbol) as array
-    dsFileInput="../${ds}/$ga/g$gnum.tsv";
+    # 
+    # input file with values required for creating a roulette
+    dsFileInput="$gaFolder/g$gnum.tsv";
     echo "ds file input: $dsFileInput; gen num: $gnum";
-    bPSvalsArr=( $(awk -F '[\t]' 'NR>2{print $4}' "$dsFileInput") );
-    echo "bPS vals, aka f(x) = ( ${bPSvalsArr[@]} )"
     #
-    bPSvalsNum="${#bPSvalsArr[@]}"
-    echo "num of f(x) vals, aka |f(x)| = $bPSvalsNum"
+    # roulette where one slice at a time is removed, and the remanining slices grow proportionaly to stay "whole"
+    roulette="$scmFolder/roulette.tsv"
+    cat $cmdsFileInput > $roulette
     #
-    # determine min and max bPS values (they're necessary because it is a minimization problem)
-    bPSmin=${bPSvalsArr[0]};
-    bPSmax=${bPSvalsArr[-1]};
-    echo "min f(x) = $bPSmin; max f(x) = $bPSmax";
+    # extract the DOMINANCE values, or bPS (bits per symbol) if DOMINANCE column does not exist, f(x)
+    f=( $(awk -F'\t' 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{print $col}' "$dsFileInput") )
+    echo "bPS vals, f(x) = ( ${f[@]} )"
     #
-    # calculate sum of all bPS values
-    bPSsum=$(IFS="+"; echo "scale=6;${bPSvalsArr[*]}" | bc); # F
-    echo "sum of each f(x), aka F = $bPSsum";
+    # f size
+    fSize=$(awk 'NR>2' $dsFileInput | sed -n '/[^[:space:]]/p' | wc -l)
+    echo "num of f(x) vals, |f(x)| = $fSize"
     #
-    # calculate probabilities of each bPS, p(x) and the cumulative sum of these probabilities, r(x)
-    bPSprobs=(); # p(x)
-    for bPSval in ${bPSvalsArr[@]}; do
-        # bPSprob=$(bc <<< "scale=6; ($bPSval - $bPSmin)/($bPSmax-$bPSmin)"); # with normalization
-        bPSprob=$(bc <<< "scale=6; ($bPSsum - $bPSval)/$bPSsum");
-        bPSprobs+=( $bPSprob );
-    done; 
-    echo "each probability, aka p(x) = ( ${bPSprobs[@]} )";
+    # determine min and max
+    fmin=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR==3{print $col}' $dsFileInput)
+    fMax=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } END{print $col}' $dsFileInput)
+    echo "min f(x) = $fmin; max f(x) = $fMax";
     #
-    # even though the p(x) values make some sense (values closer to minimum have bigger "slices"), their sum!=1,
-    # THUS each p(x_i) is updated by applying simple rule three
-    bPSprobsSum=$(IFS="+"; echo "scale=6;${bPSprobs[*]}" | bc); # sum(p(x))
-    echo "sum of probabilities is $bPSprobsSum != 1";
+    # calculate sum of all f values, F
+    F=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{sum+=$col} END{print sum}' $dsFileInput)
     #
-    bPSprobs_new=(); # p'(x)
-    bPScumSumProbs=(); # r(x)
-    bPScumSumProb=0; # "current" r(x)
-    for bPSprob in ${bPSprobs[@]}; do 
-        bPSprob_new=$(echo "scale=6; $bPSprob/$bPSprobsSum" | bc);
-        bPScumSumProb=$(echo "$bPScumSumProb + $bPSprob_new" | bc);
-        #
-        bPSprobs_new+=( $bPSprob_new );
-        bPScumSumProbs+=( $bPScumSumProb );
-    done;
+    # calculate probabilities of each value, p_max(x), as if it were a maximization problem
+    p4max=( $(awk -v F=$F 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{print $col/F}' $dsFileInput) )
+    echo "each probability for minimization problem, p_max(x) = ( ${p4max[@]} )";
     #
-    # update bPSprobs array, aka p(x)
-    bPSprobs=();
-    for bPSprob_new in ${bPSprobs_new[@]}; do
-        bPSprobs+=($bPSprob_new);
+    # calculate cumulative sum of p_max(x), r_max(x)
+    r4max=( $(awk -v F=$F 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{r+=$col/F; print r}' $dsFileInput) )
+    echo "cumulative sum of probabilities for minimization problem, r_max(x) = ( ${r4max[@]} )";
+    #
+    # calculate probabilities of each value, p(x), as minimization problem
+    # https://stackoverflow.com/questions/8760473/roulette-wheel-selection-for-function-minimization
+    p=( $(awk -v F=$F -v n=$fSize 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{print (1-$col/F)/(n-1)}' $dsFileInput) )
+    echo "each probability for minimization problem, p(x) = ( ${p[@]} )";
+    #
+    # calculate cumulative sum of p(x), r(x)
+    r=( $(awk -v F=$F -v n=$fSize 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{r+=(1-$col/F)/(n-1); print r}' $dsFileInput) )
+    echo "cumulative sum of probabilities for minimization problem, r_max(x) = ( ${r[@]} )";
+    #
+    # pick a random number between 0 and 1 to choose a command
+    rndNum=0.$((RANDOM%99999))$((RANDOM%9))
+    for r_idx in ${!r[@]}; do 
+        if [ $(echo "$rndNum <= ${r[$r_idx]}" | bc) -eq 1 ]; then
+            chosenIdxs+=( $r_idx )
+            chosenCmds+=( $(awk -v idx=$r_idx 'NR==idx' $cmdsFileInput) )
+            break
+        fi
     done
-    #
-    # unset vars that will not longer be used
-    unset bPSprob bPScumSumProb bPSprob_new bPSprobs_new;
-    #
-    echo "updated bPS probs, aka p(x) = ( ${bPSprobs[*]} )";
-    echo "bPS cumulative sum of their probs, aka r(x) = ( ${bPScumSumProbs[*]} )";
-    #
-    # check that the sum of probabilities is approximately 1
-    bPSprobsSum=$(IFS="+"; echo "scale=6; ${bPSprobs[*]}" | bc);
-    echo "updated sum of probabilities is $bPSprobsSum ~= 1";
-    #
-    last_bPScumSumProb=${bPScumSumProbs[-1]};
-    rouletteChoices=( $( seq 0 0.0001 $last_bPScumSumProb | sort -R --random-source=<(yes $((seed=seed+si))) | head -n $numSelectedCmds ) );
-    #
-    chosenCmds=();
-    chosenCmdsIdxs=(); # for debug purposes
-    for rndNum in ${rouletteChoices[@]}; do
-        for bPScumSumProbIdx in ${!bPScumSumProbs[@]}; do 
-            if [ $(echo "$rndNum <= ${bPScumSumProbs[$bPScumSumProbIdx]}"|bc) -eq 1 ]; then
-                chosenCmdIdx=$bPScumSumProbIdx;
-                chosenCmds+=( "$(awk -v idx=$chosenCmdIdx 'NR==idx' $cmdsFileInput)" );
-                chosenCmdsIdxs+=( $chosenCmdIdx );
-                break
-            fi
-        done
-    done; 
-    echo CMD INDEXES: ${chosenCmdsIdxs[@]};
 }
 #
 function TOURNAMENT_SELECTION() {
     winner="";
     winnerIdxs=();
     for i in $(seq 1 $numSelectedCmds); do
-        cmdIdx1=$((RANDOM%$numSelectedCmds));
-        cmdIdx2=$((RANDOM%$numSelectedCmds));
         #
+        # guarantees that the chosen indexes have not won a tournament yet
         while : ; do
             cmdIdx1=$((RANDOM%$numSelectedCmds));
             if [ $(printf "%s \n" "${winnerIdxs[@]}" | grep -w $cmdIdx1 -c) -eq 0 ]; then
@@ -241,7 +215,7 @@ while [[ $# -gt 0 ]]; do
         numSelectedCmds="$2";
         shift 2;
         ;;
-    --selection|--sel|-s) # elitist, roulette, tournament
+    --selection|--sel|-sl) # elitist, roulette, tournament
         SELECTION_OP="$2";
         shift 2;
         ;;
@@ -277,10 +251,13 @@ done
 #
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
-    dsGAfolder=$(dirname $cmdsFileInput);
-    echo $dsGAfolder ds ga folder
+    gaFolder=$(dirname $cmdsFileInput);
+    echo $gaFolder ds ga folder
     nextGen=$((gnum+1));
-    selCmdsFileOutput="$dsGAfolder/g${gnum}_selection.txt";
+    #
+    scmFolder="$gaFolder/scm"
+    mkdir -p $scmFolder
+    selCmdsFileOutput="$scmFolder/selectedCmds.txt";
     #
     echo "========================================================";
     echo "ADULT CMDS FILE INPUT: $cmdsFileInput";
