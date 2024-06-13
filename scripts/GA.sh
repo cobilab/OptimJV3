@@ -124,7 +124,7 @@ while [[ $# -gt 0 ]]; do
         SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
         shift 2;
         ;;
-    --population-size|--population|--psize|-ps|-p)
+    --population-size|--population|--psize|-ps)
         POPULATION_SIZE="$2";
         initFlags+="-ps $POPULATION_SIZE ";
         evalFlags+="-ps $POPULATION_SIZE ";
@@ -133,14 +133,10 @@ while [[ $# -gt 0 ]]; do
     --seed|-sd)
         seed="$2";
         RANDOM=$seed;
-        initFlags+="-sd $seed ";
-        scmFlags+="-sd $seed ";
         shift 2;
         ;;
     --seed-increment|-si)
         si="$2";
-        initFlags+="-si $si ";
-        scmFlags+="-si $si ";
         shift 2;
         ;;
     #
@@ -200,10 +196,10 @@ while [[ $# -gt 0 ]]; do
         scmFlags+="-ns $ns ";
         shift 2;
         ;;
-    --selection|--sel) 
+    --selection|--sel|-sl)
         # elitist, roulette
         SELECTION_OP="$2";
-        scmFlags+="-s $SELECTION_OP ";
+        scmFlags+="-sl $SELECTION_OP ";
         shift 2;
         ;;
     #
@@ -292,7 +288,7 @@ for sequence in ${SEQUENCES[@]}; do
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
-        bash -x ./Initialization.sh -s $sequence $flags $initFlags 1> $initLog 2> $initErr; 
+        bash -x ./Initialization.sh -s $sequence $flags $initFlags -sd $seed 1> $initLog 2> $initErr; 
     fi
     #
     for gen in $(seq $FIRST_GEN $LAST_GEN); do
@@ -311,7 +307,7 @@ for sequence in ${SEQUENCES[@]}; do
         scmLog="$scmLogFolder/scm$gen.log"
         scmErr="$scmLogFolder/scm$gen.err"
         echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
-        bash -x ./SelCrossMut.sh -s $sequence -g $gen $flags $scmFlags 1> $scmLog 2> $scmErr;
+        bash -x ./SelCrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si 1> $scmLog 2> $scmErr;
     done ) 1> $logFile 2> $errFile &
     #
     echo "$dsx, $ga is running in the background..."

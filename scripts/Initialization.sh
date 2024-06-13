@@ -25,7 +25,6 @@ function SHOW_HELP() {
 #
 function FIX_SEQUENCE_NAME() {
     sequence="$1"
-    echo $sequence
     sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
     #
     if [ "${sequence^^}" == "CY" ]; then 
@@ -35,8 +34,6 @@ function FIX_SEQUENCE_NAME() {
     elif [ "${sequence^^}" == "HUMAN" ]; then
         sequence="chm13v2.0"
     fi
-    #
-    echo "$sequence"
 }
 #
 # === DEFAULT VALUES ===========================================================================

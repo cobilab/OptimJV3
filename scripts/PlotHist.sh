@@ -143,5 +143,5 @@ gnuplot << EOF
     set grid y
     #
     set output "$histBPSrelPdf"
-    plot "$histBPSrel" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels rotate by 60 offset char 1,1.5 notitle
+    plot "$histBPSrel" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels rotate by 0 offset char 0,0.5 notitle
 EOF

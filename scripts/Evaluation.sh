@@ -40,7 +40,6 @@ function SHOW_HELP() {
 #
 function FIX_SEQUENCE_NAME() {
     sequence="$1"
-    echo $sequence
     sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
     #
     if [ "${sequence^^}" == "CY" ]; then 
@@ -50,8 +49,6 @@ function FIX_SEQUENCE_NAME() {
     elif [ "${sequence^^}" == "HUMAN" ]; then
         sequence="chm13v2.0"
     fi
-    #
-    echo "$sequence"
 }
 #
 # === PARSING ===========================================================================
@@ -144,31 +141,33 @@ for sequenceName in ${SEQUENCES[@]}; do
 done
 #
 for ds in ${datasets[@]}; do
-    dsFolder="../${ds}/$ga";
+    gaFolder="../${ds}/$ga";
     #
     # get raw results of all generations
-    currentRawResFile="$dsFolder/g${gnum}_raw.tsv";
-    allRawResFile="$dsFolder/allRawRes.tsv";
+    currentRawResFile="$gaFolder/g${gnum}_raw.tsv";
+    allRawResFile="$gaFolder/allRawRes.tsv";
     if [ $gnum -eq 1 ]; then
         head -n +2 $currentRawResFile | sed -e 's/ - generation.//' > $allRawResFile;
     fi
     tail -n +3 $currentRawResFile >> $allRawResFile;
     #
     # sort all results by BPS, then CTIME (s)
-    allSortedRes_bps="$dsFolder/allSortedRes_bps_ctime_s.tsv";
+    allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
     cat $allRawResFile | sort -k4n -k5n > $allSortedRes_bps;
     #
     # sort all results by BPS, then CTIME (converted to minutes)
-    allSortedRes_bps_ctime_m="$dsFolder/allSortedRes_bps_ctime_m.tsv";
+    allSortedRes_bps_ctime_m="$gaFolder/allSortedRes_bps_ctime_m.tsv";
     awk -v OFS="\t" -F'\t' '{if (NR==2) {$5="C_TIME (m)"} else if (NR>2) {$5=$5/60} print}' $allSortedRes_bps > $allSortedRes_bps_ctime_m;
     #
     # sort all results by BPS, then CTIME (converted to hours)
-    allSortedRes_bps_ctime_h="$dsFolder/allSortedRes_bps_ctime_h.tsv";
+    allSortedRes_bps_ctime_h="$gaFolder/allSortedRes_bps_ctime_h.tsv";
     awk -v OFS="\t" -F'\t' '{if (NR==2) {$5="C_TIME (h)"} else if (NR>2) {$5=$5/3600} print}' $allSortedRes_bps > $allSortedRes_bps_ctime_h;
     #
+    echo before aRawFilterRes
     # filter raw results by last N generations (num of filtered results cannot be less than $POPULATION_SIZE)
-    rawFilterResFile="$dsFolder/aRawFilterRes.tsv";
-    for ((oldestGen=$gnum; oldestGen>=0; oldestGen--)); do
+    rawFilterResFile="$gaFolder/aRawFilterRes.tsv";
+    for ((oldestGen=$gnum; oldestGen>=1; oldestGen--)); do
+        echo during aRawFilterRes
         numCmds=$(awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print $(NF-1)} }' $allRawResFile | wc -l);
         if [ $numCmds -ge $POPULATION_SIZE ]; then 
             ( head -n +2 $currentRawResFile;
@@ -177,10 +176,11 @@ for ds in ${datasets[@]}; do
             break; 
         fi; 
     done
+    echo after aRawFilterRes
     #
     # normalize bps, ctime, and cmem data (linear scaling)
-    normalizedResFile="$dsFolder/aNormalized.tsv";
-    normalizedTMP="$dsFolder/aNormalizedTMP.tsv";
+    normalizedResFile="$gaFolder/aNormalized.tsv";
+    normalizedTMP="$gaFolder/aNormalizedTMP.tsv";
     size=$(cat $rawFilterResFile | wc -l);
     #
     awk -F'\t' -v OFS='\t' -v m=$ctime_min -v M=$ctime_max 'NR > 2 { $4="|"$4"|"; $5=$5"|"; $6=$6"|"; $NF="\x22"$NF"\x22"; print }' $rawFilterResFile > $normalizedTMP;
@@ -199,36 +199,37 @@ for ds in ${datasets[@]}; do
     # fi
     #
     if $soga; then
-        sortedResFile="$dsFolder/aSortedRes_bps.tsv";
+        sortedResFile="$gaFolder/aSortedRes_bps.tsv";
         cat $normalizedResFile > $sortedResFile;
+        echo "soga method done";
     elif $moga_wm; then
-        sortedResFile="$dsFolder/aSortedRes_moga.tsv";
-        mogaTMP="$dsFolder/aSortedRes_mogaTMP.tsv";
+        sortedResFile="$gaFolder/aSortedRes_moga.tsv";
+        mogaTMP="$gaFolder/aSortedRes_mogaTMP.tsv";
         awk -F'\t' -v OFS='\t' 'NR > 2 { $7="|"$7"|"; $8=$8"|"; $9=$9"|"; $NF="\x22"$NF"\x22"; print }' $normalizedResFile > $mogaTMP;
         ( head -n +1 $rawFilterResFile;
         printf "PROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBPSn\tC_TIMEn (s)\tC_MEMn (GB)\tDOMINANCE\tD_TIME (s)\tD_MEM (GB)\tDIFF\tGEN_BIRTH\tC_COMMAND\n";
-        awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"(w1*$2^p+w2*$3^p)^(1/p)"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n )> $sortedResFile;
+        awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"(w1*$2^p+w2*$3^p)^(1/p)"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n -k4n -k5n )> $sortedResFile;
         rm -fr $mogaTMP;
         echo "moga weight metric method done";
     elif $moga_ws; then
-        sortedResFile="$dsFolder/aSortedRes_moga_ws.tsv";
-        mogaTMP="$dsFolder/aRawFilterRes_moga_ws_tmp.tsv";
+        sortedResFile="$gaFolder/aSortedRes_moga_ws.tsv";
+        mogaTMP="$gaFolder/aRawFilterRes_moga_ws_tmp.tsv";
         awk -F'\t' -v OFS='\t' 'NR > 2 { $7="|"$7"|"; $8=$8"|"; $9=$9"|"; $NF="\x22"$NF"\x22"; print }' $normalizedResFile > $mogaTMP;
         ( head -n +1 $rawFilterResFile;
         printf "PROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBPSn\tC_TIMEn (s)\tC_MEMn (GB)\tDOMINANCE\tD_TIME (s)\tD_MEM (GB)\tDIFF\tGEN_BIRTH\tC_COMMAND\n";
-        awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"w1*$2+w2*$3"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n )> $sortedResFile;
+        awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"w1*$2+w2*$3"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n -k4n -k5n )> $sortedResFile;
         rm -fr $mogaTMP;
         echo "moga weight sum method done";
     fi
     #
     # update population
-    currentPopFile="$dsFolder/g${gnum}.tsv";
+    currentPopFile="$gaFolder/g${gnum}.tsv";
     awk -v population=$POPULATION_SIZE 'NR<=2+population {print}' $sortedResFile > $currentPopFile;
     #
     # get adult cmds
-    currentAdultCmdsFile="$dsFolder/adultCmds.txt";
+    currentAdultCmdsFile="$gaFolder/adultCmds.txt";
     awk -F'\t' 'NR > 2 {print $NF}' $currentPopFile | sed 's/.*C_COMMAND[[:space:]]*//' > $currentAdultCmdsFile;
     #
-    # remove file with raw results of current generation
-    rm -fr $currentRawResFile;
+    # rename file with raw results of current generation
+    mv $currentRawResFile "$gaFolder/aLastRawRes.tsv";
 done

@@ -241,7 +241,7 @@ while [[ $# -gt 0 ]]; do
         numSelectedCmds="$2";
         shift 2;
         ;;
-    --selection|--sel|-s) # elitist, roulette, tournament
+    --selection|--sel|-sl) # elitist, roulette, tournament
         SELECTION_OP="$2";
         shift 2;
         ;;

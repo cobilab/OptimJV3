@@ -463,7 +463,7 @@ while [[ $# -gt 0 ]]; do
         MUTATION_RATE=$(echo "scale=3; $2" | bc);
         shift 2;
         ;;
-    --selection|--sel) # elitist, roulette, tournament
+    --selection|--sel|-sl) # elitist, roulette, tournament
         SELECTION_OP="$2";
         shift 2;
         ;;
@@ -762,12 +762,14 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
         echo "$child";
     done ) > $cmdsFileOutput;
     #
-    if [ ${#childCmds[@]} -eq 0 ]; then
-        dsX=$(echo "$cmdsFileInput" | awk -F 'DS|/' '{print $3}');
-        echo "NO NEW OFFSPRING - POPULATION STAGNATION OF DS${dsX}";
-    fi
-    #
     # allow execution of script where commands have just been written to
     chmod +x $cmdsFileOutput;
     #
+    # if there is no offstring delete script
+    if [ ${#childCmds[@]} -eq 0 ]; then
+        rm -fr $cmdsFileOutput
+        dsX=$(echo "$cmdsFileInput" | awk -F 'DS|/' '{print $3}');
+        echo "NO NEW OFFSPRING - POPULATION STAGNATION OF DS${dsX}";
+        exit 1;
+    fi
 done
