@@ -103,21 +103,18 @@ function ROULETTE_SELECTION() {
         chosenCmds+=( "$chosenCmd" )
         chosenRowNum=$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$3) {print NR;exit}}' $roulette)
         #
-        # remove selected cmd from roulette to not choose it again
-        ( awk -v nr=$chosenRowNum 'NR!=nr {print}' $roulette ) > $roulette.bak && mv $roulette.bak $roulette
-        #
         # update f size
         fSize=$(awk 'NR>1' $roulette | sed -n '/[^[:space:]]/p' | wc -l)
         echo "|f(x)| = $fSize"
         #
-        # update sum of all f values, F
+        # update sum of all f(x), F
         F=$(awk 'NR>1{sum+=$1} END{print sum}' $roulette)
         echo "sum f(x) = F = $F"
         #
-        # update roulette stats
-        (   awk -F'\t' -v F=$F -v n=$fSize 'NR==1{
+        # update roulette
+        (   awk -F'\t' -v F=$F -v n=$fSize -v nr=$chosenRowNum 'NR==1{
             print "f(x)\tp(x)\tr(x)\tcmds"
-        } NR>1{
+        } NR>1 && NR!=nr {
             f=$1 # f(x)
             p=(1-f/F)/(n-1) # p(x)
             r+=p # r(x)
