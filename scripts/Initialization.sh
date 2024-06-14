@@ -36,6 +36,58 @@ function FIX_SEQUENCE_NAME() {
     fi
 }
 #
+function DEFINE_PARAM_RANGES() {
+  if $kpi; then
+    #
+    # PARAMETERS COMMON TO CM AND RM
+    NB_I_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
+    #
+    # CM PARAMETERS
+    # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
+    NB_C_cm_lst=( {1..12} ) # CM size. higher values -> more RAM -> better compression
+    NB_D_lst=( {1..5000} ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
+    NB_G_cm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor of CM
+    NB_S_lst=( {0..20} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
+    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga (stcm?)
+    NB_E_lst=( {1..5000} ) # ! (integer [1;5000]) denominator that builds alpha on STCM
+    NB_A_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
+    #
+    # RM PARAMETERS
+    # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
+    NB_C_rm_lst=( {1..13} ) # RM size. higher values -> more RAM -> better compression
+    NB_R_rm_lst=( {1..500} ) # (integer [1;10000]) max num of repeat gas
+    NB_B_lst=($(seq 0.01 0.01 0.99)) # (real (0;1]) beta. discards or keeps a repeat ga
+    NB_L_lst=( {2..20} ) # (integer (1;20]) limit threshold; has dependency with NB_B
+    NB_G_rm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor
+    NB_W_lst=( $(seq 0.01 0.01 0.99) ) # (real (0;1)) initial weight for repeat classes
+    NB_Y_lst=( $(seq 0 1 5) ) # (integer {0}, [1;50]) max cache size
+  else
+    #
+    # PARAMETERS COMMON TO CM AND RM
+    NB_I_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
+    #
+    # CM PARAMETERS
+    # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
+    NB_C_cm_lst=( {1..13} ) # CM size. higher values -> more RAM -> better compression
+    NB_D_lst=( 1 2 5 10 20 50 100 200 500 1000 2000 ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
+    NB_G_cm_lst=( $(seq 0.05 0.05 0.95) ) # (real [0;1)) gamma; decayment forgetting factor of CM
+    NB_S_lst=( {0..6} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
+    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga (stcm?)
+    NB_E_lst=( 1 2 5 10 20 50 100 ) # ! (integer [1;5000]) denominator that builds alpha on STCM
+    NB_A_lst=($(seq 0.1 0.1 0.9)) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
+    #
+    # RM PARAMETERS
+    # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
+    NB_C_rm_lst=(12 13 14) # RM size. higher values -> more RAM -> better compression
+    NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of repeat gas
+    NB_B_lst=($(seq 0.05 0.05 0.95)) # (real (0;1]) beta. discards or keeps a repeat ga
+    NB_L_lst=( {1..14} ) # (integer (1;20]) limit threshold; has dependency with NB_B
+    NB_G_rm_lst=( $(seq 0.05 0.05 0.95) ) # (real [0;1)) gamma; decayment forgetting factor
+    NB_W_lst=( $(seq 0.01 0.05 0.99) ) # (real (0;1)) initial weight for repeat classes
+    NB_Y_lst=( $(seq 1 1 5) ) # (integer {0}, [1;50]) max cache size
+  fi
+}
+#
 # === DEFAULT VALUES ===========================================================================
 #
 sequencesPath="../../sequences";
@@ -50,6 +102,9 @@ POPULATION_SIZE=100;
 #
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
+#
+# knowledge-based initialization
+kpi=false
 #
 min_cms=1;
 max_cms=3;
@@ -77,9 +132,9 @@ while [[ $# -gt 0 ]]; do
       shift;
       ;;
     --genetic-algorithm|--algorithm|--ga|-ga|-a)
-        ga="$2";
-        shift 2; 
-        ;;
+      ga="$2";
+      shift 2; 
+      ;;
     --sequence|--seq|-s)
       sequence="$2";
       FIX_SEQUENCE_NAME "$sequence"
@@ -108,6 +163,10 @@ while [[ $# -gt 0 ]]; do
     --population-size|--population|--psize|-ps)
       POPULATION_SIZE="$2";
       shift 2;
+      ;;
+    --knowledge-based-initialization|-kpi)
+      kpi=true
+      shift
       ;;
     --min-cm|--m-cm|-mCM)
       min_cms="$2";
@@ -172,28 +231,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     #
     outputScript="$gaFolder/g1.sh";
     #
-    # PARAMETERS COMMON TO CM AND RM
-    NB_I_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
-    #
-    # CM PARAMETERS
-    # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
-    NB_C_cm_lst=( {1..12} ) # CM size. higher values -> more RAM -> better compression
-    NB_D_lst=( {1..5000} ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
-    NB_G_cm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor of CM
-    NB_S_lst=( {0..20} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
-    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga (stcm?)
-    NB_E_lst=( {1..5000} ) # ! (integer [1;5000]) denominator that builds alpha on STCM
-    NB_A_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
-    #
-    # RM PARAMETERS
-    # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
-    NB_C_rm_lst=( {1..13} ) # RM size. higher values -> more RAM -> better compression
-    NB_R_rm_lst=( {1..500} ) # (integer [1;10000]) max num of repeat gas
-    NB_B_lst=($(seq 0.01 0.01 0.99)) # (real (0;1]) beta. discards or keeps a repeat ga
-    NB_L_lst=( {2..20} ) # (integer (1;20]) limit threshold; has dependency with NB_B
-    NB_G_rm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor
-    NB_W_lst=( $(seq 0.01 0.01 0.99) ) # (real (0;1)) initial weight for repeat classes
-    NB_Y_lst=( $(seq 0 1 5) ) # (integer {0}, [1;50]) max cache size
+    DEFINE_PARAM_RANGES;
     #
     # write stochastically generated commands
     ( for ((i=1; i<=POPULATION_SIZE; i++)); do
