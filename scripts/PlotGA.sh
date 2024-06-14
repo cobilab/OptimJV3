@@ -214,7 +214,7 @@ gnuplot << EOF
     set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
-    set key bottom right
+    #set key bottom right
     #
     # set up the axis on the left side for bps
     set ylabel "bPS"
