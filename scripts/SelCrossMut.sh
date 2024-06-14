@@ -63,83 +63,74 @@ function ELITIST_SELECTION() {
 #
 function ROULETTE_SELECTION() {
     echo "=========================== ROULETTE SELECTION =====================================";
-    # extract the bPS (bits per symbol) as array
-    dsFileInput=$(echo ${cmdsFileInput/_adultCmds.txt/.tsv});
-    echo "ds file input: $dsFileInput; gen num: $gnum";
-    bPSvalsArr=( $(awk -F '[\t]' 'NR>2{print $4}' "$dsFileInput") );
-    echo "bPS vals, aka f(x) = ( ${bPSvalsArr[@]} )"
     #
-    bPSvalsNum="${#bPSvalsArr[@]}"
-    echo "num of f(x) vals, aka |f(x)| = $bPSvalsNum"
+    gaFolder="../${ds}/$ga"
+    scmFolder="$gaFolder/scm"
+    mkdir -p $scmFolder
+    # 
+    # input file with values required for creating a roulette
+    dsFileInput="$gaFolder/g$gnum.tsv"
+    echo "ds file input: $dsFileInput; gen num: $gnum"
     #
-    # determine min and max bPS values (they're necessary because it is a minimization problem)
-    bPSmin=${bPSvalsArr[0]};
-    bPSmax=${bPSvalsArr[-1]};
-    echo "min f(x) = $bPSmin; max f(x) = $bPSmax";
+    roulette="$scmFolder/roulette.tsv"
+    initialRoulette="${roulette/roulette/initialRoulette}"
+    echo "roulette file: $roulette; initial roulette: $initialRoulette"
     #
-    # calculate sum of all bPS values
-    bPSsum=$(IFS="+"; echo "scale=6;${bPSvalsArr[*]}" | bc); # F
-    echo "sum of each f(x), aka F = $bPSsum";
+    # f size
+    fSize=$(awk 'NR>2' $dsFileInput | sed -n '/[^[:space:]]/p' | wc -l)
+    echo "|f(x)| = $fSize"
     #
-    # calculate probabilities of each bPS, p(x) and the cumulative sum of these probabilities, r(x)
-    bPSprobs=(); # p(x)
-    for bPSval in ${bPSvalsArr[@]}; do
-        # bPSprob=$(bc <<< "scale=6; ($bPSval - $bPSmin)/($bPSmax-$bPSmin)"); # with normalization
-        bPSprob=$(bc <<< "scale=6; ($bPSsum - $bPSval)/$bPSsum");
-        bPSprobs+=( $bPSprob );
-    done; 
-    echo "each probability, aka p(x) = ( ${bPSprobs[@]} )";
+    # sum of all f values, F
+    F=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{sum+=$col} END{print sum}' $dsFileInput)
+    echo "sum f(x) = F = $F"
     #
-    # even though the p(x) values make some sense (values closer to minimum have bigger "slices"), their sum!=1,
-    # THUS each p(x_i) is updated by applying simple rule three
-    bPSprobsSum=$(IFS="+"; echo "scale=6;${bPSprobs[*]}" | bc); # sum(p(x))
-    echo "sum of probabilities is $bPSprobsSum != 1";
+    # initialize roulette with f(x), p(x), r(x) and cmd columns
+    (   awk -F'\t' -v F=$F -v n=$fSize 'NR==2{ 
+        if ($10 ~ /DOMINANCE/) {col=10} else {col=4} # column number
+        print "f(x)\tp(x)\tr(x)\tcmds"
+    } NR>2{
+        f=$col # f(x), bps or domain values
+        if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x), https://stackoverflow.com/questions/8760473/roulette-wheel-selection-for-function-minimization
+        r+=p # r(x), cumulative sum of p(x)
+        cmd=$NF
+        print f"\t"p"\t"r"\t"cmd
+    }' "$dsFileInput" ) > $roulette
+    cat $roulette > $initialRoulette
     #
-    bPSprobs_new=(); # p'(x)
-    bPScumSumProbs=(); # r(x)
-    bPScumSumProb=0; # "current" r(x)
-    for bPSprob in ${bPSprobs[@]}; do 
-        bPSprob_new=$(echo "scale=6; $bPSprob/$bPSprobsSum" | bc);
-        bPScumSumProb=$(echo "$bPScumSumProb + $bPSprob_new" | bc);
+    for i in $(seq 1 $numSelectedCmds); do
         #
-        bPSprobs_new+=( $bPSprob_new );
-        bPScumSumProbs+=( $bPScumSumProb );
-    done;
-    #
-    # update bPSprobs array, aka p(x)
-    bPSprobs=();
-    for bPSprob_new in ${bPSprobs_new[@]}; do
-        bPSprobs+=($bPSprob_new);
+        # pick a random number between 0 and 1 to choose a command
+        rmin=$(awk 'NR==2{print $3}' $roulette)
+        rmax=$(awk 'END{print $3}' $roulette)
+        rndNum=0.$((RANDOM%99999))$((RANDOM%9))
+        #
+        # find selected cmd
+        chosenCmd="$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$3) {print $NF;exit}}' $roulette)"
+        chosenCmds+=( "$chosenCmd" )
+        chosenRowNum=$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$3) {print NR;exit}}' $roulette)
+        #
+        # remove selected cmd from roulette to not choose it again
+        ( awk -v nr=$chosenRowNum 'NR!=nr {print}' $roulette ) > $roulette.bak && mv $roulette.bak $roulette
+        #
+        # update f size
+        fSize=$(awk 'NR>1' $roulette | sed -n '/[^[:space:]]/p' | wc -l)
+        echo "|f(x)| = $fSize"
+        #
+        # update sum of all f values, F
+        F=$(awk 'NR>1{sum+=$1} END{print sum}' $roulette)
+        echo "sum f(x) = F = $F"
+        #
+        # update roulette stats
+        (   awk -F'\t' -v F=$F -v n=$fSize 'NR==1{
+            print "f(x)\tp(x)\tr(x)\tcmds"
+        } NR>1{
+            f=$1 # f(x)
+            if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x)
+            r+=p # r(x)
+            cmd=$NF # command
+            print f"\t"p"\t"r"\t"cmd
+        }' $roulette ) > $roulette.bak && mv $roulette.bak $roulette
     done
-    #
-    # unset vars that will not longer be used
-    unset bPSprob bPScumSumProb bPSprob_new bPSprobs_new;
-    #
-    echo "updated bPS probs, aka p(x) = ( ${bPSprobs[*]} )";
-    echo "bPS cumulative sum of their probs, aka r(x) = ( ${bPScumSumProbs[*]} )";
-    #
-    # check that the sum of probabilities is approximately 1
-    bPSprobsSum=$(IFS="+"; echo "scale=6; ${bPSprobs[*]}" | bc);
-    echo "updated sum of probabilities is $bPSprobsSum ~= 1";
-    #
-    last_bPScumSumProb=${bPScumSumProbs[-1]};
-    rouletteChoices=( $( seq 0 0.0001 $last_bPScumSumProb | sort -R --random-source=<(yes $((seed=seed+si))) | head -n $numSelectedCmds ) );
-    #
-    chosenCmds=();
-    chosenCmdsIdxs=(); # for debug purposes
-    for rndNum in ${rouletteChoices[@]}; do
-        for bPScumSumProbIdx in ${!bPScumSumProbs[@]}; do 
-            if [ $(echo "$rndNum <= ${bPScumSumProbs[$bPScumSumProbIdx]}"|bc) -eq 1 ]; then
-                chosenCmdIdx=$bPScumSumProbIdx;
-                chosenCmds+=( "${cmds[$chosenCmdIdx]}" );
-                chosenCmdsIdxs+=( $chosenCmdIdx );
-                break
-            fi
-        done
-    done; 
-    echo CMD INDEXES: ${chosenCmdsIdxs[@]};
-    echo "elitist selection finished, the following cmds were selected:";
-    printf "%s\n" "${chosenCmds[@]}";
 }
 #
 function TOURNAMENT_SELECTION() {
@@ -311,7 +302,6 @@ function FLAT_CROSSOVER() {
             #
             # random real number choosen from U(cmParamMin, cmParamMax)
             childParam=$( seq $cmParamMin 0.1 $cmParamMax | sort -R --random-source=<(yes $((seed=seed+si))) | head -n 1 );
-    
             #
             # round number to int if param type is int
             if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then

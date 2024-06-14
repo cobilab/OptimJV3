@@ -163,11 +163,9 @@ for ds in ${datasets[@]}; do
     allSortedRes_bps_ctime_h="$gaFolder/allSortedRes_bps_ctime_h.tsv";
     awk -v OFS="\t" -F'\t' '{if (NR==2) {$5="C_TIME (h)"} else if (NR>2) {$5=$5/3600} print}' $allSortedRes_bps > $allSortedRes_bps_ctime_h;
     #
-    echo before aRawFilterRes
     # filter raw results by last N generations (num of filtered results cannot be less than $POPULATION_SIZE)
     rawFilterResFile="$gaFolder/aRawFilterRes.tsv";
     for ((oldestGen=$gnum; oldestGen>=1; oldestGen--)); do
-        echo during aRawFilterRes
         numCmds=$(awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print $(NF-1)} }' $allRawResFile | wc -l);
         if [ $numCmds -ge $POPULATION_SIZE ]; then 
             ( head -n +2 $currentRawResFile;
@@ -176,7 +174,6 @@ for ds in ${datasets[@]}; do
             break; 
         fi; 
     done
-    echo after aRawFilterRes
     #
     # normalize bps, ctime, and cmem data (linear scaling)
     normalizedResFile="$gaFolder/aNormalized.tsv";

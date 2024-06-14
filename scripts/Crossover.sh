@@ -51,7 +51,7 @@ function FIX_SEQUENCE_NAME() {
 #
 # === CROSSOVER FUNCTIONS ================================================================================================
 #
-function XPOINT_CROSSOVER() {              
+function MODEL_XPOINT_CROSSOVER() {              
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ X-POINT CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
     # choose cross points indexes
     maxNumCrosspoints=2;
@@ -160,11 +160,11 @@ while [[ $# -gt 0 ]]; do
         SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
         shift 2;
         ;;
-    --crossover-rate|--xover-rate|--xrate|-xr|-cr)
+    --crossover-rate|--xover-rate|--xrate|--cover-rate|--crate|-xr|-cr)
         CROSSOVER_RATE=$(echo "scale=3; $2" | bc);
         shift 2;
         ;;
-    --crossover|--xover|-x) # xpoint, uniform
+    --crossover|--xover|--cover|-x|-c) # xpoint, uniform
         CROSSOVER_OP="$2";
         shift 2;
         ;;
@@ -195,38 +195,42 @@ fi
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
-    currentAdultCmdsFile="../${ds}/$ga/g${gnum}_selection.txt";
-    cmdsFilesInput+=( $( ls $currentAdultCmdsFile ) );
+    selectedCmdsFile="../${ds}/$ga/selectedCmds.txt";
+    selectedCmdsFilesArr+=( $( ls $selectedCmdsFile ) );
 done
 #
-for cmdsFileInput in ${cmdsFilesInput[@]}; do
+for selCmdsFile in ${selectedCmdsFilesArr[@]}; do
     #
-    dsModelFolder=$(dirname $cmdsFileInput);
+    dsModelFolder=$(dirname $selCmdsFile);
     nextGen=$((gnum+1));
-    cmdsFileOutput="$dsModelFolder/crossoverCmds.sh";
+    crossoverOutput="$dsModelFolder/crossoverCmds.sh";
     #
     echo "========================================================";
-    echo "SEL CMDS FILE INPUT: $cmdsFileInput";
-    echo "CROSS CMDS FILE OUTPUT: $cmdsFileOutput";
+    echo "SELECTION CMDS INPUT: $selCmdsFile";
+    echo "CROSSOVER CMDS OUTPUT: $crossoverOutput";
     #
-    while read line; do
-        chosenCmds+=( "$line" );
-    done < $cmdsFileInput;
+    while read selCmd; do
+        selCmds+=( "$selCmd" );
+    done < $selCmdsFile;
     #
     crossoverNum=1;
     childCmds=();
-    numParentCmds=$(echo "scale=0; (${#chosenCmds[@]} * $CROSSOVER_RATE)/1" | bc);
-    numChildlessCmds=$(echo "scale=0; (${#chosenCmds[@]} - $numParentCmds)/1" | bc);
+    numParentCmds=$(echo "scale=0; (${#selCmds[@]} * $CROSSOVER_RATE)/1" | bc);
+    numChildlessCmds=$(echo "scale=0; (${#selCmds[@]} - $numParentCmds)/1" | bc);
     echo "cr: $CROSSOVER_RATE"
-    echo "num  of parent cmds: $numParentCmds"
-    echo "num of childless cmds: $numChildlessCmds";
     #
-    echo "num chosen cmds: ${#chosenCmds[@]}";
-    # while [ "${#chosenCmds[@]}" -gt 0 ]; do
-    #     echo "=========================== CROSSOVER AND MUTATION NUMBER $crossoverNum =====================================";
-    #     #
-    #     command="${chosenCmds[0]}";
-    #     command2="${chosenCmds[1]}";
-    #     #
-    # done
+    echo "num chosen cmds: ${#selCmds[@]}";
+    while [ "${#selCmds[@]}" -gt 0 ]; do
+        echo "=========================== CROSSOVER AND MUTATION NUMBER $crossoverNum =====================================";
+        #
+        cmdsCouple=()
+        for i in $(seq 0 1); do
+            selCmds[i]="$(echo ${selCmds[i]} | sed 's/\s*-o\s*[^ ]*//')" # remove -o argument (if it exists)
+            cmdsCouple+=( "${selCmds[i]}" )
+        done
+        echo "couple before crossover"
+        printf "%s \n" "${cmdsCouple[@]}"
+        #
+        
+    done
 done

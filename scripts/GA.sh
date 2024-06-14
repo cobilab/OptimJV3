@@ -205,12 +205,12 @@ while [[ $# -gt 0 ]]; do
     #
     # CROSSOVER
     #
-    --crossover-rate|--xover-rate|--xrate|-xr|-cr)
+    --crossover-rate|--xover-rate|--xrate|--cover-rate|--crate|-xr|-cr)
         CROSSOVER_RATE=$(echo "scale=3; $2" | bc);
         scmFlags+="-cr $CROSSOVER_RATE ";
         shift 2;
         ;;
-    --crossover|--xover|-x|-c) 
+    --crossover|--xover|--cover|-x|-c)
         # xpoint, uniform
         CROSSOVER_OP="$2";
         scmFlags+="-c $CROSSOVER_OP ";
