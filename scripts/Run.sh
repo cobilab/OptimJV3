@@ -273,23 +273,23 @@ for sequenceName in "${SEQUENCES[@]}"; do
         cmd_b4lastArg="$(echo $cmd | awk '{$NF=""; print}')";
         cmd_oFile="-o $sequence.$output_ext.seq.jc";
         cmd_lastArg="$(echo $cmd | awk '{printf $NF}')";
-        cmd="${cmd_b4lastArg} ${cmd_oFile} ${cmd_lastArg}";
-        echo "cmd that will compress : $cmd"
+        cmd_with_o_flag="${cmd_b4lastArg} ${cmd_oFile} ${cmd_lastArg}";
+        echo "cmd that will compress : $cmd_with_o_flag"
         #
         d_cmd="none"; # we only want to optimize compression, not decompression
         #
-        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd}" "${d_cmd}" "$gnum"
+        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd_with_o_flag}" "${d_cmd}" "$gnum"
         #
         echo "results stored in: $resOutput";
         #
         # this prevents from having to rerun the whole population if this script is interrupted
         cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
-        awk 'NR>1' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput;
+        awk -v x="$cmd" '! index($0,x)' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput
       done < <(cat $splittedScript) ) &
     done
     #
     # wait until all splitted scripts have been executed in parallel
-    wait; 
+    wait;
     #
     # merge results
     resOutput_body="$dsFolder/g${gnum}_splitted_*.txt";

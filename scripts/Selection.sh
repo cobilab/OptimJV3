@@ -66,7 +66,7 @@ function ROULETTE_SELECTION() {
     dsFileInput="$gaFolder/g$gnum.tsv"
     echo "ds file input: $dsFileInput; gen num: $gnum"
     #
-    roulette="$scmFolder/roulette.tsv"
+    roulette="$selFolder/roulette.tsv"
     initialRoulette="${roulette/roulette/initialRoulette}"
     echo "roulette file: $roulette; initial roulette: $initialRoulette"
     #
@@ -268,9 +268,9 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     echo $gaFolder ds ga folder
     nextGen=$((gnum+1));
     #
-    scmFolder="$gaFolder/scm"
-    mkdir -p $scmFolder
-    selCmdsFileOutput="$scmFolder/selectedCmds.txt";
+    selFolder="$gaFolder/sel"
+    mkdir -p $selFolder
+    selCmdsFileOutput="$selFolder/selectedCmds.txt";
     #
     echo "========================================================";
     echo "ADULT CMDS FILE INPUT: $cmdsFileInput";

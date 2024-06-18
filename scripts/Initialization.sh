@@ -37,7 +37,12 @@ function FIX_SEQUENCE_NAME() {
 }
 #
 function DEFINE_PARAM_RANGES() {
-  if $kpi; then    
+  if $kbi; then # knowledge-based initialization
+    #
+    min_cms=1;
+    max_cms=3;
+    min_rms=1;
+    max_rms=2;
     #
     # CM PARAMETERS
     # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
@@ -61,6 +66,11 @@ function DEFINE_PARAM_RANGES() {
     NB_W_lst=( $(seq 0.01 0.05 0.99) ) # (real (0;1)) initial weight for repeat classes
     NB_Y_lst=( $(seq 1 1 5) ) # (integer {0}, [1;50]) max cache size
   else
+    #
+    min_cms=1;
+    max_cms=5;
+    min_rms=1;
+    max_rms=3;
     #
     # CM PARAMETERS
     # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
@@ -102,12 +112,7 @@ ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac)
 SEQUENCES=();
 #
 # knowledge-based initialization
-kpi=false
-#
-min_cms=1;
-max_cms=3;
-min_rms=1;
-max_rms=2;
+kbi=false
 #
 seed=1; # JV3 seed interval: [1;599999]
 RANDOM=$seed;
@@ -162,8 +167,8 @@ while [[ $# -gt 0 ]]; do
       POPULATION_SIZE="$2";
       shift 2;
       ;;
-    --knowledge-based-initialization|-kpi)
-      kpi=true
+    --knowledge-based-initialization|-kbi)
+      kbi=true
       shift
       ;;
     --min-cm|--m-cm|-mCM)
