@@ -219,33 +219,64 @@ function HEURISTIC_CROSSOVER() {
     done
 }
 #
+function DEFINE_PARAM_RANGES() {
+  if $kbm; then # knowledge-based mutation
+    #
+    min_cms=1;
+    max_cms=3;
+    min_rms=1;
+    max_rms=2;
+    #
+    # CM PARAMETERS
+    # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
+    NB_C_cm_lst=( {1..13} ) # CM size. higher values -> more RAM -> better compression
+    NB_D_lst=( 1 2 5 10 20 50 100 200 500 1000 2000 ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
+    NB_I_cm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
+    NB_G_cm_lst=( $(seq 0.05 0.05 0.95) ) # (real [0;1)) gamma; decayment forgetting factor of CM
+    NB_S_lst=( {0..6} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
+    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga (stcm?)
+    NB_E_lst=( 1 2 5 10 20 50 100 ) # ! (integer [1;5000]) denominator that builds alpha on STCM
+    NB_A_lst=($(seq 0.1 0.1 0.9)) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
+    #
+    # RM PARAMETERS
+    # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
+    NB_C_rm_lst=(12 13 14) # RM size. higher values -> more RAM -> better compression
+    NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of repeat gas
+    NB_B_lst=($(seq 0.05 0.05 0.95)) # (real (0;1]) beta. discards or keeps a repeat ga
+    NB_L_lst=( {1..14} ) # (integer (1;20]) limit threshold; has dependency with NB_B
+    NB_G_rm_lst=( $(seq 0.05 0.05 0.95) ) # (real [0;1)) gamma; decayment forgetting factor
+    NB_I_rm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
+    NB_W_lst=( $(seq 0.01 0.05 0.99) ) # (real (0;1)) initial weight for repeat classes
+    NB_Y_lst=( $(seq 1 1 5) ) # (integer {0}, [1;50]) max cache size
+  else
+    #
+    # CM PARAMETERS
+    # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
+    NB_C_cm_lst=( {1..12} ) # CM size. higher values -> more RAM -> better compression
+    NB_D_lst=( {1..5000} ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
+    NB_I_cm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
+    NB_G_cm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor of CM
+    NB_S_lst=( {0..20} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
+    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga (stcm?)
+    NB_E_lst=( {1..5000} ) # ! (integer [1;5000]) denominator that builds alpha on STCM
+    NB_A_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
+    #
+    # RM PARAMETERS
+    # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
+    NB_C_rm_lst=( {1..13} ) # RM size. higher values -> more RAM -> better compression
+    NB_R_rm_lst=( {1..500} ) # (integer [1;10000]) max num of repeat gas
+    NB_B_lst=($(seq 0.01 0.01 0.99)) # (real (0;1]) beta. discards or keeps a repeat ga
+    NB_L_lst=( {2..20} ) # (integer (1;20]) limit threshold; has dependency with NB_B
+    NB_G_rm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor
+    NB_I_rm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
+    NB_W_lst=( $(seq 0.01 0.01 0.99) ) # (real (0;1)) initial weight for repeat classes
+    NB_Y_lst=( $(seq 0 1 5) ) # (integer {0}, [1;50]) max cache size
+  fi
+}
+#
 ###############################################################################################
 #
-# these lists help to know how to mutate in a valid way
-# PARAMETERS COMMON TO CM AND RM
-NB_I_lst=(1) # (integer {0,1,2}) manages inverted repeats
-#
-# CM PARAMETERS - these arrs are used in mutation
-# -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
-NB_C_cm_lst=( {1..5} ) # CM size. higher values -> more RAM -> better compression
-NB_D_lst=( 1 2 5 10 20 50 100 200 500 1000 2000 ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
-NB_G_cm_lst=(0.9) # (real [0;1)) gamma; decayment forgetting factor of CM
-NB_S_lst=( {0..6} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
-NB_E_lst=( 1 2 5 10 20 50 100 ) # ! (integer [1;5000]) denominator that builds alpha on STCM
-NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga on STCM
-NB_A_lst=($(seq 0 0.1 0.9)) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
-#
-# RM PARAMETERS - these arrs are used in mutation
-# -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
-NB_C_rm_lst=(12 13) # RM size. higher values -> more RAM -> better compression
-NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of repeat models
-NB_B_lst=($(seq 0.5 0.1 0.9)) # (real (0;1]) beta. discards or keeps a repeat ga
-NB_L_lst=( {4..9} ) # (integer (1;20]) limit threshold; has dependency with NB_B
-NB_G_rm_lst=(0.7) # (real [0;1)) gamma; decayment forgetting factor
-NB_W_lst=(0.06) # (real (0;1)) initial weight for repeat classes
-NB_Y_lst=(2) # (integer {0}, [1;50]) max cache size
-#
-###############################################################################################
+DEFINE_PARAM_RANGES;
 #
 # each chromosome has always 8 genes
 NUM_PARAMS_PER_MODEL=8;
@@ -330,15 +361,21 @@ while [[ $# -gt 0 ]]; do
         CROSSOVER_RATE=$(echo "scale=3; $2" | bc);
         shift 2;
         ;;
+    --knowledge-based-mutation|-kbm)
+      kbm=true
+      shift
+      ;;
     --mutation-rate|--mrate|-mr)
         MUTATION_RATE=$(echo "scale=3; $2" | bc);
         shift 2;
         ;;
-    --selection|--sel|-sl) # elitist, roulette, tournament
+    # elitist, roulette, tournament
+    --selection|--sel|-sl) 
         SELECTION_OP="$2";
         shift 2;
         ;;
-    --crossover|--xover|-x|-c) # xpoint, uniform
+    # xpoint, uniform
+    --crossover|--xover|-x|-c)
         CROSSOVER_OP="$2";
         shift 2;
         ;;
@@ -371,42 +408,30 @@ echo "${SEQUENCES[@]}"
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
-    selCmdsFile="../${ds}/$ga/sel/selectedCmds.txt";
-    echo here?
-    selCmdsFiles+=( $( ls $selCmdsFile) );
-    echo before this?
+    gaFolder="../${ds}/$ga";
+    selCmdsFile="$gaFolder/sel/selectedCmds.txt";
+    selCmdsFilesArr+=( $( ls $selCmdsFile) );
     #
     echo "cmds files input: ";
-    printf "%s\n" ${selCmdsFiles[@]}; 
+    printf "%s\n" ${selCmdsFilesArr[@]}; 
 done
 # 
-for selCmdFile in ${selCmdsFiles[@]}; do
+for selCmdsFile in ${selCmdsFilesArr[@]}; do
     #
-    dsFolder="../${ds}/$ga"
+    gaFolder="../${ds}/$ga";
     nextGen=$((gnum+1));
-    cmdsFileOutput="$dsFolder/g$nextGen.sh";
-    #
-    populationSize=$(cat $selCmdFile | sed '/^\s*$/d' | wc -l); # only counts non-empty lines
-    if [ $populationSize -lt $numSelectedCmds ]; then
-        numSelectedCmds=$populationSize;
-    fi
+    cmdsFileOutput="$gaFolder/g$nextGen.sh";
     #
     echo "========================================================";
-    echo "=== SEL CMDS FILE INPUT: $selCmdFile ====";
+    echo "=== SEL CMDS FILE INPUT: $selCmdsFile ====";
     echo "=== CHILD CMDS FILE OUTPUT: $cmdsFileOutput ==============";
     echo "========================================================";
     #
-    # adult cmds that have already been selected
+    # selected cmds
     chosenCmds=();
     while IFS= read -r selCmd; do
         chosenCmds+=("${selCmd}");
-    done < <( cat $selCmdFile ); 
-    #
-    crossoverNum=1;
-    childCmds=();
-    numParentCmds=$(echo "scale=0; (${#chosenCmds[@]} * $CROSSOVER_RATE)/1" | bc);
-    numChildlessCmds=$(echo "scale=0; (${#chosenCmds[@]} - $numParentCmds)/1" | bc);
-    echo "cr: $CROSSOVER_RATE"
+    done < <( cat $selCmdsFile );     
     #
     echo "num chosen cmds: ${#chosenCmds[@]}";
     while [ "${#chosenCmds[@]}" -gt 0 ]; do
@@ -424,6 +449,14 @@ for selCmdFile in ${selCmdsFiles[@]}; do
         echo ${command2[@]};
         #
         # DISASSEMBLE "PARENT" COMMANDS ##########################################################################################################################
+        #
+        # remove -o argument (if it exists)
+        command=$(echo "$command" | sed 's/\s*-o\s*[^ ]*//');
+        command2=$(echo "$command2" | sed 's/\s*-o\s*[^ ]*//');
+        #
+        printf "b4 crossing (without -o flag):\n"
+        echo $command;
+        echo $command2;
         #
         # parse the command string into prefix, cms, rms, suffix
         cms_arr=($(echo "$command" | grep -oE '\-cm [0-9:./]+' | sed 's/-cm//g' | tr '\n' ' '))
@@ -584,7 +617,7 @@ for selCmdFile in ${selCmdsFiles[@]}; do
         printf "after crossing and possible mutation (without -o arg):\n$command\n$command2\n"   
         #
         # add child cmd only if it's different from any adult cmd and child
-        allRawRes="${dsFolder}/*allRawRes.tsv";
+        allRawRes="${gaFolder}/*allRawRes.tsv";
         cmd1SameAsParent=$(awk -F'\t' 'NR>2{print $NF}' $allRawRes | grep -c "$command");
         if [ $cmd1SameAsParent -eq 0 ] && [[ ! " ${childCmds[@]} " =~ "$command" ]]; then
             echo "child added to childCmds array: $command";
@@ -621,7 +654,7 @@ for selCmdFile in ${selCmdsFiles[@]}; do
     # if there is no offstring delete script
     if [ ${#childCmds[@]} -eq 0 ]; then
         rm -fr $cmdsFileOutput
-        dsX=$(echo "$selCmdFile" | awk -F 'DS|/' '{print $3}');
+        dsX=$(echo "$selCmdsFile" | awk -F 'DS|/' '{print $3}');
         echo "NO NEW OFFSPRING - POPULATION STAGNATION OF DS${dsX}";
         exit 1;
     fi

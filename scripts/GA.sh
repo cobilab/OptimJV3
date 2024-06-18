@@ -142,6 +142,10 @@ while [[ $# -gt 0 ]]; do
     #
     # INIT
     #
+    --knowledge-based-initialization|-kbi)
+        initFlags+="-kbi "
+        shift
+        ;;
     --learning-rate|-lr) 
         # 0 value turns the NN off
         lr="$2";
@@ -219,6 +223,10 @@ while [[ $# -gt 0 ]]; do
     #
     # MUTATION
     #
+    --knowledge-based-mutation|-kbm)
+        scmFlags+="-kbm "
+        shift
+        ;;
     --mutation-rate|--mrate|-mr)
         MUTATION_RATE=$(echo "scale=3; $2" | bc);
         scmFlags+="-mr $MUTATION_RATE ";
@@ -277,19 +285,20 @@ for sequence in ${SEQUENCES[@]}; do
     initLogFolder="$logFolder/init"
     runLogFolder="$logFolder/run"
     evalLogFolder="$logFolder/eval"
+    selLogFolder="$logFolder/sel"
     scmLogFolder="$logFolder/scm"
-    mkdir -p $initLogFolder $runLogFolder $evalLogFolder $scmLogFolder
+    mkdir -p $initLogFolder $runLogFolder $evalLogFolder $selLogFolder $scmLogFolder
     #
-    echo "./GA.sh $allArgs" >> "$gaFolder/ga.sh";
+    gaCmds="$gaFolder/GAcmds.txt"
+    echo "./GA.sh $allArgs" >> "$gaCmds"
     #
-    ( echo "./GA.sh $allArgs"
-    #
-    if [ $FIRST_GEN -eq $INIT_GEN ]; then 
-        initLog="$initLogFolder/init.log"
-        initErr="$initLogFolder/init.err"
-        echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
-        bash -x ./Initialization.sh -s $sequence $flags $initFlags -sd $seed 1> $initLog 2> $initErr; 
-    fi
+    ( # if [ $FIRST_GEN -eq $INIT_GEN ]; then 
+    #     initLog="$initLogFolder/init.log"
+    #     initErr="$initLogFolder/init.err"
+    #     echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
+    #     echo "./Initialization.sh -s $sequence $flags $initFlags -sd $seed" >> "$gaCmds"
+    #     bash -x ./Initialization.sh -s $sequence $flags $initFlags -sd $seed 1> $initLog 2> $initErr;
+    # fi
     #
     for gen in $(seq $FIRST_GEN $LAST_GEN); do
         echo "=== GENERATION $gen ===";
@@ -297,20 +306,27 @@ for sequence in ${SEQUENCES[@]}; do
         runLog="$runLogFolder/run$gen.log"
         runErr="$runLogFolder/run$gen.err"
         echo "2. RUN - log file: $runLog ; err file: $runErr";
+        echo "./Run.sh -s $sequence -g $gen $flags $runFlags" >> "$gaCmds"
         bash -x ./Run.sh -s $sequence -g $gen $flags $runFlags 1> $runLog 2> $runErr;
         #
         evalLog="$evalLogFolder/eval$gen.log"
         evalErr="$evalLogFolder/eval$gen.err"
         echo "3. EVALUATION - log file: $evalLog ; err file: $evalErr";
+        echo "./Evaluation.sh -s $sequence -g $gen $flags $evalFlags" >> "$gaCmds"
         bash -x ./Evaluation.sh -s $sequence -g $gen $flags $evalFlags 1> $evalLog 2> $evalErr;
+        #
+        selLog="$selLogFolder/sel$gen.log"
+        selErr="$selLogFolder/sel$gen.err"
+        echo "4. SELECTION - log file: $selLog ; err file: $selErr";
+        echo "./Selection.sh -s $sequence -g $gen $flags $selFlags -sd $((seed=seed+si)) -si $si" >> "$gaCmds"
+        bash -x ./Selection.sh -s $sequence -g $gen $flags $selFlags -sd $((seed=seed+si)) -si $si 1> $selLog 2> $selErr;
         #
         scmLog="$scmLogFolder/scm$gen.log"
         scmErr="$scmLogFolder/scm$gen.err"
-        echo "4. SELECTION, 5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
-        bash -x ./SelCrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si 1> $scmLog 2> $scmErr;
-    done ) 1> $logFile 2> $errFile &
+        echo "5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
+        echo "./CrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si" >> "$gaCmds"
+        bash -x ./CrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si 1> $scmLog 2> $scmErr;
+    done ) 1> $logFile 2> $errFile
     #
-    echo "$dsx, $ga is running in the background..."
-    wait # to run one GA at a time
     echo "$dsx, $ga program is complete"
 done
