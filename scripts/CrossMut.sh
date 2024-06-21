@@ -35,7 +35,6 @@ function CHECK_INPUT () {
 #
 function FIX_SEQUENCE_NAME() {
     sequence="$1"
-    echo $sequence
     sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
     #
     if [ "${sequence^^}" == "CY" ]; then 
@@ -46,7 +45,6 @@ function FIX_SEQUENCE_NAME() {
         sequence="chm13v2.0"
     fi
     #
-    echo "$sequence"
 }
 #
 ### CROSSOVER FUNCTIONS ###############################################################################################
@@ -94,9 +92,9 @@ function XPOINT_CROSSOVER() {
     for paramIdx in ${!crossoverMask[@]}; do
         if [ ${crossoverMask[$paramIdx]} -eq 1 ]; then
             # param ("gene") crossover itself
-            temp=${cm_params_arr[$paramIdx]};
-            cm_params_arr[$paramIdx]=${cm_params_arr2[$paramIdx]};
-            cm_params_arr2[$paramIdx]=$temp;
+            temp=${model_params_arr[$paramIdx]};
+            model_params_arr[$paramIdx]=${model_params_arr2[$paramIdx]};
+            model_params_arr2[$paramIdx]=$temp;
         fi;
     done
 }
@@ -120,30 +118,30 @@ function UNIFORM_CROSSOVER() {
     for paramIdx in ${!crossoverMask[@]}; do
         if [ ${crossoverMask[$paramIdx]} -eq 1 ]; then
             # param ("gene") crossover itself
-            temp=${cm_params_arr[$paramIdx]};
-            cm_params_arr[$paramIdx]=${cm_params_arr2[$paramIdx]};
-            cm_params_arr2[$paramIdx]=$temp;
+            temp=${model_params_arr[$paramIdx]};
+            model_params_arr[$paramIdx]=${model_params_arr2[$paramIdx]};
+            model_params_arr2[$paramIdx]=$temp;
         fi;
     done
 }
 #
 function AVG_CROSSOVER() {
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ AVG CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    for paramIdx in ${!CM_IS_PARAM_INT[@]}; do
-        cmParam1=${cm_params_arr[$paramIdx]} # parent 1
-        cmParam2=${cm_params_arr2[$paramIdx]} # parent 2
+    for paramIdx in ${!MODEL_IS_PARAM_INT[@]}; do
+        cmParam1=${model_params_arr[$paramIdx]} # parent 1
+        cmParam2=${model_params_arr2[$paramIdx]} # parent 2
         #
         # the avg of two params within integer domains must be integer
-        if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then 
+        if [ ${MODEL_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then 
             avgParam=$(echo "scale=0;($cmParam1+$cmParam2)/2" | bc);
         else # avg of two real nums
             avgParam=$(echo "scale=3;($cmParam1+$cmParam2)/2" | bc | sed '/\./ s/\.\{0,1\}0\{1,\}$//');
         fi
         #
-        cm_params_arr[$paramIdx]=$avgParam;
+        model_params_arr[$paramIdx]=$avgParam;
         #
         # this child may become a duplicate of other, but if that is the case, then it is removed later in the script
-        cm_params_arr2[$paramIdx]=$avgParam; 
+        model_params_arr2[$paramIdx]=$avgParam; 
     done
 }
 #
@@ -151,24 +149,24 @@ function DISCRETE_CROSSOVER() {
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DISCRETE CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
     # r=random.choice({x, y}), if r==0, childParam=p1Param; elif r==1, childParam=p2Param
     for paramIdx in $(seq 0 1 $((NUM_PARAMS_PER_MODEL-1)) ); do
-        cmParam1="${cm_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
-        cmParam2="${cm_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
+        cmParam1="${model_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
+        cmParam2="${model_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
         # 
         cmParamChoices=( "$cmParam1" "$cmParam2" ); # chose param with idx=$paramIdx from either parent1 or parent2
         rndIdx=$((RANDOM % 2)); # random value taken from U(0,1)
         chosenCmParam=${cmParamChoices[$rndIdx]};
         #
         # one child may become duplicate of another, but if that is the case, then it is removed later in the script
-        cm_params_arr[$paramIdx]=$chosenCmParam;
-        cm_params_arr2[$paramIdx]=${cm_params_arr[$paramIdx]};
+        model_params_arr[$paramIdx]=$chosenCmParam;
+        model_params_arr2[$paramIdx]=${model_params_arr[$paramIdx]};
     done;
 }
 #
 function FLAT_CROSSOVER() {
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FLAT CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-    for paramIdx in ${!CM_IS_PARAM_INT[@]}; do
-        cmParam1="${cm_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
-        cmParam2="${cm_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
+    for paramIdx in ${!MODEL_IS_PARAM_INT[@]}; do
+        cmParam1="${model_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
+        cmParam2="${model_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
         #
         # child param is same as its parents if both parents' params are equal
         childParam=$cmParam1;
@@ -185,37 +183,37 @@ function FLAT_CROSSOVER() {
             seed=$((seed+si)) && childParam=$( seq $cmParamMin 0.1 $cmParamMax | sort -R --random-source=<(yes $seed) | head -n 1 );
             #
             # round number to int if param type is int
-            if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then
+            if [ ${MODEL_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then
                 childParam=$(echo "scale=0; $childParam/1" | bc);
             fi
         fi
         #
         # one child may become duplicate of another, but if that is the case, then it is removed later in the script
-        cm_params_arr[paramIdx]=$childParam;
-        cm_params_arr2[paramIdx]=${cm_params_arr[paramIdx]};
+        model_params_arr[paramIdx]=$childParam;
+        model_params_arr2[paramIdx]=${model_params_arr[paramIdx]};
     done
 }
 #
 function HEURISTIC_CROSSOVER() {
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEURISTIC CROSSOVER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
     # formula to produces ONE child (per param) = p1 + random * ratio_weight * (p2 - p1)
-    for paramIdx in ${!CM_IS_PARAM_INT[@]}; do
-        cmParam1="${cm_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
-        cmParam2="${cm_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
+    for paramIdx in ${!MODEL_IS_PARAM_INT[@]}; do
+        cmParam1="${model_params_arr[$paramIdx]}"; # param with idx=$paramIdx from parent 1
+        cmParam2="${model_params_arr2[$paramIdx]}"; # param with idx=$paramIdx from parent 2
         #
         randomNum="0.$((RANDOM%999))";
         ratioWeight=1;
         #
         childParam=$(echo "scale=3; $cmParam1 + $randomNum * $ratioWeight * ($cmParam2 - $cmParam1)" | bc | sed '/\./ s/\.\{0,1\}0\{1,\}$//');
         #
-        if [ ${CM_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then # round value to int if params are int
+        if [ ${MODEL_IS_PARAM_INT[$paramIdx]} -eq 1 ]; then # round value to int if params are int
             childParam=$(echo "scale=0; $childParam/1" | bc);
         fi
         #
-        cm_params_arr[$paramIdx]=$childParam;
+        model_params_arr[$paramIdx]=$childParam;
         #
         # this child may become a duplicate of other, but if that is the case, then it is removed later in the script
-        cm_params_arr2[$paramIdx]=$childParam;
+        model_params_arr2[$paramIdx]=$childParam;
     done
 }
 #
@@ -283,10 +281,13 @@ NUM_PARAMS_PER_MODEL=8;
 #
 # used in average crossover, intermediate crossover
 # a cm "chromosome" has 6 integer "genes" (1) and 2 real "genes" (0)
-CM_IS_PARAM_INT=( 1 1 1 0 1 1 1 0 );
+CM_IS_PARAM_INT=( 1 1 1 0 1 1 1 0 )
+#
+# a rm "chromosome" has 5 integer "genes" (1) and 3 real "genes" (0)
+RM_IS_PARAM_INT=( 1 1 0 1 0 1 0 1 )
 #
 CROSSOVER_RATE=0.6; # probability of a pair (or set) of cmds in becoming parents
-MUTATION_RATE=0.1; # probability of mutation occuring in each cmd
+MUTATION_RATE=0.17; # probability of mutation occuring in each cmd; mutation cannot happen without crossover
 #
 SELECTION_OP="elitist";
 CROSSOVER_OP="xpoint";
@@ -425,8 +426,9 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
     done < <( cat $selCmdsFile );     
     #
     echo "num chosen cmds: ${#chosenCmds[@]}";
-    while [ "${#chosenCmds[@]}" -gt 0 ]; do
-        echo "=========================== CROSSOVER AND MUTATION NUMBER $crossoverNum =====================================";
+    coupleNum=$((coupleNum+1))
+    while [ "${#chosenCmds[@]}" -gt 0 ]; do  
+        echo "=========================== "${#chosenCmds[@]}" CMDS TO GO =====================================";
         #
         command="${chosenCmds[0]}";
         command2="${chosenCmds[1]}";
@@ -439,67 +441,87 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
         echo ${command[@]}; 
         echo ${command2[@]};
         #
-        # DISASSEMBLE "PARENT" COMMANDS ##########################################################################################################################
-        #
-        # remove -o argument (if it exists)
-        command=$(echo "$command" | sed 's/\s*-o\s*[^ ]*//');
-        command2=$(echo "$command2" | sed 's/\s*-o\s*[^ ]*//');
-        #
-        printf "b4 crossing (without -o flag):\n"
-        echo $command;
-        echo $command2;
-        #
-        # parse the command string into prefix, cms, rms, suffix
-        cms_arr=($(echo "$command" | grep -oE '\-cm [0-9:./]+' | sed 's/-cm//g' | tr '\n' ' '))
-        rms_arr=($(echo "$command" | grep -oE '\-rm [0-9:./]+' | sed 's/-rm//g' | tr '\n' ' '))
-        #
-        command_rev=$(echo "$command" | rev);
-        last_cm_rev=$(echo "${cms_arr[-1]}" | rev);
-        if [ ${#rms_arr[@]} -gt 0 ]; then last_rm_rev=$(echo "${rms_arr[-1]}" | rev); else last_rm_rev=""; fi;
-        #
-        substr_before_cm_or_rm=$(echo "$command" | awk '{ match($0, /(-cm|-rm)/); print substr($0, 1, RSTART-1) }');
-        substr_after_cm_and_rm=$(echo "$command_rev" | awk -v last_cm_rev=$last_cm_rev -v last_rm_rev=$last_rm_rev '{ 
-            if (length(last_rm_rev) == 0) match($0, "(" last_cm_rev ")");
-            else match($0, "(" last_cm_rev "|" last_rm_rev ")");
-            print substr($0, 1, RSTART-1);
-        }' | rev);
-        #
-        cms_arr2=($(echo "$command2" | grep -oE '\-cm [0-9:./]+' | sed 's/-cm//g' | tr '\n' ' '))
-        rms_arr2=($(echo "$command2" | grep -oE '\-rm [0-9:./]+' | sed 's/-rm//g' | tr '\n' ' '))
-        #
-        echo "cms_arr has ${#cms_arr[@]} CM models"
-        echo "cms_arr2 has ${#cms_arr2[@]} CM models"
-        #
-        command_rev2=$(echo "$command2" | rev);
-        last_cm_rev2=$(echo "${cms_arr2[-1]}" | rev);
-        if [ ${#rms_arr2[@]} -gt 0 ]; then last_rm_rev2=$(echo "${rms_arr2[-1]}" | rev); else last_rm_rev2=""; fi;
-        #
-        substr_before_cm_or_rm2=$(echo "$command2" | awk '{ match($0, /(-cm|-rm)/); print substr($0, 1, RSTART-1) }')
-        substr_after_cm_and_rm2=$(echo "$command_rev2" | awk -v last_cm_rev2=$last_cm_rev2 -v last_rm_rev2=$last_rm_rev2 '{ 
-            if (length(last_rm_rev2) == 0) match($0, "(" last_cm_rev2 ")");
-            else match($0, "(" last_cm_rev2 "|" last_rm_rev2 ")");
-            print substr($0, 1, RSTART-1);
-        }' | rev);
-        #
         # CROSSOVER ##########################################################################################################################
         #
         rndFloat="0.$((RANDOM%999))";
         if (( $(echo "$rndFloat <= $CROSSOVER_RATE" | bc) )); then 
             echo "$rndFloat <= $CROSSOVER_RATE --> crossover"
-            [ $numCms1 -gt $numCms2 ] && M=$numCms1 || M=$numCms2
-            maxRepetitions=$((RANDOM%$M+1))
-            crossoverNum=$(($crossoverNum+1));
-            for i in $(seq 1 $M); do
-                # choose cm indexes where crossover will happen
-                chosen_cm_idx=$(( RANDOM % ${#cms_arr[@]} ));
-                chosen_cm_idx2=$(( RANDOM % ${#cms_arr2[@]} ));
+            crossMutRepetitions=$((RANDOM%2+1))
+            crossMutNum=$((crossMutNum+1))
+            #
+            echo "=========================== CROSSOVER AND MUTATION NUMBER $crossMutNum WILL REPEAT $crossMutRepetitions TIMES =====================================";
+            #
+            echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DISSASSEMBLE "PARENT" COMMANDS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+            # remove -o argument (if it exists)
+            command=$(echo "$command" | sed 's/\s*-o\s*[^ ]*//');
+            command2=$(echo "$command2" | sed 's/\s*-o\s*[^ ]*//');
+            #
+            printf "b4 crossing (without -o flag):\n"
+            echo $command;
+            echo $command2;
+            #
+            # parse the command string into prefix, cms, rms, suffix
+            cms_arr=($(echo "$command" | grep -oE '\-cm [0-9:./]+' | sed 's/-cm//g' | tr '\n' ' '))
+            rms_arr=($(echo "$command" | grep -oE '\-rm [0-9:./]+' | sed 's/-rm//g' | tr '\n' ' '))
+            #
+            command_rev=$(echo "$command" | rev);
+            last_cm_rev=$(echo "${cms_arr[-1]}" | rev);
+            if [ ${#rms_arr[@]} -gt 0 ]; then last_rm_rev=$(echo "${rms_arr[-1]}" | rev); else last_rm_rev=""; fi;
+            #
+            substr_before_cm_or_rm=$(echo "$command" | awk '{ match($0, /(-cm|-rm)/); print substr($0, 1, RSTART-1) }');
+            substr_after_cm_and_rm=$(echo "$command_rev" | awk -v last_cm_rev=$last_cm_rev -v last_rm_rev=$last_rm_rev '{ 
+                if (length(last_rm_rev) == 0) match($0, "(" last_cm_rev ")");
+                else match($0, "(" last_cm_rev "|" last_rm_rev ")");
+                print substr($0, 1, RSTART-1);
+            }' | rev);
+            #
+            cms_arr2=($(echo "$command2" | grep -oE '\-cm [0-9:./]+' | sed 's/-cm//g' | tr '\n' ' '))
+            rms_arr2=($(echo "$command2" | grep -oE '\-rm [0-9:./]+' | sed 's/-rm//g' | tr '\n' ' '))
+            #
+            echo "cms_arr has ${#cms_arr[@]} models"
+            echo "cms_arr2 has ${#cms_arr2[@]}  models"
+            echo "rms_arr has ${#rms_arr[@]} models"
+            echo "rms_arr2 has ${#rms_arr2[@]}  models"
+            #
+            command_rev2=$(echo "$command2" | rev);
+            last_cm_rev2=$(echo "${cms_arr2[-1]}" | rev);
+            if [ ${#rms_arr2[@]} -gt 0 ]; then last_rm_rev2=$(echo "${rms_arr2[-1]}" | rev); else last_rm_rev2=""; fi;
+            #
+            substr_before_cm_or_rm2=$(echo "$command2" | awk '{ match($0, /(-cm|-rm)/); print substr($0, 1, RSTART-1) }')
+            substr_after_cm_and_rm2=$(echo "$command_rev2" | awk -v last_cm_rev2=$last_cm_rev2 -v last_rm_rev2=$last_rm_rev2 '{ 
+                if (length(last_rm_rev2) == 0) match($0, "(" last_cm_rev2 ")");
+                else match($0, "(" last_cm_rev2 "|" last_rm_rev2 ")");
+                print substr($0, 1, RSTART-1);
+            }' | rev);
+            #
+            for i in $(seq 1 $crossMutRepetitions); do
                 #
-                echo "chosen cm from cmd1 before crossover (str) ---> " "${cms_arr[chosen_cm_idx]}" " (index " $chosen_cm_idx ")";
-                echo "chosen cm from cmd2 before crossover (str) ---> " "${cms_arr2[chosen_cm_idx2]}" " (index " $chosen_cm_idx2 ")";
+                # choose model type
+                if [ "${#rms_arr[@]}" -eq 0 ] || [ "${#rms_arr2[@]}" -eq 0 ]; then 
+                    modelTypeArr=("cm")
+                else
+                    modelTypeArr=("cm" "rm")
+                fi
+                #
+                modelTypeArrLen="${#modelTypeArr[@]}"
+                rndModelTypeIdx=$((RANDOM%modelTypeArrLen))
+                modelType="${modelTypeArr[rndModelTypeIdx]}"
+                echo "chosen model type: $modelType"
+                #
+                [ "$modelType" = "cm" ] && model_arr=( "${cms_arr[@]}" ) || model_arr=( "${rms_arr[@]}" ) 
+                [ "$modelType" = "cm" ] && model_arr2=( "${cms_arr2[@]}" ) || model_arr2=( "${rms_arr2[@]}" )
+                [ "$modelType" = "cm" ] && MODEL_IS_PARAM_INT=( "${CM_IS_PARAM_INT[@]}" ) || MODEL_IS_PARAM_INT=( "${RM_IS_PARAM_INT[@]}" ) 
+                #
+                # choose model indexes where crossover will happen
+                chosen_model_idx=$(( RANDOM % ${#model_arr[@]} ));
+                chosen_model_idx2=$(( RANDOM % ${#model_arr2[@]} ));
+                #
+                echo "chosen $modelType from cmd1 before crossover (str) ---> " "${model_arr[chosen_model_idx]}" " (index " $chosen_model_idx ")";
+                echo "chosen $modelType from cmd2 before crossover (str) ---> " "${model_arr2[chosen_model_idx2]}" " (index " $chosen_model_idx2 ")";
                 #
                 # each chosen cm is transformed into an array of 8 parameters ("genes")
-                cm_params_arr=($(echo "${cms_arr[chosen_cm_idx]}" | sed 's/[:/]/ /g'));
-                cm_params_arr2=($(echo "${cms_arr2[chosen_cm_idx2]}" | sed 's/[:/]/ /g'));
+                model_params_arr=($(echo "${model_arr[chosen_model_idx]}" | sed 's/[:/]/ /g'));
+                model_params_arr2=($(echo "${model_arr2[chosen_model_idx2]}" | sed 's/[:/]/ /g'));
                 #
                 if [ "$CROSSOVER_OP" = "xpoint" ]; then
                     XPOINT_CROSSOVER;
@@ -516,85 +538,103 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                 fi
                 #
                 # convert param arrs to strs
-                cm_params_str=$(printf "%s:" ${cm_params_arr[@]});
-                cm_params_str="${cm_params_str%:}";
-                cm_params_str=$(echo "$cm_params_str" | sed 's/:/\//4');
-                echo "chosen cm from cmd1 after crossover (str) ----> " $cm_params_str
+                model_params_str=$(printf "%s:" ${model_params_arr[@]});
+                model_params_str="${model_params_str%:}";
+                [ "$modelType" = "cm" ] && model_params_str=$(echo "$model_params_str" | sed 's/:/\//4');
+                echo "chosen $modelType from cmd1 after crossover (str) ----> " $model_params_str
                 #
-                cm_params_str2=$(printf "%s:" ${cm_params_arr2[@]});
-                cm_params_str2="${cm_params_str2%:}";
-                cm_params_str2=$(echo "$cm_params_str2" | sed 's/:/\//4');
-                echo "chosen cm from cmd2 after crossover (str) ----> " $cm_params_str2
+                model_params_str2=$(printf "%s:" ${model_params_arr2[@]});
+                model_params_str2="${model_params_str2%:}";
+                [ "$modelType" = "cm" ] && model_params_str2=$(echo "$model_params_str2" | sed 's/:/\//4');
+                echo "chosen $modelType from cmd2 after crossover (str) ----> " $model_params_str2
                 # 
-                # replace cms chosen for crossover with updated cms
-                cms_arr[$chosen_cm_idx]=$cm_params_str;
-                cms_arr2[$chosen_cm_idx2]=$cm_params_str2;
+                # replace models chosen for crossover with updated cms
+                model_arr[$chosen_model_idx]=$model_params_str;
+                model_arr2[$chosen_model_idx2]=$model_params_str2;
                 #
-                echo "cm arr after crossover: ${cms_arr[@]}";
-                echo "cm arr 2 after crossover: ${cms_arr2[@]}";
+                echo "$modelType arr after crossover: ${model_arr[@]}";
+                echo "$modelType arr 2 after crossover: ${model_arr2[@]}";
                 #
-                # MUTATION ##########################################################################################################################
-                #
-                echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MUTATION ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-                #
-                chosenCmd=$(( RANDOM % $numCmds )); # choose command where mutation will occur
-                if [ $chosenCmd -eq 0 ]; then
-                    chosenCmIdx=$(( RANDOM % ${#cms_arr[@]} ));
-                    chosenCm="${cms_arr[$chosenCmIdx]}"; # choose CM where mutation will occur (str)
-                else 
-                    chosenCmIdx=$(( RANDOM % ${#cms_arr2[@]} ));
-                    chosenCm="${cms_arr2[$chosenCmIdx]}"; # choose CM where mutation will occur (str)
-                fi;
-                echo "chosen cm from command$(($chosenCmd+1)) b4 mutation (str) ----> $chosenCm (index $chosenCmIdx)"
-                #
-                chosenCmParamsArr=($(echo "$chosenCm" | sed 's/[:/]/ /g')); # CM where mutation will occur (arr)
-                #
-                # ${cms_arr[@]} ${cms_arr2[@]}
-                # create mutation mask
-                mutationMask=();
-                for (( i=0; i < $NUM_PARAMS_PER_MODEL; i++ )); do     
-                    if [ $(( RANDOM % 500 )) -gt 1 ]; then
-                        mutationMask+=( 0 );
-                    else         
-                        mutationMask+=( 1 );     
-                    fi; 
-                done;
-                echo "mutation mask --------------------------------> ${mutationMask[*]}"
-                #
-                # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]
-                mutationVals=( 
-                    ${NB_C_cm_lst[$((RANDOM % ${#NB_C_cm_lst[@]}))]}
-                    ${NB_D_lst[$((RANDOM % ${#NB_D_lst[@]}))]}
-                    ${NB_I_cm_lst[$((RANDOM % ${#NB_I_cm_lst[@]}))]}
-                    ${NB_G_cm_lst[$((RANDOM % ${#NB_G_cm_lst[@]}))]}
+                rndMutNum="0.$((RANDOM%999))"
+                if (( $(echo "$rndMutNum <= $MUTATION_RATE" | bc) )); then
+                    echo "$rndMutNum <= $MUTATION_RATE --> mutation"
                     #
-                    ${NB_S_lst[$((RANDOM % ${#NB_S_lst[@]}))]}
-                    ${NB_E_lst[$((RANDOM % ${#NB_E_lst[@]}))]}
-                    ${NB_R_cm_lst[$((RANDOM % ${#NB_R_cm_lst[@]}))]}
-                    ${NB_A_lst[$((RANDOM % ${#NB_A_lst[@]}))]}
-                );
-                #
-                for paramIdx in ${!mutationMask[@]}; do
-                    if [ ${mutationMask[$paramIdx]} -eq 1 ]; then
-                        chosenCmParamsArr[$paramIdx]=${mutationVals[$paramIdx]}; # mutation itself
+                    echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MUTATION ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+                    #
+                    chosenCmd=$(( RANDOM % $numCmds )); # choose command where mutation will occur
+                    if [ $chosenCmd -eq 0 ]; then
+                        chosenModelIdx=$(( RANDOM % ${#model_arr[@]} ));
+                        chosenModel="${model_arr[$chosenModelIdx]}"; # choose model where mutation will occur (str)
+                    else 
+                        chosenModelIdx=$(( RANDOM % ${#model_arr2[@]} ));
+                        chosenModel="${model_arr2[$chosenModelIdx]}"; # choose model where mutation will occur (str)
                     fi;
-                done;
-                #
-                # convert params arr to str
-                chosenCmParamsStr="$(printf "%s:" ${chosenCmParamsArr[@]})"; # x:x:x:x:x:x:x:x:
-                chosenCmParamsStr="${chosenCmParamsStr%:}"; # x:x:x:x:x:x:x:x
-                chosenCmParamsStr="$(echo "$chosenCmParamsStr" | sed 's/:/\//4')"; # x:x:x:x/x:x:x:x
-                echo "chosen cm from command$(($chosenCmd+1)) after mutation (str) -> $chosenCmParamsStr"
-                #
-                # chosen cm arr for mutation ---> updated cm arr with cm that has been mutated in a param
-                if [ $chosenCmd -eq 0 ]; then
-                    cms_arr[$chosenCmIdx]=$chosenCmParamsStr;
+                    echo "chosen $modelType from command$(($chosenCmd+1)) b4 mutation (str) ----> $chosenModel (index $chosenModelIdx)"
+                    #
+                    chosenModelParamsArr=($(echo "$chosenModel" | sed 's/[:/]/ /g')); # model where mutation will occur (arr)
+                    #
+                    # ${model_arr[@]} ${model_arr2[@]}
+                    # create mutation mask
+                    mutationMask=(0 0 0 0 0 0 0 0);
+                    rndMutIdx=$((RANDOM%$NUM_PARAMS_PER_MODEL))
+                    mutationMask[rndMutIdx]=1
+                    #
+                    echo "mutation mask --------------------------------> ${mutationMask[*]}"
+                    #
+                    # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]
+                    if [ "$modelType" = "cm" ]; then 
+                        mutationVals=( 
+                            ${NB_C_cm_lst[$((RANDOM % ${#NB_C_cm_lst[@]}))]}
+                            ${NB_D_lst[$((RANDOM % ${#NB_D_lst[@]}))]}
+                            ${NB_I_cm_lst[$((RANDOM % ${#NB_I_cm_lst[@]}))]}
+                            ${NB_G_cm_lst[$((RANDOM % ${#NB_G_cm_lst[@]}))]}
+                            #
+                            ${NB_S_lst[$((RANDOM % ${#NB_S_lst[@]}))]}
+                            ${NB_E_lst[$((RANDOM % ${#NB_E_lst[@]}))]}
+                            ${NB_R_cm_lst[$((RANDOM % ${#NB_R_cm_lst[@]}))]}
+                            ${NB_A_lst[$((RANDOM % ${#NB_A_lst[@]}))]}
+                        );
+                    else
+                        mutationVals=( 
+                            ${NB_R_rm_lst[$((RANDOM % ${#NB_C_cm_lst[@]}))]}
+                            ${NB_C_rm_lst[$((RANDOM % ${#NB_D_lst[@]}))]}
+                            ${NB_B_lst[$((RANDOM % ${#NB_I_cm_lst[@]}))]}
+                            ${NB_L_lst[$((RANDOM % ${#NB_G_cm_lst[@]}))]}
+                            #
+                            ${NB_G_rm_lst[$((RANDOM % ${#NB_S_lst[@]}))]}
+                            ${NB_I_rm_lst[$((RANDOM % ${#NB_E_lst[@]}))]}
+                            ${NB_W_lst[$((RANDOM % ${#NB_R_cm_lst[@]}))]}
+                            ${NB_Y_lst[$((RANDOM % ${#NB_A_lst[@]}))]}
+                        );
+                    fi
+                    #
+                    for paramIdx in ${!mutationMask[@]}; do
+                        if [ ${mutationMask[$paramIdx]} -eq 1 ]; then
+                            chosenModelParamsArr[$paramIdx]=${mutationVals[$paramIdx]}; # mutation itself
+                        fi;
+                    done;
+                    #
+                    # convert params arr to str
+                    chosenModelParamsStr="$(printf "%s:" ${chosenModelParamsArr[@]})"; # x:x:x:x:x:x:x:x:
+                    chosenModelParamsStr="${chosenModelParamsStr%:}"; # x:x:x:x:x:x:x:x
+                    [ "$modelType" = "cm" ] && chosenModelParamsStr="$(echo "$chosenModelParamsStr" | sed 's/:/\//4')"; # x:x:x:x/x:x:x:x
+                    echo "chosen $modelType from command$(($chosenCmd+1)) after mutation (str) -> $chosenModelParamsStr"
+                    #
+                    # chosen model arr for mutation ---> updated model arr with model that has been mutated in a param
+                    if [ $chosenCmd -eq 0 ]; then
+                        model_arr[$chosenModelIdx]=$chosenModelParamsStr;
+                    else 
+                        model_arr2[$chosenModelIdx]=$chosenModelParamsStr;
+                    fi;
                 else 
-                    cms_arr2[$chosenCmIdx]=$chosenCmParamsStr;
-                fi;
+                    echo "$rndMutNum > $MUTATION_RATE --> no mutation"
+                fi
                 #
-                echo "cm arr after crossover and possible mutation: ${cms_arr[@]}";
-                echo "cm arr2 after crossover and possible mutation: ${cms_arr2[@]}";
+                echo "$modelType arr after crossover and possible mutation: ${model_arr[@]}";
+                echo "$modelType arr2 after crossover and possible mutation: ${model_arr2[@]}";
+                #
+                [ "$modelType" = "cm" ] && cms_arr=("${model_arr[@]}") || rms_arr=("${model_arr[@]}")
+                [ "$modelType" = "cm" ] && cms_arr2=("${model_arr2[@]}") || rms_arr2=("${model_arr2[@]}")
             done
             #
             # ASSEMBLE "CHILDREN" COMMANDS ###########################################################################################################################
@@ -629,12 +669,12 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
             else 
                 echo "already executed: $command2";
             fi
-            #
-            # pops the 2 first elements of the selected cmds array
-            chosenCmds=("${chosenCmds[@]:2}");
         else 
-            echo "$rndFloat > $CROSSOVER_RATE --> crossover"
+            echo "$rndFloat > $CROSSOVER_RATE --> no crossover"
         fi
+        #
+        # pops the 2 first elements of the selected cmds array
+        chosenCmds=("${chosenCmds[@]:2}");
     done;
     #
     # write "child" commands into output cmds file
