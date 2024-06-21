@@ -224,12 +224,12 @@ while [[ $# -gt 0 ]]; do
         SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
         shift 2;
         ;;
-    --num-sel-cmds|-ns)
-        numSelectedCmds="$2";
-        shift 2;
-        ;;
     --selection|--sel|-sl) # elitist, roulette, tournament
         SELECTION_OP="$2";
+        shift 2;
+        ;;
+    --num-sel-cmds|-ns)
+        numSelectedCmds="$2";
         shift 2;
         ;;
     --gen-num|-g)

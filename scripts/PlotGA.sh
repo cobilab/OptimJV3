@@ -8,6 +8,8 @@ ga="ga";
 #
 timeFormats=("s" "m" "h");
 #
+histInterval=0.1
+#
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
@@ -21,6 +23,19 @@ function CHECK_INPUT () {
     echo -e "\e[31mERROR: input file not found ($FILE)!\e[0m";
     exit;
   fi
+}
+#
+function FIX_SEQUENCE_NAME() {
+    sequence="$1"
+    sequence=$(echo $sequence | sed 's/.mfasta//g; s/.fasta//g; s/.mfa//g; s/.fa//g; s/.seq//g')
+    #
+    if [ "${sequence^^}" == "CY" ]; then 
+        sequence="CY"
+    elif [ "${sequence^^}" == "CASSAVA" ]; then 
+        sequence="TME204.HiFi_HiC.haplotig1"
+    elif [ "${sequence^^}" == "HUMAN" ]; then
+        sequence="chm13v2.0"
+    fi
 }
 #
 # === PARSING ===========================================================================
@@ -37,6 +52,12 @@ while [[ $# -gt 0 ]]; do
         size=$(awk '/'$dsx'[[:space:]]/{print $NF}' $ds_sizesBase2);
         shift 2;
         ;;
+    --sequence|--seq|-s)
+        sequence="$2";
+        FIX_SEQUENCE_NAME "$sequence";
+        dsx=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
+        shift 2;
+        ;;
     --best|-b)
         bestN="$2";
         shift 2;
@@ -48,6 +69,10 @@ while [[ $# -gt 0 ]]; do
     --last-generation|--last-gen|-lg)
         last_gen="$2";
         shift 2;
+        ;;
+    --hist-interval|-hi)
+        histInterval="$2"
+        shift 2
         ;;
     *) 
         echo "Invalid option: $1"
@@ -72,31 +97,31 @@ POPULATION_SIZE=$(( $(cat $gaFolder/g1.tsv | sed '/^\s*#/d;/^\s*$/d' | wc -l) - 
 # === STATS ===========================================================================
 #
 # get bestN results from each generation (bps)
-bestNFile="$statsFolder/best${bestN}.tsv";
+bestNFile="$statsFolder/bps_best${bestN}.tsv";
 ( for gen in $(seq $first_gen $last_gen); do 
     awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR>2 && NR<=2+bestN {print gen"\t"$4}' "$gaFolder/g$gen.tsv"; 
 done ) | sort -n -k1 -k2 | uniq > $bestNFile;
 #
 # get best1 result from each generation (bps)
-best1File="$statsFolder/best1.tsv";
+best1File="$statsFolder/bps_best1.tsv";
 ( for gen in $(seq $first_gen $last_gen); do 
     awk -F'\t' -v gen=$gen 'NR==3 {print gen"\t"$4}' "$gaFolder/g$gen.tsv"; 
 done ) > $best1File;
 #
 # get average stats (bps) (all)
-avgBPSallFile="$statsFolder/avg_bps_all.tsv";
+avgBPSallFile="$statsFolder/bps_avg_all.tsv";
 for gen in $(seq $first_gen $last_gen); do 
     awk -v gen=$gen -v p=$POPULATION_SIZE -F'\t' 'NR >= 3 {sum+=$4} END {print gen"\t"sum/p}' "$gaFolder/g$gen.tsv"; 
 done > $avgBPSallFile;
 #
 # get average stats (bps) (bestN)
-avgBestNFile="$statsFolder/avg_bps_best${bestN}.tsv";
+avgBestNFile="$statsFolder/bps_avg_best${bestN}.tsv";
 for gen in $(seq $first_gen $last_gen); do 
     awk -v gen=$gen -v bestN=$bestN -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=$4} END {print gen"\t"sum/bestN}' "$gaFolder/g$gen.tsv"; 
 done > $avgBestNFile;
 #
 # get variance stats (bps) (bestN) 
-varBestNFile="$statsFolder/var_best${bestN}.tsv";
+varBestNFile="$statsFolder/bps_var_best${bestN}.tsv";
 for gen in $(seq $first_gen $last_gen); do 
     avg=$(awk -F'\t' 'NR == gen+1 {print $1}' $avgBestNFile);
     #
@@ -117,25 +142,38 @@ for timeFormat in ${timeFormats[@]}; do
     fi
     #
     # get average stats (c_time) (all)
-    avgAllFile_ctime="$statsFolder/avg_all_ctime_$timeFormat.tsv";
+    avgAllFile_ctime="$statsFolder/ctime_avg_all_$timeFormat.tsv";
     for gen in $(seq $first_gen $last_gen); do 
         awk -F'\t' -v gen=$gen -v p=$POPULATION_SIZE -v d=$timeDenominator 'NR >= 3 {sum+=$5/d} END {print gen"\t"sum/p}' "$gaFolder/g$gen.tsv"; 
     done > $avgAllFile_ctime;
     #
     # get average stats (c_time) (bestN)
-    avgBestNFile_ctime="$statsFolder/avg_best${bestN}_ctime_$timeFormat.tsv";
+    avgBestNFile_ctime="$statsFolder/ctime_avg_best${bestN}_$timeFormat.tsv";
     for gen in $(seq $first_gen $last_gen); do 
         awk -F'\t' -v gen=$gen -v bestN=$bestN -v d=$timeDenominator 'NR >= 3 && NR <= 2+bestN {sum+=$5/d} END {print gen"\t"sum/bestN}' "$gaFolder/g$gen.tsv"; 
     done > $avgBestNFile_ctime;
     #
     # get cumsum average stats (cc_time) (all)
-    avgAllFile_cctime="$statsFolder/avg_all_cctime_$timeFormat.tsv";
+    avgAllFile_cctime="$statsFolder/cctime_avg_all_$timeFormat.tsv";
     awk -v gen=$first_gen -F'\t' '{csum+=$2; print gen"\t"csum; gen+=1}' "$avgAllFile_ctime" > $avgAllFile_cctime;
     #
     # get cumsum average stats (cc_time) (bestN)
-    avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime_$timeFormat.tsv";
+    avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$timeFormat.tsv";
     awk -v gen=$first_gen -F'\t' '{csum+=$2; print gen"\t"csum; gen+=1}' "$avgBestNFile_ctime" > $avgBestNFile_cctime;
 done
+#
+# bps histogram
+allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
+allBPS="$statsFolder/bps_absFreq.tsv";
+awk 'NR>2 {print $4}' $allSortedRes_bps | uniq -c | awk '{print $2"\t"$1}' > $allBPS;
+#
+minBPS=$(awk 'NR==1 {print $1}' $allBPS)
+histBPS="$statsFolder/bps_hist_abs.tsv";
+awk -v m=$minBPS -v i=$histInterval '{ if ($1-m < i) sum+=$2; else { print m"\t"sum; m=$1; sum=$2 } } END {print m"\t"sum}' $allBPS > $histBPS
+#
+histBPSrel="$statsFolder/bps_hist_rel.tsv"
+sum=$(awk '{ sum+=$2 } END { print sum }' $histBPS)
+awk -v s=$sum '{printf "%.3f\t%.3f\n", $1, $2/s}' $histBPS > $histBPSrel
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
@@ -143,18 +181,18 @@ sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
 for timeFormat in ${timeFormats[@]}; do
 #
-avgAllFile_ctime="$statsFolder/avg_all_ctime_$timeFormat.tsv";
-avgBestNFile_ctime="$statsFolder/avg_best${bestN}_ctime_$timeFormat.tsv";
-avgAllFile_cctime="$statsFolder/avg_all_cctime_$timeFormat.tsv";
-avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime_$timeFormat.tsv";
+avgAllFile_ctime="$statsFolder/ctime_avg_all_$timeFormat.tsv";
+avgBestNFile_ctime="$statsFolder/ctime_avg_best${bestN}_$timeFormat.tsv";
+avgAllFile_cctime="$statsFolder/cctime_avg_all_$timeFormat.tsv";
+avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$timeFormat.tsv";
 #
 # plot bps average, bestN bps results, ctime avg (all and best)
-avgAndDotsAllAndBestNOutputPlot_bps_ctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_ctime_$timeFormat.pdf";
+avgAndDotsAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_avg_best${bestN}_ctime_avg_$timeFormat.pdf";
 gnuplot << EOF
     set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
-    set key bottom right
+    #set key bottom right
     #
     # set up the axis on the left side for bps
     set ylabel "bPS"
@@ -182,34 +220,8 @@ gnuplot << EOF
     
 EOF
 #
-# plot bps average, bestN bps results, ctime avg (best)
-# avgAndDotsBestNOutputPlot_bps_ctime="$plotsFolder/avgAndDots_best${bestN}_bps_ctime_$timeFormat.pdf";
-# gnuplot << EOF
-#     set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
-#     set terminal pdfcairo enhanced color font 'Verdade,12'
-#     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
-#     set key bottom right
-#     #
-#     # Set up the axis on the left side for bps
-#     set ylabel "bPS"
-#     set ytics nomirror
-#     #
-#     # Set up the axis on the right side for C time
-#     set y2label "C TIME ($timeFormat)"
-#     set y2tics nomirror
-#     #
-#     # set up the axis below for generation
-#     set xlabel "Generation"
-#     set xtics nomirror
-#     #
-#     set output "$avgAndDotsBestNOutputPlot_bps_ctime"
-#     plot "$avgBestNFile" with lines title "avg bps", \
-#     "$avgBestNFile_ctime" with lines axes x1y2 title "avg c time", \
-#     "$bestNFile" title "$bestN best bps"
-# EOF
-# #
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_cctime_$timeFormat.pdf";
+avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_avg_best${bestN}_cctime_avg_$timeFormat.pdf";
 gnuplot << EOF
     set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -238,58 +250,88 @@ gnuplot << EOF
     "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)" 
     
 EOF
-# #
-# # plot bps average, bestN bps results, cumsum ctime avg (best)
-# avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime_$timeFormat.pdf";
-# gnuplot << EOF
-#     set title "$sequenceName - Average bPS with $bestN most optimal bPS values"
-#     set terminal pdfcairo enhanced color font 'Verdade,12'
-#     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
-#     set key bottom right
-#     #
-#     # Set up the axis on the left side for bps
-#     set ylabel "bPS"
-#     set ytics nomirror
-#     #
-#     # Set up the axis on the right side for C time
-#     set y2label "C TIME ($timeFormat)"
-#     set y2tics nomirror
-#     #
-#     # set up the axis below for generation
-#     set xlabel "Generation"
-#     set xtics nomirror
-#     #
-#     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-#     plot "$avgBestNFile" with lines title "avg bps", \
-#     "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time", \
-#     "$bestNFile" title "$bestN best bps"
-# EOF
+#
 done
 #
-# # plot bps average (all and best)
-# bestNavgOutputPlot="$plotsFolder/avg_allAndbest${bestN}.pdf";
-# gnuplot << EOF
-#     set title "$sequenceName - Average BPS (best $bestN)"
-#     set terminal pdfcairo enhanced color font 'Verdade,12'
-#     set output "$bestNavgOutputPlot"
-#     plot "$avgBPSallFile" with lines title "avg bps (all)", \
-#     "$avgBestNFile" with lines title "avg bps (best $bestN)"
-# EOF
-# #
-# # plot bps average (best)
-# bestNavgOutputPlot="$plotsFolder/avg_best${bestN}.pdf";
-# gnuplot << EOF
-#     set title "$sequenceName - BPS average (best $bestN)"
-#     set terminal pdfcairo enhanced color font 'Verdade,12'
-#     set output "$bestNavgOutputPlot"
-#     plot "$avgBestNFile" with lines
-# EOF
-# #
-# # plot bps variance
-# bestNvarOutputPlot="$plotsFolder/var_best${bestN}.pdf";
-# gnuplot << EOF
-#     set title "$sequenceName - BPS variance (best $bestN)"
-#     set terminal pdfcairo enhanced color font 'Verdade,12'
-#     set output "$bestNvarOutputPlot"
-#     plot "$varBestNFile" with lines
-# EOF
+# plot bps average (all and best)
+bestNavgOutputPlot="$plotsFolder/bps_avg_all_best${bestN}.pdf";
+gnuplot << EOF
+    set title "$sequenceName - Average BPS (best $bestN)"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set output "$bestNavgOutputPlot"
+    plot "$avgBPSallFile" with lines title "avg bps (all)", \
+    "$avgBestNFile" with lines title "avg bps (best $bestN)"
+EOF
+#
+# plot bps average (best)
+bestNavgOutputPlot="$plotsFolder/bps_avg_best${bestN}.pdf";
+gnuplot << EOF
+    set title "$sequenceName - BPS average (best $bestN)"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set output "$bestNavgOutputPlot"
+    plot "$avgBestNFile" with lines title "avg bps (best $bestN)"
+EOF
+#
+# plot bps variance
+bestNvarOutputPlot="$plotsFolder/bps_var_best${bestN}.pdf";
+gnuplot << EOF
+    set title "$sequenceName - BPS variance (best $bestN)"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set output "$bestNvarOutputPlot"
+    plot "$varBestNFile" with lines title "var bPS (best $bestN)"
+EOF
+#
+histBPSpdf="$plotsFolder/bps_hist_abs.pdf";
+gnuplot << EOF
+    set title "Absolute frequency of bPS with interval = $histInterval"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set style histogram rows
+    set boxwidth 0.8
+    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    #
+    # Set up the axis on the left side for bps
+    set ylabel "Absolute Frequency"
+    set ytics nomirror
+    #
+    # set up the axis below for generation
+    set xlabel "bPS"
+    set xtics nomirror
+    #
+    # histogram style
+    set style data histogram
+    set boxwidth $histInterval absolute
+    set style fill solid 0.5 border -1
+    set grid y
+    #
+    set output "$histBPSpdf"
+    plot "$histBPS" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels offset char 0,0.5 notitle
+EOF
+#
+histBPSrelPdf="$plotsFolder/bps_hist_rel.pdf";
+gnuplot << EOF
+    set title "Relative frequency of bPS with interval = $histInterval"
+    set terminal pdfcairo enhanced color font 'Verdade,12'
+    set style histogram rows
+    set boxwidth 0.8
+    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    #
+    # Set up the axis on the left side for bps
+    set ylabel "Relative Frequency"
+    set ytics nomirror
+    #
+    # set up the axis below for generation
+    set xlabel "bPS"
+    set xtics nomirror
+    #
+    # "z axis" are the labels above the bars
+    set ztics rotate by 45 offset -0.8,-1.8
+    #
+    # histogram style
+    set style data histogram
+    set boxwidth $histInterval absolute
+    set style fill solid 0.5 border -1
+    set grid y
+    #
+    set output "$histBPSrelPdf"
+    plot "$histBPSrel" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels rotate by 0 offset char 0,0.5 notitle
+EOF

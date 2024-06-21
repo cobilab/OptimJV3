@@ -84,18 +84,21 @@ function RUN_TEST() {
   cat "$c_time_mem_tmp" | grep "TIME" | awk '{ printf $2"\t"$4/1024/1024"\n" }' 1> "${c_time_mem}";
   rm -fr $c_time_mem_tmp;
   #
-  if [ -e "$FILEC" ] || [[ -s "$c_time_mem" ]]; then
+  # if compressed file exists and compression stats is not empty
+  if [ -e "$FILEC" ] && [[ -s "$c_time_mem" ]]; then
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
+    echo BYTES CF _________________________________________ $BYTES_CF
     BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc); # bits per symbol
     C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
-    C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`; 
+    C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`;
+  #
+  # invalid cmds go here
   else 
     invalidCmds="$dsFolder/aInvalidCmds.tsv";
-    printf "$gnum\t$C_COMMAND" 1>> $invalidCmds; 
+    printf "$gnum\t$C_COMMAND\n" 1>> $invalidCmds; 
     C_TIME=$((timeOut+1));
     C_MEME=$((timeOut+1));
     #
-    # if timeout happened, it's as if no compression happened
     BYTES_CF=$BYTES; # baseline value
     BPS=2; # baseline value
   fi
@@ -121,6 +124,10 @@ function RUN_TEST() {
   #
   pattern=" -o ../../sequences/*.seq.jc ";
   printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$gnum\t${C_COMMAND/$pattern}\n" 1>> "$resOutput";
+  #
+  # this prevents from having to rerun the whole population if this script is interrupted
+  cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
+  awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput
   #
   rm -fr $c_time_mem $d_time_mem $cmp;   
   rm -fr $FILEC $FILED;
@@ -246,13 +253,17 @@ for sequenceName in "${SEQUENCES[@]}"; do
     echo "start splitting and running cmds from $cmdsScriptInput file...";
     #
     # remove old splitted scripts if there are any 
-    rm -fr $dsFolder/*"_splitted_"*;
+    rm -fr $dsFolder/*"_splitted_"*.sh;
+    #
+    # rename old splitted results if there are any
+    splittedRes=( $(ls $dsFolder/*"_splitted_"*.txt) )
+    for splitRes in "${splittedRes[@]}"; do mv $splitRes ${splitRes/.txt/_saved.txt}; done
     #
     # split child cmds
     numCmds=$(cat $cmdsScriptInput | wc -l);
     extraLine=$(( $numCmds%$nthreads == 0 ? 0 : 1 ));
     maxNumCmds=$(echo "$numCmds/$nthreads + $extraLine" | bc);
-    split --lines=$maxNumCmds "$dsFolder/g${gnum}.sh" "$dsFolder/g${gnum}_splitted_" --additional-suffix ".sh"
+    split --lines=$maxNumCmds "$cmdsScriptInput" "$dsFolder/g${gnum}_splitted_" --additional-suffix ".sh"
     chmod +x $dsFolder/*"_splitted_"*;
     #
     splittedScripts=( $(ls $dsFolder/*"_splitted_"*) );
@@ -281,10 +292,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd_with_o_flag}" "${d_cmd}" "$gnum"
         #
         echo "results stored in: $resOutput";
-        #
-        # this prevents from having to rerun the whole population if this script is interrupted
-        cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
-        awk -v x="$cmd" '! index($0,x)' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput
       done < <(cat $splittedScript) ) &
     done
     #

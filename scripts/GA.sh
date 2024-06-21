@@ -292,13 +292,13 @@ for sequence in ${SEQUENCES[@]}; do
     gaCmds="$gaFolder/GAcmds.txt"
     echo "./GA.sh $allArgs" >> "$gaCmds"
     #
-    ( # if [ $FIRST_GEN -eq $INIT_GEN ]; then 
-    #     initLog="$initLogFolder/init.log"
-    #     initErr="$initLogFolder/init.err"
-    #     echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
-    #     echo "./Initialization.sh -s $sequence $flags $initFlags -sd $seed" >> "$gaCmds"
-    #     bash -x ./Initialization.sh -s $sequence $flags $initFlags -sd $seed 1> $initLog 2> $initErr;
-    # fi
+    ( if [ $FIRST_GEN -eq $INIT_GEN ]; then 
+        initLog="$initLogFolder/init.log"
+        initErr="$initLogFolder/init.err"
+        echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
+        echo "./Initialization.sh -s $sequence $flags $initFlags -sd $seed" >> "$gaCmds"
+        bash -x ./Initialization.sh -s $sequence $flags $initFlags -sd $seed 1> $initLog 2> $initErr;
+    fi
     #
     for gen in $(seq $FIRST_GEN $LAST_GEN); do
         echo "=== GENERATION $gen ===";

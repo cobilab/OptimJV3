@@ -133,7 +133,7 @@ done
 #
 min_gen=1
 gen_range=20
-max_gen=50
+max_gen=20
 #
 for fg in $(seq $min_gen $gen_range $max_gen); do
     #
@@ -148,12 +148,12 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         bash -x ./GA.sh -s "$sequence" -ga "ga01" -fg $fg -lg $lg -t $nthreads
         # 
         # KBI (knowledge-based initialization)
-        bash -x ./GA.sh -s "$sequence" -ga "ga02_kbi" -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "ga02_kbi" -kbi -fg $fg -lg $lg -t $nthreads
         #
         # GAs with population size = 6 (num sel cmds=30, so all cmds are selected)
-        bash -x ./GA.sh -s "$sequence" -ga "ga03_p6" -ps 6 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga04_p6_selT" -ps 6 -sl "t" -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga05_p6_selR" -ps 6 --sel "r" -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "ga03_p6" -ps 6 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "ga04_p6_selT" -ps 6 -sl "t" -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "ga05_p6_selR" -ps 6 --sel "r" -fg $fg -lg $lg -t $nthreads
         #
         # GAs that vary in population size                       
         # bash -x ./GA.sh -s "$sequence" -ga "ga06_p10_ns4" -ps 10 -ns 4 -fg $fg -lg $lg -t $nthreads
@@ -181,12 +181,14 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         # bash -x ./GA.sh -s "$sequence" -ga "ga22_mogawm_wBPS90" --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
         # #
         # # tournament selection and RWS (roulette wheel selection)
-        bash -x ./GA.sh -s "$sequence" -ga "ga23_selT" --sel "t" -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga24_selR" --sel "r" -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "ga23_selT" --sel "t" -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "ga24_selR" --sel "r" -fg $fg -lg $lg -t $nthreads
         #
         # todo: crossovers
+        # example: uniform crossover
         #
         # todo: mutations
+        # example: knowledge-based mutation
     done
 done
     
