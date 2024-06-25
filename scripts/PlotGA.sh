@@ -189,7 +189,7 @@ avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$timeFormat.tsv";
 # plot bps average, bestN bps results, ctime avg (all and best)
 avgAndDotsAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_avg_best${bestN}_ctime_avg_$timeFormat.pdf";
 gnuplot << EOF
-    set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
+    #set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
     #set key bottom right
@@ -223,7 +223,7 @@ EOF
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
 avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_avg_best${bestN}_cctime_avg_$timeFormat.pdf";
 gnuplot << EOF
-    set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
+    #set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
     #set key bottom right

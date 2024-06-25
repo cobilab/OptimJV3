@@ -157,6 +157,8 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         # lr=0 (learning rate = 0)
         bash -x ./GA.sh -s "$sequence" -ga "ga03_lr0" -lr 0 -fg $fg -lg $lg -t $nthreads
         #
+        bash -x ./GA.sh -s "$sequence" -ga "ga04_kbi_lr0" -kbi -lr 0 -fg $fg -lg $lg -t $nthreads
+        #
         # CHANGING EVALUATION CONDITIONS
         #
         # # MOGAs (multiple-objective GAs)

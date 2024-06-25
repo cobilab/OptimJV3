@@ -57,8 +57,8 @@ function DEFINE_PARAM_RANGES() {
     #
     # RM PARAMETERS
     # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
-    NB_C_rm_lst=(12 13 14) # RM size. higher values -> more RAM -> better compression
     NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of repeat gas
+    NB_C_rm_lst=(12 13 14) # RM size. higher values -> more RAM -> better compression
     NB_B_lst=($(seq 0.05 0.05 0.95)) # (real (0;1]) beta. discards or keeps a repeat ga
     NB_L_lst=( {1..14} ) # (integer (1;20]) limit threshold; has dependency with NB_B
     NB_G_rm_lst=( $(seq 0.05 0.05 0.95) ) # (real [0;1)) gamma; decayment forgetting factor
@@ -85,8 +85,8 @@ function DEFINE_PARAM_RANGES() {
     #
     # RM PARAMETERS
     # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
-    NB_C_rm_lst=( {1..13} ) # RM size. higher values -> more RAM -> better compression
     NB_R_rm_lst=( {1..500} ) # (integer [1;10000]) max num of repeat gas
+    NB_C_rm_lst=( {1..13} ) # RM size. higher values -> more RAM -> better compression
     NB_B_lst=($(seq 0.01 0.01 0.99)) # (real (0;1]) beta. discards or keeps a repeat ga
     NB_L_lst=( {2..20} ) # (integer (1;20]) limit threshold; has dependency with NB_B
     NB_G_rm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor

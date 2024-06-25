@@ -596,15 +596,15 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                         );
                     else
                         mutationVals=( 
-                            ${NB_R_rm_lst[$((RANDOM % ${#NB_C_cm_lst[@]}))]}
-                            ${NB_C_rm_lst[$((RANDOM % ${#NB_D_lst[@]}))]}
-                            ${NB_B_lst[$((RANDOM % ${#NB_I_cm_lst[@]}))]}
-                            ${NB_L_lst[$((RANDOM % ${#NB_G_cm_lst[@]}))]}
+                            ${NB_R_rm_lst[$((RANDOM % ${#NB_R_rm_lst[@]}))]}
+                            ${NB_C_rm_lst[$((RANDOM % ${#NB_C_rm_lst[@]}))]}
+                            ${NB_B_lst[$((RANDOM % ${#NB_B_lst[@]}))]}
+                            ${NB_L_lst[$((RANDOM % ${#NB_L_lst[@]}))]}
                             #
-                            ${NB_G_rm_lst[$((RANDOM % ${#NB_S_lst[@]}))]}
-                            ${NB_I_rm_lst[$((RANDOM % ${#NB_E_lst[@]}))]}
-                            ${NB_W_lst[$((RANDOM % ${#NB_R_cm_lst[@]}))]}
-                            ${NB_Y_lst[$((RANDOM % ${#NB_A_lst[@]}))]}
+                            ${NB_G_rm_lst[$((RANDOM % ${#NB_G_rm_lst[@]}))]}
+                            ${NB_I_rm_lst[$((RANDOM % ${#NB_I_rm_lst[@]}))]}
+                            ${NB_W_lst[$((RANDOM % ${#NB_W_lst[@]}))]}
+                            ${NB_Y_lst[$((RANDOM % ${#NB_Y_lst[@]}))]}
                         );
                     fi
                     #

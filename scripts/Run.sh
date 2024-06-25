@@ -125,10 +125,6 @@ function RUN_TEST() {
   pattern=" -o ../../sequences/*.seq.jc ";
   printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$gnum\t${C_COMMAND/$pattern}\n" 1>> "$resOutput";
   #
-  # this prevents from having to rerun the whole population if this script is interrupted
-  cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
-  awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput
-  #
   rm -fr $c_time_mem $d_time_mem $cmp;   
   rm -fr $FILEC $FILED;
   #
@@ -255,9 +251,9 @@ for sequenceName in "${SEQUENCES[@]}"; do
     # remove old splitted scripts if there are any 
     rm -fr $dsFolder/*"_splitted_"*.sh;
     #
-    # rename old splitted results if there are any
-    splittedRes=( $(ls $dsFolder/*"_splitted_"*.txt) )
-    for splitRes in "${splittedRes[@]}"; do mv $splitRes ${splitRes/.txt/_saved.txt}; done
+    # save old splitted results if there are any
+    cat $dsFolder/*"_splitted_"*.txt >> $dsFolder/g${gnum}_splitted_saved.txt
+    rm -fr $dsFolder/*"_splitted_"*.txt;
     #
     # split child cmds
     numCmds=$(cat $cmdsScriptInput | wc -l);
@@ -290,6 +286,12 @@ for sequenceName in "${SEQUENCES[@]}"; do
         d_cmd="none"; # we only want to optimize compression, not decompression
         #
         RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd_with_o_flag}" "${d_cmd}" "$gnum"
+        #
+        # this prevents from having to rerun the whole population if this script is interrupted
+        # cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
+        # awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput
+        # splittedScriptTMP="${splittedScript/.sh/TMP.sh}"
+        # awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $splittedScriptTMP && mv $splittedScriptTMP $splittedScript
         #
         echo "results stored in: $resOutput";
       done < <(cat $splittedScript) ) &
