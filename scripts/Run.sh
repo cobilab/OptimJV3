@@ -252,7 +252,8 @@ for sequenceName in "${SEQUENCES[@]}"; do
     rm -fr $dsFolder/*"_splitted_"*.sh;
     #
     # save old splitted results if there are any
-    cat $dsFolder/*"_splitted_"*.txt >> $dsFolder/g${gnum}_splitted_saved.txt
+    savedFile="$dsFolder/saved.txt"
+    cat $dsFolder/*"_splitted_"*.txt >> $savedFile
     rm -fr $dsFolder/*"_splitted_"*.txt;
     #
     # split child cmds
@@ -303,7 +304,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     # merge results
     resOutput_body="$dsFolder/g${gnum}_splitted_*.txt";
     resOutput="$dsFolder/g${gnum}_raw.tsv";
-    cat $resOutput_header $resOutput_body > $resOutput;
+    cat $resOutput_header $resOutput_body $savedFile > $resOutput 2> /dev/null
     #
     # remove splitted cmd scripts, children script, and header
     rm -fr $dsFolder/*"_splitted_"* $cmdsScriptInput $resOutput_header;

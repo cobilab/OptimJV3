@@ -430,10 +430,6 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
         command="${chosenCmds[0]}";
         command2="${chosenCmds[1]}";
         #
-        # original commands
-        # command="./JARVIS3 -cm 2:500:1:0.9/4:5:0:0.0 -cm 5:1:1:0.9/2:5:1:0.8  -rm 20:13:0.9:6:0.7:1:0.06:2  -o ../../sequences/TME204.HiFi_HiC.haplotig2.1.seq.jc ../../sequences/TME204.HiFi_HiC.haplotig2.seq"
-        # command2="./JARVIS3 -cm 2:100:1:0.9/0:5:1:0.8 -cm 2:5:1:0.9/2:1:0:0.2  -rm 200:13:0.9:4:0.7:1:0.06:2  -o ../../sequences/TME204.HiFi_HiC.haplotig2.2.seq.jc ../../sequences/TME204.HiFi_HiC.haplotig2.seq"
-        #
         echo "raw commands randomly chosen for crossover";
         echo ${command[@]}; 
         echo ${command2[@]};
@@ -443,7 +439,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
         rndFloat="0.$((RANDOM%999))";
         if (( $(echo "$rndFloat <= $CROSSOVER_RATE" | bc) )); then 
             echo "$rndFloat <= $CROSSOVER_RATE --> crossover"
-            crossMutRepetitions=1 # $((RANDOM%2+1))
+            crossMutRepetitions=$((RANDOM%2+1))
             crossMutNum=$((crossMutNum+1))
             #
             echo "=========================== CROSSOVER AND MUTATION NUMBER $crossMutNum WILL REPEAT $crossMutRepetitions TIMES =====================================";
@@ -491,50 +487,30 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                 print substr($0, 1, RSTART-1);
             }' | rev);
             #
+            # choose model type
+            if [ ${#rms_arr[@]} -eq 0 ] || [ ${#rms_arr2[@]} -eq 0 ]; then 
+                modelTypeArr=("cm")
+            else
+                modelTypeArr=("cm" "rm")
+            fi
+            #
             for i in $(seq 1 $crossMutRepetitions); do
                 #
-                # choose model type
-                if [ "$((${#rms_arr[@]}+${#rms_arr2[@]}))" -lt 2 ]; then 
-                    modelTypeArr=("cm")
-                else
-                    modelTypeArr=("cm" "rm")
-                fi
-                #
-                rndModelTypeIdx=$(( RANDOM % ${#modelTypeArr[@]} ))
+                modelTypeArrLen="${#modelTypeArr[@]}"
+                rndModelTypeIdx=$((RANDOM%modelTypeArrLen))
                 modelType="${modelTypeArr[rndModelTypeIdx]}"
                 echo "chosen model type: $modelType"
                 #
-                if [ "$modelType" = "cm" ]; then
-                    rndFloat="0.$((RANDOM%999))"
-                    ( [ ${#cms_arr[@]} -ge 2 ] || [ ${#cms_arr2[@]} -ge 2 ] ) && (( $(echo "$rndFloat>0.1"|bc) )) && sameCmd=true || sameCmd=false
-                    #
-                    $sameCmd && [ ${#cms_arr[@]} -ge 2 ] && model_arr=( "${cms_arr[@]}" ) && model_arr2=( "${cms_arr[@]}" )
-                    $sameCmd && [ ${#cms_arr[@]} -lt 2 ] && model_arr=( "${cms_arr2[@]}" ) && model_arr2=( "${cms_arr2[@]}" )
-                    ! $sameCmd && model_arr=( "${cms_arr[@]}" ) && model_arr2=( "${cms_arr2[@]}" )
-                    #
-                    MODEL_IS_PARAM_INT=( "${CM_IS_PARAM_INT[@]}" )
-                else
-                    rndFloat="0.$((RANDOM%999))"
-                    ( [ ${#rms_arr[@]} -ge 2 ] || [ ${#rms_arr2[@]} -ge 2 ] ) && (( $(echo "$rndFloat>0.1"|bc) )) && sameCmd=true || sameCmd=false
-                    #
-                    $sameCmd && [ ${#rms_arr[@]} -ge 2 ] && model_arr=( "${rms_arr[@]}" ) && model_arr2=( "${rms_arr[@]}" )
-                    $sameCmd && [ ${#rms_arr[@]} -lt 2 ] && model_arr=( "${rms_arr2[@]}" ) && model_arr2=( "${rms_arr2[@]}" )
-                    ! $sameCmd && model_arr=( "${rms_arr[@]}" ) && model_arr2=( "${rms_arr2[@]}" )
-                    #
-                    MODEL_IS_PARAM_INT=( "${CM_IS_PARAM_INT[@]}" )
-                fi
-                #
-                $sameCmd && echo "models were chosen from SAME command" || echo "models were chosen from DIFFERENT commands"
+                [ "$modelType" = "cm" ] && model_arr=( "${cms_arr[@]}" ) || model_arr=( "${rms_arr[@]}" ) 
+                [ "$modelType" = "cm" ] && model_arr2=( "${cms_arr2[@]}" ) || model_arr2=( "${rms_arr2[@]}" )
+                [ "$modelType" = "cm" ] && MODEL_IS_PARAM_INT=( "${CM_IS_PARAM_INT[@]}" ) || MODEL_IS_PARAM_INT=( "${RM_IS_PARAM_INT[@]}" ) 
                 #
                 # choose model indexes where crossover will happen
-                while : ; do
-                    chosen_model_idx=$(( RANDOM % ${#model_arr[@]} ));
-                    chosen_model_idx2=$(( RANDOM % ${#model_arr2[@]} ));
-                    ! $sameCmd || [ $chosen_model_idx -ne $chosen_model_idx2 ] && break
-                done
+                chosen_model_idx=$(( RANDOM % ${#model_arr[@]} ));
+                chosen_model_idx2=$(( RANDOM % ${#model_arr2[@]} ));
                 #
-                echo "chosen $modelType before crossover (str) ---> " "${model_arr[chosen_model_idx]}" " (index " $chosen_model_idx ")";
-                echo "chosen $modelType before crossover (str) ---> " "${model_arr2[chosen_model_idx2]}" " (index " $chosen_model_idx2 ")";
+                echo "chosen $modelType from cmd1 before crossover (str) ---> " "${model_arr[chosen_model_idx]}" " (index " $chosen_model_idx ")";
+                echo "chosen $modelType from cmd2 before crossover (str) ---> " "${model_arr2[chosen_model_idx2]}" " (index " $chosen_model_idx2 ")";
                 #
                 # each chosen cm is transformed into an array of 8 parameters ("genes")
                 model_params_arr=($(echo "${model_arr[chosen_model_idx]}" | sed 's/[:/]/ /g'));
@@ -558,12 +534,12 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                 model_params_str=$(printf "%s:" ${model_params_arr[@]});
                 model_params_str="${model_params_str%:}";
                 [ "$modelType" = "cm" ] && model_params_str=$(echo "$model_params_str" | sed 's/:/\//4');
-                echo "chosen $modelType after crossover (str) ----> " $model_params_str
+                echo "chosen $modelType from cmd1 after crossover (str) ----> " $model_params_str
                 #
                 model_params_str2=$(printf "%s:" ${model_params_arr2[@]});
                 model_params_str2="${model_params_str2%:}";
                 [ "$modelType" = "cm" ] && model_params_str2=$(echo "$model_params_str2" | sed 's/:/\//4');
-                echo "chosen $modelType after crossover (str) ----> " $model_params_str2
+                echo "chosen $modelType from cmd2 after crossover (str) ----> " $model_params_str2
                 # 
                 # replace models chosen for crossover with updated cms
                 model_arr[$chosen_model_idx]=$model_params_str;
