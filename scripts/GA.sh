@@ -292,7 +292,7 @@ for sequence in ${SEQUENCES[@]}; do
     gaCmds="$gaFolder/GAcmds.txt"
     echo "./GA.sh $allArgs" >> "$gaCmds"
     #
-    ( if [ $FIRST_GEN -eq $INIT_GEN ]; then 
+    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls ../DS13/ga03_lr0/*splitted* | wc -l) )); then 
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
@@ -326,7 +326,7 @@ for sequence in ${SEQUENCES[@]}; do
         echo "5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
         echo "./CrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si" >> "$gaCmds"
         bash -x ./CrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si 1> $scmLog 2> $scmErr;
-    done ) 1> $logFile 2> $errFile
+    done ) 1>> $logFile 2>> $errFile
     #
     echo "$dsx, $ga program is complete"
 done

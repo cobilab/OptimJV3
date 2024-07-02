@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-function SPLICE() {
+function SPLICE_BEFORE_CUT() {
     for model in "${models[@]}"; do 
         for cmd in "${couple[@]}"; do
             splicedData+=$(echo "$cmd" | grep -oE "\-$model [0-9:./]+" | tr '\n' ' ')
@@ -20,7 +20,7 @@ function CROSSOVER() {
     echo crossover
 }
 #
-function CUT() {
+function CUT_AFTER_SPLICE() {
     for model in "${models[@]}"; do
         numModels=$(echo "$shuffledData" | grep -oE "\-$model [0-9:./]+" | wc -l)
         # echo $numModels
@@ -68,8 +68,8 @@ crossRate=0.6
 rndNum=0.7
 if (( $(echo "$rndNum>$crossRate"|bc) )); then 
     models=($(echo "${couple[0]}" | grep -oE '\-[a-zA-Z]+' | grep -v "\-v" | sed 's/-//g' | uniq))
-    SPLICE
+    SPLICE_BEFORE_CUT
     SHUFFLE
     CROSSOVER
-    CUT
+    CUT_AFTER_SPLICE
 fi

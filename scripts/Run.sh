@@ -252,7 +252,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     rm -fr $dsFolder/*"_splitted_"*.sh;
     #
     # save old splitted results if there are any
-    savedFile="$dsFolder/saved.txt"
+    savedFile="$dsFolder/g${gnum}_saved.txt"
     cat $dsFolder/*"_splitted_"*.txt >> $savedFile
     rm -fr $dsFolder/*"_splitted_"*.txt;
     #
@@ -289,10 +289,10 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd_with_o_flag}" "${d_cmd}" "$gnum"
         #
         # this prevents from having to rerun the whole population if this script is interrupted
-        # cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
-        # awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput
-        # splittedScriptTMP="${splittedScript/.sh/TMP.sh}"
-        # awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $splittedScriptTMP && mv $splittedScriptTMP $splittedScript
+        cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
+        awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $cmdsScriptInputTMP && mv $cmdsScriptInputTMP $cmdsScriptInput
+        splittedScriptTMP="${splittedScript/.sh/TMP.sh}"
+        awk -v x="${C_COMMAND/$pattern}" '! index($0,x)' $cmdsScriptInput > $splittedScriptTMP && mv $splittedScriptTMP $splittedScript
         #
         echo "results stored in: $resOutput";
       done < <(cat $splittedScript) ) &
@@ -306,6 +306,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
     resOutput="$dsFolder/g${gnum}_raw.tsv";
     cat $resOutput_header $resOutput_body $savedFile > $resOutput 2> /dev/null
     #
-    # remove splitted cmd scripts, children script, and header
-    rm -fr $dsFolder/*"_splitted_"* $cmdsScriptInput $resOutput_header;
+    # remove splitted cmd scripts, children script, header, and file with other results saved from last execution
+    rm -fr $dsFolder/*"_splitted_"* $cmdsScriptInput $resOutput_header $savedFile;
 done
