@@ -79,25 +79,28 @@ function RUN_TEST() {
   # https://man7.org/linux/man-pages/man1/time.1.html
   # %e: (Not in tcsh(1).)  Elapsed real time (in seconds).
   # %M: Maximum resident set size of the process during its lifetime, in Kbytes, HOWEVER
-  # Kbyte/1024/1024 => Gibyte
+  # Kbyte/1024/1024 => Gigabyte
   timeout "$timeOut" /bin/time -o $c_time_mem_tmp -f "TIME\t%e\tMEM\t%M" $C_COMMAND;
+  errorStatus=$(( $(cat $c_time_mem_tmp | wc -l) != 1 ))
+  echo "time (s) and mem (GB)"; cat $c_time_mem_tmp
   cat "$c_time_mem_tmp" | grep "TIME" | awk '{ printf $2"\t"$4/1024/1024"\n" }' 1> "${c_time_mem}";
   rm -fr $c_time_mem_tmp;
   #
-  # if compressed file exists and compression stats is not empty
-  if [ -e "$FILEC" ] && [[ -s "$c_time_mem" ]]; then
+  # if compressed file exists, compression stats is not empty and non error status
+  if [ -e "$FILEC" ] && [[ -s "$c_time_mem" ]] && (( ! $errorStatus )); then
     BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
-    echo BYTES CF _________________________________________ $BYTES_CF
     BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc); # bits per symbol
     C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
     C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`;
+  fi
   #
-  # invalid cmds go here
-  else 
+  # invalid cmds go here, including cmds that use too much GB
+  if [ ! -e "$FILEC" ] || [[ ! -s "$c_time_mem" ]] || (( $errorStatus )) ||  $(echo "$C_MEME > 4" | bc); then
     invalidCmds="$dsFolder/aInvalidCmds.tsv";
-    printf "$gnum\t$C_COMMAND\n" 1>> $invalidCmds; 
+    printf "$gnum\t$C_COMMAND\n" 1>> $invalidCmds;
+    #
     C_TIME=$((timeOut+1));
-    C_MEME=$((timeOut+1));
+    [ -z $C_MEME ] && C_MEME=$((timeOut+1))
     #
     BYTES_CF=$BYTES; # baseline value
     BPS=2; # baseline value

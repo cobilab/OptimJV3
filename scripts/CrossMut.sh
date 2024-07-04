@@ -596,7 +596,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
         rndFloat="0.$((RANDOM%999))";
         if (( $(echo "$rndFloat <= $CROSSOVER_RATE" | bc) )); then 
             echo "$rndFloat <= $CROSSOVER_RATE --> crossover"
-            crossMutRepetitions=$((RANDOM%2+1))
+            crossMutRepetitions=$((RANDOM%3+1))
             crossMutNum=$((crossMutNum+1))
             #
             echo "=========================== CROSSOVER AND MUTATION NUMBER $crossMutNum WILL REPEAT $crossMutRepetitions TIMES =====================================";
