@@ -95,7 +95,7 @@ function RUN_TEST() {
   fi
   #
   # invalid cmds go here, including cmds that use too much GB
-  if [ ! -e "$FILEC" ] || [[ ! -s "$c_time_mem" ]] || (( $errorStatus )) ||  $(echo "$C_MEME > 4" | bc); then
+  if [ ! -e "$FILEC" ] || [[ ! -s "$c_time_mem" ]] || (( $errorStatus )); then
     invalidCmds="$dsFolder/aInvalidCmds.tsv";
     printf "$gnum\t$C_COMMAND\n" 1>> $invalidCmds;
     #

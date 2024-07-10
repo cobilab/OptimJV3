@@ -191,7 +191,7 @@ avgAndDotsAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_avg_best${bestN}_cti
 gnuplot << EOF
     #set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
-    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    set key outside top horizontal Right noreverse noenhanced autotitle nobox
     #set key bottom right
     #
     # set up the axis on the left side for bps
@@ -225,7 +225,7 @@ avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_avg_best${bestN}_cctime_a
 gnuplot << EOF
     #set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
     set terminal pdfcairo enhanced color font 'Verdade,12'
-    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    set key outside top horizontal Right noreverse noenhanced autotitle nobox
     #set key bottom right
     #
     # set up the axis on the left side for bps
@@ -287,7 +287,7 @@ gnuplot << EOF
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set style histogram rows
     set boxwidth 0.8
-    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    set key outside top horizontal Right noreverse noenhanced autotitle nobox
     #
     # Set up the axis on the left side for bps
     set ylabel "Absolute Frequency"
@@ -313,7 +313,7 @@ gnuplot << EOF
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set style histogram rows
     set boxwidth 0.8
-    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    set key outside top horizontal Right noreverse noenhanced autotitle nobox
     #
     # Set up the axis on the left side for bps
     set ylabel "Relative Frequency"
