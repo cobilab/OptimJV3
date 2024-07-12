@@ -132,8 +132,8 @@ done
 ### GA ########################################################################################################
 #
 min_gen=1
-gen_range=20
-max_gen=20
+gen_range=200
+max_gen=200
 #
 for fg in $(seq $min_gen $gen_range $max_gen); do
     #
@@ -144,62 +144,38 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
     for sequence in ${SEQUENCES[@]}; do
         echo $sequence $fg $lg
         #
-        # === POPULATION SIZE = 100 ====================================================
+        bash -x ./GA.sh -s "$sequence" -ga "ga01" -fg $fg -lg $lg -t $nthreads # "canonical" GA
         #
-        # cga
-        bash -x ./GA.sh -s "$sequence" -ga "ga01" -fg $fg -lg $lg -t $nthreads
+        # === LR = 0 ====================================================
         #
-        # CHANGING INITIAL CONDITIONS
+        bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0" -lr 0 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga03_lr0_kbi" -kbi -lr 0 -fg $fg -lg $lg -t $nthreads # kbi
         #
-        # # kbi (knowledge based initialization)
-        bash -x ./GA.sh -s "$sequence" -ga "ga02_kbi" -kbi -fg $fg -lg $lg -t $nthreads
+        # change population size
+        bash -x ./GA.sh -s "$sequence" -ga "ga04_lr0_ps20" -ps 20 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga05_lr0_ps50" -ps 50 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga06_lr0_ps80" -ps 80 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga07_lr0_ps150" -ps 150 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga08_lr0_ps200" -ps 200 -fg $fg -lg $lg -t $nthreads
         #
-        # lr=0 (learning rate = 0)
-        bash -x ./GA.sh -s "$sequence" -ga "ga03_lr0" -lr 0 -fg $fg -lg $lg -t $nthreads
+        # multi-objective GAs (weight metric)
+        bash -x ./GA.sh -s "$sequence" -ga "ga09_lr0_mogawm_wBPS10" --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga10_lr0_mogawm_wBPS25" --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga11_lr0_mogawm_wBPS50" --moga -wBPS 0.5 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga12_lr0_mogawm_wBPS75" --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga13_lr0_mogawm_wBPS90" --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
         #
-        bash -x ./GA.sh -s "$sequence" -ga "ga04_kbi_lr0" -kbi -lr 0 -fg $fg -lg $lg -t $nthreads
+        # selection operators
+        bash -x ./GA.sh -s "$sequence" -ga "ga14_selT" --sel "t" -fg $fg -lg $lg -t $nthreads # tournament
+        bash -x ./GA.sh -s "$sequence" -ga "ga15_selR" --sel "r" -fg $fg -lg $lg -t $nthreads # roulette
         #
-        # CHANGING EVALUATION CONDITIONS
+        # crossover operators (1 child => sel rate doubles)
+        bash -x ./GA.sh -s "$sequence" -ga "ga16_u" -sl 0.6 -c "u" -fg $fg -lg $lg -t $nthreads # uniform
+        bash -x ./GA.sh -s "$sequence" -ga "ga17_a" -sl 0.6 -c "a" -fg $fg -lg $lg -t $nthreads # average
+        bash -x ./GA.sh -s "$sequence" -ga "ga18_d" -sl 0.6 -c "d" -fg $fg -lg $lg -t $nthreads # discrete
+        bash -x ./GA.sh -s "$sequence" -ga "ga19_f" -sl 0.6 -c "f" -fg $fg -lg $lg -t $nthreads # flat
+        bash -x ./GA.sh -s "$sequence" -ga "ga20_h" -sl 0.6 -c "h" -fg $fg -lg $lg -t $nthreads # heuristic
         #
-        # # MOGAs (multiple-objective GAs)
-        # bash -x ./GA.sh -s "$sequence" -ga "ga19_mogawm_wBPS10" --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga20_mogawm_wBPS25" --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga21_mogawm_wBPS50" --moga -wBPS 0.5 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga22_mogawm_wBPS75" --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga23_mogawm_wBPS90" --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
-        #
-        # CHANGING SELECTION CONDITIONS
-        #
-        # # tournament selection and RWS (roulette wheel selection)
-        # bash -x ./GA.sh -s "$sequence" -ga "ga24_selT" --sel "t" -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga25_selR" --sel "r" -fg $fg -lg $lg -t $nthreads
-        #
-        # todo: crossovers
-        # example: uniform crossover
-        #
-        # todo: mutations
-        # example: knowledge-based mutation
-        #
-        # CHANGING POPULATION SIZE
-        #
-        # # GAs that vary in population size (learning rate=0)
-        # bash -x ./GA.sh -s "$sequence" -ga "ga10_p10_ns4_cr1" -ps 10 -ns 4 -lr 0 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga11_p20_ns6_cr1" -ps 20 -ns 6 -lr 0 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga12_p50_ns16_cr1" -ps 50 -ns 16 -lr 0 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga13_p80_ns24_cr1" -ps 80 -ns 24 -lr 0 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga14_p80_ns24_cr1" -lr 0 -fg $fg -lg $lg -t $nthreads
-        #
-        # GAs that vary in population size                       
-        # bash -x ./GA.sh -s "$sequence" -ga "ga06_p10_ns4" -ps 10 -ns 4 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga07_p20_ns6" -ps 20 -ns 6 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga08_p50_ns16" -ps 50 -ns 16 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga09_p80_ns24" -ps 80 -ns 24 -fg $fg -lg $lg -t $nthreads
-        # #
-        # # GAs that vary in population size (crossover rate=1)
-        # bash -x ./GA.sh -s "$sequence" -ga "ga15_p10_ns4_cr1" -ps 10 -ns 4 -cr 1 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga16_p20_ns6_cr1" -ps 20 -ns 6 -cr 1 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga17_p50_ns16_cr1" -ps 50 -ns 16 -cr 1 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga18_p80_ns24_cr1" -ps 80 -ns 24 -cr 1 -fg $fg -lg $lg -t $nthreads
     done
 done
     

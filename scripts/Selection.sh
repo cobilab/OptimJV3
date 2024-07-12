@@ -232,6 +232,10 @@ while [[ $# -gt 0 ]]; do
         numSelectedCmds="$2";
         shift 2;
         ;;
+    --selection-rate|-sr)
+        sr="$2";
+        shift 2;
+        ;;
     --gen-num|-g)
         gnum="$2";
         shift 2;
@@ -263,6 +267,10 @@ for sequenceName in "${SEQUENCES[@]}"; do
 done
 #
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
+    #
+    # if sl variable exists, overwrite num selected cmds
+    popSize=$(cat $cmdsFileInput | wc -l)
+    [ ! -z "$sl" ] && numSelectedCmds=$(echo $popSize | awk -v $sl '{print $1*0.1, int($1*sl)}')
     #
     gaFolder=$(dirname $cmdsFileInput);
     echo $gaFolder ds ga folder

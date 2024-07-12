@@ -625,17 +625,17 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                 model_params_arr=($(echo "${model_arr[chosen_model_idx]}" | sed 's/[:/]/ /g'));
                 model_params_arr2=($(echo "${model_arr2[chosen_model_idx2]}" | sed 's/[:/]/ /g'));
                 #
-                if [ "$CROSSOVER_OP" = "xpoint" ]; then
+                if [ "$CROSSOVER_OP" = "xpoint" ] || [ "$CROSSOVER_OP" = "xp" ] || [ "$CROSSOVER_OP" = "x" ]; then
                     XPOINT_CROSSOVER;
-                elif [ "$CROSSOVER_OP" = "uniform" ]; then
+                elif [ "$CROSSOVER_OP" = "uniform" ] || [ "$CROSSOVER_OP" = "u" ]; then
                     UNIFORM_CROSSOVER;
-                elif [ "$CROSSOVER_OP" = "average" ] || [ "$CROSSOVER_OP" = "avg" ]; then
+                elif [ "$CROSSOVER_OP" = "average" ] || [ "$CROSSOVER_OP" = "avg" ] || [ "$CROSSOVER_OP" = "a" ]; then
                     AVG_CROSSOVER;
-                elif [ "$CROSSOVER_OP" = "discrete" ]; then
+                elif [ "$CROSSOVER_OP" = "discrete" ] || [ "$CROSSOVER_OP" = "d" ]; then
                     DISCRETE_CROSSOVER;
-                elif [ "$CROSSOVER_OP" = "flat" ]; then
+                elif [ "$CROSSOVER_OP" = "flat" ] || [ "$CROSSOVER_OP" = "f" ]; then
                     FLAT_CROSSOVER;
-                elif [ "$CROSSOVER_OP" = "heuristic" ] || [ "$CROSSOVER_OP" = "intermediate" ]; then
+                elif [ "$CROSSOVER_OP" = "heuristic" ] || [ "$CROSSOVER_OP" = "h" ]; then
                     HEURISTIC_CROSSOVER;
                 fi
                 #

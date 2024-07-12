@@ -195,15 +195,20 @@ while [[ $# -gt 0 ]]; do
     #
     # SELECTION
     #
-    --num-sel-cmds|-ns)
-        ns="$2";
-        scmFlags+="-ns $ns ";
-        shift 2;
-        ;;
     --selection|--sel|-sl)
         # elitist, roulette
         SELECTION_OP="$2";
-        scmFlags+="-sl $SELECTION_OP ";
+        selFlags+="-sl $SELECTION_OP ";
+        shift 2;
+        ;;
+    --num-sel-cmds|-ns)
+        ns="$2";
+        selFlags+="-ns $ns ";
+        shift 2;
+        ;;
+    --selection-rate|-sr)
+        sr="$2";
+        selFlags+="-sr $sr ";
         shift 2;
         ;;
     #
