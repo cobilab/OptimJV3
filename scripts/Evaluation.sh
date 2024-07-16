@@ -153,7 +153,7 @@ for ds in ${datasets[@]}; do
     #
     # sort all results by BPS, then CTIME (s)
     allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
-    cat $allRawResFile | sort -k4n -k5n > $allSortedRes_bps;
+    cat $allRawResFile | sort -k3n -k5n > $allSortedRes_bps;
     #
     # sort all results by BPS, then CTIME (converted to minutes)
     allSortedRes_bps_ctime_m="$gaFolder/allSortedRes_bps_ctime_m.tsv";

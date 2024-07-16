@@ -47,6 +47,23 @@ function FIX_SEQUENCE_NAME() {
     #
 }
 #
+function SAVE_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    printf "$seed\t$si\n" > $seedAndSiFile
+}
+#
+function GET_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    if [ -f $seedAndSiFile ]; then
+        [ -z "$seed" ] && seed=$(awk '{print $1}' $seedAndSiFile) && RANDOM=$seed
+        [ -z "$si" ] && si=$(awk '{print $2}' $seedAndSiFile)
+    else 
+        [ -z "$seed" ] && seed=1 && RANDOM=$seed
+        [ -z "$si" ] && si=10
+        printf "$seed\t$si\n" > $seedAndSiFile
+    fi
+}
+#
 function DISASSEMBLE_PARENT_CMDS() {
     echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DISSASSEMBLE "PARENT" COMMANDS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
     # remove -o argument (if it exists)
@@ -456,11 +473,6 @@ sequencesPath="../../sequences";
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
 #
-DEFAULT_SEED=1;
-seed=$DEFAULT_SEED;
-RANDOM=$seed;
-si=10; # seed increment
-#
 ga="ga";
 #
 ### PARSING ###############################################################################################
@@ -567,6 +579,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
     gaFolder="../${ds}/$ga";
     nextGen=$((gnum+1));
     cmdsFileOutput="$gaFolder/g$nextGen.sh";
+    GET_SEED
     #
     echo "========================================================";
     echo "=== SEL CMDS FILE INPUT: $selCmdsFile ====";
@@ -596,12 +609,16 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
         rndFloat="0.$((RANDOM%999))";
         if (( $(echo "$rndFloat <= $CROSSOVER_RATE" | bc) )); then 
             echo "$rndFloat <= $CROSSOVER_RATE --> crossover"
-            crossMutRepetitions=$((RANDOM%3+1))
+            #
+            DISASSEMBLE_PARENT_CMDS
+            #
+            numModelsP1=$((${#cms_arr[@]}+${#rms_arr[@]}))
+            numModelsP2=$((${#cms_arr2[@]}+${#rms_arr2[@]}))
+            (( $numModelsP1 > $numModelsP2 )) && maxCrossMuts=$numModelsP2 || maxCrossMuts=$numModelsP1 
+            crossMutRepetitions=$((RANDOM%$maxCrossMuts+1))
             crossMutNum=$((crossMutNum+1))
             #
             echo "=========================== CROSSOVER AND MUTATION NUMBER $crossMutNum WILL REPEAT $crossMutRepetitions TIMES =====================================";
-            #
-            DISASSEMBLE_PARENT_CMDS
             #
             for i in $(seq 1 $crossMutRepetitions); do
                 #
@@ -698,4 +715,6 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
         echo "NO NEW OFFSPRING - POPULATION STAGNATION OF DS${dsX}";
         exit 1;
     fi
+    #
+    SAVE_SEED
 done

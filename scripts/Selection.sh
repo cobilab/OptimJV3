@@ -49,6 +49,23 @@ function FIX_SEQUENCE_NAME() {
     echo "$sequence"
 }
 #
+function SAVE_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    printf "$seed\t$si\n" > $seedAndSiFile
+}
+#
+function GET_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    if [ -f $seedAndSiFile ]; then
+        [ -z "$seed" ] && seed=$(awk '{print $1}' $seedAndSiFile) && RANDOM=$seed
+        [ -z "$si" ] && si=$(awk '{print $2}' $seedAndSiFile)
+    else 
+        [ -z "$seed" ] && seed=1 && RANDOM=$seed
+        [ -z "$si" ] && si=10
+        printf "$seed\t$si\n" > $seedAndSiFile
+    fi
+}
+#
 # === SELECTION FUNCTIONS ================================================================================================
 #
 function ELITIST_SELECTION() {
@@ -161,7 +178,7 @@ function TOURNAMENT_SELECTION() {
     done
 }
 #
-# === CROSSOVER FUNCTIONS ================================================================================================
+# ===================================================================================================
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
@@ -169,11 +186,6 @@ ds_sizesBase10="../../DS_sizesBase10.tsv";
 sequencesPath="../../sequences";
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
-#
-DEFAULT_SEED=0;
-seed=$DEFAULT_SEED;
-RANDOM=$seed;
-si=10; # seed increment
 #
 SELECTION_OP="elitist";
 numSelectedCmds=30; # number of selected commands
@@ -273,8 +285,8 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     [ ! -z "$sl" ] && numSelectedCmds=$(echo $popSize | awk -v $sl '{print $1*0.1, int($1*sl)}')
     #
     gaFolder=$(dirname $cmdsFileInput);
-    echo $gaFolder ds ga folder
     nextGen=$((gnum+1));
+    GET_SEED
     #
     selFolder="$gaFolder/sel"
     mkdir -p $selFolder
@@ -316,4 +328,6 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
         rm -fr $selCmdsFileOutput;
         mv $selCmdsFileOutputTMP $selCmdsFileOutput;
     fi
+    #
+    seed=$((seed+si)) && SAVE_SEED
 done

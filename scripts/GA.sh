@@ -48,6 +48,23 @@ function FIX_SEQUENCE_NAME() {
     fi
 }
 #
+function SAVE_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    printf "$seed\t$si\n" > $seedAndSiFile
+}
+#
+function GET_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    if [ -f $seedAndSiFile ]; then
+        [ -z "$seed" ] && seed=$(awk '{print $1}' $seedAndSiFile) && RANDOM=$seed
+        [ -z "$si" ] && si=$(awk '{print $2}' $seedAndSiFile)
+    else 
+        [ -z "$seed" ] && seed=1 && RANDOM=$seed
+        [ -z "$si" ] && si=10
+        printf "$seed\t$si\n" > $seedAndSiFile
+    fi
+}
+#
 ### DEFAULT VALUES ###############################################################################################
 #
 INIT_GEN=1;
@@ -57,8 +74,6 @@ POPULATION_SIZE=100;
 #
 ds_range="1:1";
 nthreads=10;
-seed=1;
-si=10; # to increment seed
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv"
 ds_sizesBase10="../../DS_sizesBase10.tsv"
@@ -262,22 +277,8 @@ for sequence in ${SEQUENCES[@]}; do
     mkdir -p $dsFolder;
     # 
     gaFolder="$dsFolder/$ga"
-    # if GA folder isn't empty
-    if [ ! -d $(ll $gaFolder 2> /dev/null) ]; then 
-        genScript="$gaFolder/*.sh"
-        genNumSh=$(basename $(ls '$genScript') | grep -o -E '[0-9]+')
-        # copy folder as bkp if  gen to run != initial gen AND gen to run == first gen to run
-        if [ $genNumSh -ne $INIT_GEN ] && [ $genNumSh -eq $FIRST_GEN ]; then 
-            cp $gaFolder ${gaFolder}_bkp
-        # rename folder as bkp if GA folder isn't empty AND gen to run == initial gen
-        elif [ $genNumSh -eq $INIT_GEN ]; then 
-            mv $gaFolder ${gaFolder}_bkp
-        else 
-            echo -e "\e[31mERROR: --first-gen|-fg value given is $FIRST_GEN != $genNumSh (should run $genScript)"
-            exit 1
-        fi
-    fi
     mkdir -p $gaFolder
+    GET_SEED
     #
     logFolder="$gaFolder/logs";
     mkdir -p $logFolder;
@@ -297,12 +298,12 @@ for sequence in ${SEQUENCES[@]}; do
     gaCmds="$gaFolder/GAcmds.txt"
     echo "./GA.sh $allArgs" >> "$gaCmds"
     #
-    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls ../DS13/ga03_lr0/*splitted* | wc -l) )); then 
+    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls $gaFolder/*splitted* | wc -l) )); then 
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
-        echo "./Initialization.sh -s $sequence $flags $initFlags -sd $seed" >> "$gaCmds"
-        bash -x ./Initialization.sh -s $sequence $flags $initFlags -sd $seed 1> $initLog 2> $initErr;
+        echo "./Initialization.sh -s $sequence $flags $initFlags -sd $seed -si $si" >> "$gaCmds"
+        bash -x ./Initialization.sh -s $sequence $flags $initFlags -sd $seed -si $si 1> $initLog 2> $initErr;
     fi
     #
     for gen in $(seq $FIRST_GEN $LAST_GEN); do
@@ -323,14 +324,16 @@ for sequence in ${SEQUENCES[@]}; do
         selLog="$selLogFolder/sel$gen.log"
         selErr="$selLogFolder/sel$gen.err"
         echo "4. SELECTION - log file: $selLog ; err file: $selErr";
-        echo "./Selection.sh -s $sequence -g $gen $flags $selFlags -sd $((seed=seed+si)) -si $si" >> "$gaCmds"
-        bash -x ./Selection.sh -s $sequence -g $gen $flags $selFlags -sd $((seed=seed+si)) -si $si 1> $selLog 2> $selErr;
+        echo "./Selection.sh -s $sequence -g $gen $flags $selFlags" >> "$gaCmds"
+        bash -x ./Selection.sh -s $sequence -g $gen $flags $selFlags 1> $selLog 2> $selErr;
+    
         #
         scmLog="$scmLogFolder/scm$gen.log"
         scmErr="$scmLogFolder/scm$gen.err"
         echo "5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
-        echo "./CrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si" >> "$gaCmds"
-        bash -x ./CrossMut.sh -s $sequence -g $gen $flags $scmFlags -sd $((seed=seed+si)) -si $si 1> $scmLog 2> $scmErr;
+        echo "./CrossMut.sh -s $sequence -g $gen $flags $scmFlags" >> "$gaCmds"
+        bash -x ./CrossMut.sh -s $sequence -g $gen $flags $scmFlags 1> $scmLog 2> $scmErr;
+    
     done ) 1>> $logFile 2>> $errFile
     #
     echo "$dsx, $ga program is complete"

@@ -36,6 +36,23 @@ function FIX_SEQUENCE_NAME() {
     fi
 }
 #
+function SAVE_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    printf "$seed\t$si\n" > $seedAndSiFile
+}
+#
+function GET_SEED() {
+    seedAndSiFile="$gaFolder/seed_and_si.txt"
+    if [ -f $seedAndSiFile ]; then
+        [ -z "$seed" ] && seed=$(awk '{print $1}' $seedAndSiFile) && RANDOM=$seed
+        [ -z "$si" ] && si=$(awk '{print $2}' $seedAndSiFile)
+    else 
+        [ -z "$seed" ] && seed=1 && RANDOM=$seed
+        [ -z "$si" ] && si=10
+        printf "$seed\t$si\n" > $seedAndSiFile
+    fi
+}
+#
 function DEFINE_PARAM_RANGES() {
   if $kbi; then # knowledge-based initialization
     #
@@ -113,9 +130,6 @@ SEQUENCES=();
 #
 # knowledge-based initialization
 kbi=false
-#
-seed=1; # JV3 seed interval: [1;599999]
-RANDOM=$seed;
 #
 ga="ga";
 #
@@ -202,6 +216,10 @@ while [[ $# -gt 0 ]]; do
       RANDOM=$seed;
       shift 2;
       ;;
+    --seed-increment|-si)
+      si="$2";
+      shift 2;
+      ;;
     *) # ignore any other arguments
       echo "Invalid option: $1"
       exit 1;
@@ -215,7 +233,6 @@ fi
 #
 # === MAIN ===========================================================================
 #
-#echo ${SEQUENCES[7]};
 for sequenceName in "${SEQUENCES[@]}"; do
     sequence="$sequencesPath/$sequenceName";
     #
@@ -231,6 +248,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
         mv $gaFolder ${gaFolder}_bkp
     fi
     mkdir -p $gaFolder
+    GET_SEED
     #
     outputScript="$gaFolder/g1.sh";
     #
@@ -286,4 +304,5 @@ for sequenceName in "${SEQUENCES[@]}"; do
     echo "$outputScript is executable";
     echo "--------------------------------------------------";
     #
+    seed=$((seed+si)) && SAVE_SEED
 done
