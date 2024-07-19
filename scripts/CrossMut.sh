@@ -594,7 +594,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
     #
     echo "num chosen cmds: ${#chosenCmds[@]}";
     coupleNum=$((coupleNum+1))
-    while [ "${#chosenCmds[@]}" -gt 0 ]; do  
+    while [ "${#chosenCmds[@]}" -gt 1 ]; do  
         echo "=========================== "${#chosenCmds[@]}" CMDS TO GO =====================================";
         #
         command="${chosenCmds[0]}";

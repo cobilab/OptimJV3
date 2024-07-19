@@ -73,7 +73,12 @@ LAST_GEN=100;
 POPULATION_SIZE=100;
 #
 ds_range="1:1";
-nthreads=10;
+#
+if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system
+  nthreads=$(( $(nproc --all)/3 )); 
+else
+  nthreads=$(( $(nproc --all)-2 )); 
+fi
 #
 ds_sizesBase2="../../DS_sizesBase2.tsv"
 ds_sizesBase10="../../DS_sizesBase10.tsv"

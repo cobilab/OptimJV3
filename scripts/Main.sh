@@ -71,6 +71,12 @@ min_gen=1
 gen_range=200
 max_gen=1000
 #
+if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system
+  nthreads=$(( $(nproc --all)/3 )); 
+else
+  nthreads=$(( $(nproc --all)-2 )); 
+fi
+#
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
@@ -156,6 +162,11 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
     for sequence in ${SEQUENCES[@]}; do
         echo $sequence $fg $lg
         #
+        # === DEFAULT LR = 0.03 ====================================================
+        #
+        # canonical GA
+        bash -x ./GA.sh -s "$sequence" -ga "ga01" -fg $fg -lg $lg -t $nthreads
+        #
         # === LR = 0 ====================================================
         #
         # canonical GA
@@ -180,18 +191,14 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         #
         # selection operators
         bash -x ./GA.sh -s "$sequence" -ga "ga13_lr0_selT" -lr 0 --sel "t" -fg $fg -lg $lg -t $nthreads # tournament
-        bash -x ./GA.sh -s "$sequence" -ga "ga14_lr0_selR" -lr 0 --sel "r" -fg $fg -lg $lg -t $nthreads # roulette
+        bash -x ./GA.sh -s "$sequence" -ga "ga14_lr0_rws" -lr 0 --sel "rws" -fg $fg -lg $lg -t $nthreads # roulette wheel selection
+        bash -x ./GA.sh -s "$sequence" -ga "ga15_lr0_rnk" -lr 0 --sel "rnk" -fg $fg -lg $lg -t $nthreads # rank
         #
         # crossover operators
-        bash -x ./GA.sh -s "$sequence" -ga "ga15_lr0_u" -lr 0 -c "u" -fg $fg -lg $lg -t $nthreads # uniform
-        bash -x ./GA.sh -s "$sequence" -ga "ga16_lr0_a" -lr 0 -c "a" -fg $fg -lg $lg -t $nthreads # average
-        bash -x ./GA.sh -s "$sequence" -ga "ga17_lr0_d" -lr 0 -c "d" -fg $fg -lg $lg -t $nthreads # discrete
-        bash -x ./GA.sh -s "$sequence" -ga "ga18_lr0_f" -lr 0 -c "f" -fg $fg -lg $lg -t $nthreads # flat
-        bash -x ./GA.sh -s "$sequence" -ga "ga19_lr0_h" -lr 0 -c "h" -fg $fg -lg $lg -t $nthreads # heuristic
-        #
-        # === DEFAULT LR = 0.03 ====================================================
-        #
-        # canonical GA
-        bash -x ./GA.sh -s "$sequence" -ga "ga01" -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga16_lr0_u" -lr 0 -c "u" -fg $fg -lg $lg -t $nthreads # uniform
+        bash -x ./GA.sh -s "$sequence" -ga "ga17_lr0_a" -lr 0 -c "a" -fg $fg -lg $lg -t $nthreads # average
+        bash -x ./GA.sh -s "$sequence" -ga "ga18_lr0_d" -lr 0 -c "d" -fg $fg -lg $lg -t $nthreads # discrete
+        bash -x ./GA.sh -s "$sequence" -ga "ga19_lr0_f" -lr 0 -c "f" -fg $fg -lg $lg -t $nthreads # flat
+        bash -x ./GA.sh -s "$sequence" -ga "ga20_lr0_h" -lr 0 -c "h" -fg $fg -lg $lg -t $nthreads # heuristic
     done
 done

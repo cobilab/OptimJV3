@@ -94,8 +94,8 @@ function RUN_TEST() {
     C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`;
   fi
   #
-  # invalid cmds go here, including cmds that use too much GB
-  if [ ! -e "$FILEC" ] || [[ ! -s "$c_time_mem" ]] || (( $errorStatus )); then
+  # invalid cmds go here, including cmds that used too much GB
+  if [ ! -e "$FILEC" ] || [[ ! -s "$c_time_mem" ]] || (( $errorStatus )) || (( $(echo "$C_MEME > $maxGBperCmd"|bc) )); then
     invalidCmds="$dsFolder/aInvalidCmds.tsv";
     printf "$gnum\t$C_COMMAND\n" 1>> $invalidCmds;
     #
@@ -149,10 +149,13 @@ SEQUENCES=();
 #
 timeOut=3600;
 #
-if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system
-  nthreads=$(( $(nproc --all)/3 )); 
-else
-  nthreads=$(( $(nproc --all)-2 )); 
+if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system (example: sapiens server)
+  nthreads=$(( $(nproc --all)/3 )) 
+  maxGBperCmd="2.5"
+else # server with only one user
+  nthreads=$(( $(nproc --all)-2 ))
+  maxFreeGB=$(awk '/MemFree/ {printf "%.3f \n", $2/1024/1024 }' /proc/meminfo)
+  maxGBperCmd=$(echo "($maxFreeGB-2)/$nthreads")
 fi
 #
 ga="ga";

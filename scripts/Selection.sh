@@ -144,6 +144,72 @@ function ROULETTE_SELECTION() {
     done
 }
 #
+# similar to roulette, but instead of evaluating each individual by fitness,
+# they are evaluated by their ranking.
+# the best has rank 1, the second best rank 2, and so on.
+function RANK_SELECTION() {
+    echo "=========================== RANK SELECTION =====================================";
+    #
+    rank="$selFolder/rank.tsv"
+    initialRank="${rank/rank/initialRank}"
+    echo "rank file: $rank; initial rank: $initialRank"
+    #
+    # f size
+    fSize=$(cat $cmdsFileInput | wc -l)
+    echo "|f(x)| = $fSize"
+    #
+    # sum of all f values, F
+    ls -la $cmdsFileInput
+    F=$(awk '{sum+=++i}END{print sum}' $cmdsFileInput)
+    echo "sum f(x) = F = $F"
+    #
+    # initialize rank with f(x), p(x), r(x) and cmd columns
+    (   printf "f(x)\tp(x)\tr(x)\tcmds\n"
+        awk -F'\t' -v F=$F -v n=$fSize '{
+        f=++i # f(x), bps or domain values (rank)
+        if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x)
+        r+=p # r(x), cumulative sum of p(x)
+        cmd=$NF
+        print f"\t"p"\t"r"\t"cmd
+    }' "$cmdsFileInput" ) > $rank
+    cat $rank > $initialRank
+    #
+    for i in $(seq 1 $numSelectedCmds); do
+        #
+        # pick a random number between 0 and 1 to choose a command
+        rmin=$(awk 'NR==2{print $3}' $rank)
+        rmax=$(awk 'END{print $3}' $rank)
+        rndNum=0.$((RANDOM%99999))$((RANDOM%9))
+        #
+        # find selected cmd
+        chosenCmd="$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$3) {print $NF;exit}}' $rank)"
+        chosenCmds+=( "$chosenCmd" )
+        chosenRowNum=$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$3) {print NR;exit}}' $rank)
+        #
+        # remove selected cmd from rank to not choose it again
+        ( awk -v nr=$chosenRowNum 'NR!=nr {print}' $rank ) > $rank.bak && mv $rank.bak $rank
+        #
+        # update f size
+        fSize=$(awk 'NR>1' $rank | sed -n '/[^[:space:]]/p' | wc -l)
+        echo "|f(x)| = $fSize"
+        #
+        # update sum of all f values, F
+        F=$(awk 'NR>1{sum+=$1} END{print sum}' $rank)
+        echo "sum f(x) = F = $F"
+        #
+        # update rank stats
+        (   awk -F'\t' -v F=$F -v n=$fSize 'NR==1{
+            print "f(x)\tp(x)\tr(x)\tcmds"
+        } NR>1{
+            f=++i # f(x)
+            if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x)
+            r+=p # r(x)
+            cmd=$NF # command
+            print f"\t"p"\t"r"\t"cmd
+        }' $rank ) > $rank.bak && mv $rank.bak $rank
+    done
+}
+#
 function TOURNAMENT_SELECTION() {
     winner="";
     winnerIdxs=();
@@ -188,7 +254,7 @@ ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac)
 SEQUENCES=();
 #
 SELECTION_OP="elitist";
-numSelectedCmds=30; # number of selected commands
+selRate=0.3 # 30% of individuals are selected for crossover
 #
 ga="ga";
 #
@@ -245,7 +311,7 @@ while [[ $# -gt 0 ]]; do
         shift 2;
         ;;
     --selection-rate|-sr)
-        sr="$2";
+        selRate="$2";
         shift 2;
         ;;
     --gen-num|-g)
@@ -280,9 +346,9 @@ done
 #
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
-    # if sl variable exists, overwrite num selected cmds
+    # if numSelectedCmds variable does not exist, numSelectedCmds = popSize x selRate
     popSize=$(cat $cmdsFileInput | wc -l)
-    [ ! -z "$sl" ] && numSelectedCmds=$(echo $popSize | awk -v $sl '{print $1*0.1, int($1*sl)}')
+    [ -z "$numSelectedCmds" ] && numSelectedCmds=$(echo $popSize $selRate | awk '{print int($1*$2)}')
     #
     gaFolder=$(dirname $cmdsFileInput);
     nextGen=$((gnum+1));
@@ -307,8 +373,10 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
     if [ "$SELECTION_OP" = "elitist" ] || [ "$SELECTION_OP" = "e" ]; then
         ELITIST_SELECTION;
-    elif [ "$SELECTION_OP" = "roulette" ] || [ "$SELECTION_OP" = "r" ]; then
+    elif [ "$SELECTION_OP" = "roulette" ] || [ "$SELECTION_OP" = "rws" ]; then
         ROULETTE_SELECTION;
+    elif [ "$SELECTION_OP" = "rank" ] || [ "$SELECTION_OP" = "rnk" ]; then
+        RANK_SELECTION;
     elif [ "$SELECTION_OP" = "tournament" ] || [ "$SELECTION_OP" = "t" ]; then
         TOURNAMENT_SELECTION;
     fi
