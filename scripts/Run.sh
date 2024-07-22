@@ -155,7 +155,7 @@ if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in t
 else # server with only one user
   nthreads=$(( $(nproc --all)-2 ))
   maxFreeGB=$(awk '/MemFree/ {printf "%.3f \n", $2/1024/1024 }' /proc/meminfo)
-  maxGBperCmd=$(echo "($maxFreeGB-2)/$nthreads")
+  maxGBperCmd=$(echo "scale=2;($maxFreeGB-3)/$nthreads" | bc)
 fi
 #
 ga="ga";

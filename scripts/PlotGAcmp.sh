@@ -2,7 +2,7 @@
 #
 # default variables
 bestN=50;
-first_gen=1;
+fg=1;
 dsx="DS10";
 ga1="ga1";
 ga2="ga2";
@@ -47,11 +47,11 @@ while [[ $# -gt 0 ]]; do
         shift 2;
         ;;      
     --first-generation|--first-gen|-fg)
-        first_gen="$2";
+        fg="$2";
         shift 2;
         ;;
     --last-generation|--last-gen|-lg)
-        last_gen="$2";
+        lg="$2";
         shift 2;
         ;;
     *) 
@@ -65,10 +65,10 @@ dsFolder="../${dsx}";
 ga1Folder="$dsFolder/$(ls $dsFolder | grep $ga1)";
 ga2Folder="$dsFolder/$(ls $dsFolder | grep $ga2)";
 #
-if [ -z "$last_gen" ]; then
-    last_gen_ga1=$(ls $ga1Folder/g*.tsv | wc -l);
-    last_gen_ga2=$(ls $ga2Folder/g*.tsv | wc -l);
-    last_gen=$(( $last_gen_ga1 > $last_gen_ga2 ? $last_gen_ga1 : $last_gen_ga2 ));
+if [ -z "$lg" ]; then
+    lg_ga1=$(ls $ga1Folder/g*.tsv | wc -l);
+    lg_ga2=$(ls $ga2Folder/g*.tsv | wc -l);
+    lg=$(( $lg_ga1 > $lg_ga2 ? $lg_ga1 : $lg_ga2 ));
 fi
 #
 statsFolder="$dsFolder/cmp_stats";
@@ -80,26 +80,26 @@ plotsFolder="$plotsFolder/${ga1}_minus_${ga2}";
 mkdir -p $statsFolder $plotsFolder;
 #
 # get average stats diff (bps) (all)
-avgAllFile="$statsFolder/avg_bps_all.tsv";
-paste $ga1Folder/stats/avg_bps_all.tsv $ga2Folder/stats/avg_bps_all.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile;
+avgAllFile="$statsFolder/bps_avg_all.tsv";
+paste $ga1Folder/stats/bps_avg_all.tsv $ga2Folder/stats/bps_avg_all.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile;
 #
 # get average stats diff (bps) (bestN)
-avgBestNFile="$statsFolder/avg_bps_best${bestN}.tsv";
-paste $ga1Folder/stats/avg_bps_best${bestN}.tsv $ga2Folder/stats/avg_bps_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile;
+avgBestNFile="$statsFolder/bps_avg_best${bestN}.tsv";
+paste $ga1Folder/stats/bps_avg_best${bestN}.tsv $ga2Folder/stats/bps_avg_best${bestN}.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgBestNFile;
 #
 # get variance stats diff (bps)
-varBestNFile="$statsFolder/var_best${bestN}.tsv";
-paste $ga1Folder/stats/var_best${bestN}.tsv $ga2Folder/stats/var_best${bestN}.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $varBestNFile;
+varBestNFile="$statsFolder/bps_var_best${bestN}.tsv";
+paste $ga1Folder/stats/bps_var_best${bestN}.tsv $ga2Folder/stats/bps_var_best${bestN}.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $varBestNFile;
 #
 for tf in ${timeFormats[@]}; do
     #
     # get cumsum average stats diff (c_time) (all)
-    avgAllFile_cctime="$statsFolder/avg_all_cctime_$tf.tsv";
-    paste $ga1Folder/stats/avg_all_cctime_$tf.tsv $ga2Folder/stats/avg_all_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgAllFile_cctime;
+    avgAllFile_cctime="$statsFolder/cctime_avg_all_$tf.tsv";
+    paste $ga1Folder/stats/cctime_avg_all_$tf.tsv $ga2Folder/stats/cctime_avg_all_$tf.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile_cctime;
     #
     # get cumsum average stats diff (c_time) (bestN)
-    avgBestNFile_cctime="$statsFolder/avg_best${bestN}_cctime_$tf.tsv";
-    paste $ga1Folder/stats/avg_best${bestN}_cctime_$tf.tsv $ga2Folder/stats/avg_best${bestN}_cctime_$tf.tsv | awk -v gen=$first_gen '{print gen"\t"$2-$4, gen+=1}' > $avgBestNFile_cctime;
+    avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$tf.tsv";
+    paste $ga1Folder/stats/cctime_avg_best${bestN}_$tf.tsv $ga2Folder/stats/cctime_avg_best${bestN}_$tf.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgBestNFile_cctime;
 done
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
@@ -107,7 +107,8 @@ sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 for tf in ${timeFormats[@]}; do
 #
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_allAndbest${bestN}_bps_cctime_$tf.pdf";
+avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_$tf_fg${fg}_lg${lg}.pdf";
+cat $avgAndDotsBestNOutputPlot_bps_cctime
 gnuplot << EOF
     set title "Difference between ${ga1//_/} and ${ga2//_/} for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -125,7 +126,7 @@ gnuplot << EOF
     # set up the axis below for generation
     set xlabel "Generation"
     set xtics nomirror
-    set xrange [$first_gen:$last_gen]
+    set xrange [$fg:$lg]
     #
     set output "$avgAndDotsBestNOutputPlot_bps_cctime"
     plot "$avgAllFile" with lines title "avg bps (all)", \
@@ -134,34 +135,8 @@ gnuplot << EOF
     "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)"
 EOF
 #
-# plot bps average, bestN bps results, cumsum ctime avg
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/avgAndDots_best${bestN}_bps_cctime_$tf.pdf";
-gnuplot << EOF
-    set title "Average bPS with $bestN most optimal bPS values of $sequenceName (diff)"
-    set terminal pdfcairo enhanced color font 'Verdade,12'
-    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
-    #
-    # Set up the axis on the left side for bps
-    set ylabel "bPS"
-    set ytics nomirror
-    #
-    # Set up the axis on the right side for C time
-    set y2label "C TIME (s)"
-    set y2tics nomirror
-    #
-    # set up the axis below for generation
-    set xlabel "Generation"
-    set xtics nomirror
-    set xrange [$first_gen:$last_gen]
-    #
-    set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-    plot "$avgBestNFile" with lines title "avg bps (diff)", \
-    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (diff)"
-EOF
-done
-#
 # plot bps average (all and best)
-bestNavgOutputPlot="$plotsFolder/avg_allAndbest${bestN}.pdf";
+bestNavgOutputPlot="$plotsFolder/bps_b${bestN}_fg${fg}_lg${lg}.pdf";
 gnuplot << EOF
     set title "Difference between avg bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -170,20 +145,13 @@ gnuplot << EOF
     "$avgBestNFile" with lines title "avg bps (best $bestN)",
 EOF
 #
-# plot bps average
-bestNavgOutputPlot="$plotsFolder/avg_best${bestN}.pdf";
-gnuplot << EOF
-    set title "Average of $sequenceName for the $bestN most optimal bPS values (diff)"
-    set terminal pdfcairo enhanced color font 'Verdade,12'
-    set output "$bestNavgOutputPlot"
-    plot "$avgBestNFile" with lines
-EOF
-#
 # plot bps variance
-bestNvarOutputPlot="$plotsFolder/var_best${bestN}.pdf";
+bestNvarOutputPlot="$plotsFolder/var_bps_b${bestN}_fg${fg}_lg${lg}.pdf";
 gnuplot << EOF
     set title "Difference between var bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNvarOutputPlot"
     plot "$varBestNFile" with lines
 EOF
+#
+done

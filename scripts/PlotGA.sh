@@ -165,7 +165,7 @@ done
 # bps histogram
 allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
 allBPS="$statsFolder/bps_absFreq.tsv";
-awk 'NR>2 {print $4}' $allSortedRes_bps | uniq -c | awk '{print $2"\t"$1}' > $allBPS;
+awk -F'\t' -v lg=$last_gen 'NR>2 && $(NF-1)<=lg {print $4}' $allSortedRes_bps | uniq -c | awk '{print $2"\t"$1}' > $allBPS;
 #
 minBPS=$(awk 'NR==1 {print $1}' $allBPS)
 histBPS="$statsFolder/bps_hist_abs.tsv";
@@ -187,7 +187,7 @@ avgAllFile_cctime="$statsFolder/cctime_avg_all_$timeFormat.tsv";
 avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$timeFormat.tsv";
 #
 # plot bps average, bestN bps results, ctime avg (all and best)
-avgAndDotsAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_avg_best${bestN}_ctime_avg_$timeFormat.pdf";
+avgAndDotsAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_b${bestN}_ctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
 gnuplot << EOF
     #set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -221,7 +221,7 @@ gnuplot << EOF
 EOF
 #
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_avg_best${bestN}_cctime_avg_$timeFormat.pdf";
+avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
 gnuplot << EOF
     #set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -254,7 +254,7 @@ EOF
 done
 #
 # plot bps average (all and best)
-bestNavgOutputPlot="$plotsFolder/bps_avg_all_best${bestN}.pdf";
+bestNavgOutputPlot="$plotsFolder/bps_b${bestN}_fg${first_gen}_lg${last_gen}.pdf";
 gnuplot << EOF
     set title "$sequenceName - Average BPS (best $bestN)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -263,17 +263,8 @@ gnuplot << EOF
     "$avgBestNFile" with lines title "avg bps (best $bestN)"
 EOF
 #
-# plot bps average (best)
-bestNavgOutputPlot="$plotsFolder/bps_avg_best${bestN}.pdf";
-gnuplot << EOF
-    set title "$sequenceName - BPS average (best $bestN)"
-    set terminal pdfcairo enhanced color font 'Verdade,12'
-    set output "$bestNavgOutputPlot"
-    plot "$avgBestNFile" with lines title "avg bps (best $bestN)"
-EOF
-#
 # plot bps variance
-bestNvarOutputPlot="$plotsFolder/bps_var_best${bestN}.pdf";
+bestNvarOutputPlot="$plotsFolder/var_bps_b${bestN}_fg${first_gen}_lg${last_gen}.pdf";
 gnuplot << EOF
     set title "$sequenceName - BPS variance (best $bestN)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -281,7 +272,7 @@ gnuplot << EOF
     plot "$varBestNFile" with lines title "var bPS (best $bestN)"
 EOF
 #
-histBPSpdf="$plotsFolder/bps_hist_abs.pdf";
+histBPSpdf="$plotsFolder/hist_abs_bps.pdf";
 gnuplot << EOF
     set title "Absolute frequency of bPS with interval = $histInterval"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -307,7 +298,7 @@ gnuplot << EOF
     plot "$histBPS" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels offset char 0,0.5 notitle
 EOF
 #
-histBPSrelPdf="$plotsFolder/bps_hist_rel.pdf";
+histBPSrelPdf="$plotsFolder/hist_rel_bps.pdf";
 gnuplot << EOF
     set title "Relative frequency of bPS with interval = $histInterval"
     set terminal pdfcairo enhanced color font 'Verdade,12'

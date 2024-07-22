@@ -68,7 +68,7 @@ ds_sizesBase10="../../DS_sizesBase10.tsv"
 CHECK_DS_INPUT "$ds_sizesBase2" "$ds_sizesBase10"
 #
 min_gen=1
-gen_range=200
+gen_range=1000
 max_gen=1000
 #
 if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system
@@ -170,7 +170,7 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         # === LR = 0 ====================================================
         #
         # canonical GA
-        bash -x ./GA.sh -s "$sequence" -ga "ga01_lr0" -lr 0 -fg $fg -lg $lg -t $nthreads 
+        # bash -x ./GA.sh -s "$sequence" -ga "ga01_lr0" -lr 0 -fg $fg -lg $lg -t $nthreads 
         #
         # knowledge-based initialization
         bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0_kbi" -lr 0 -kbi -fg $fg -lg $lg -t $nthreads

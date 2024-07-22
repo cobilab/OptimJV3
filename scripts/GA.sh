@@ -303,6 +303,8 @@ for sequence in ${SEQUENCES[@]}; do
     gaCmds="$gaFolder/GAcmds.txt"
     echo "./GA.sh $allArgs" >> "$gaCmds"
     #
+    startTime=$(date +%s%N)
+    # 
     ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls $gaFolder/*splitted* | wc -l) )); then 
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
@@ -331,7 +333,6 @@ for sequence in ${SEQUENCES[@]}; do
         echo "4. SELECTION - log file: $selLog ; err file: $selErr";
         echo "./Selection.sh -s $sequence -g $gen $flags $selFlags" >> "$gaCmds"
         bash -x ./Selection.sh -s $sequence -g $gen $flags $selFlags 1> $selLog 2> $selErr;
-    
         #
         scmLog="$scmLogFolder/scm$gen.log"
         scmErr="$scmLogFolder/scm$gen.err"
@@ -340,6 +341,15 @@ for sequence in ${SEQUENCES[@]}; do
         bash -x ./CrossMut.sh -s $sequence -g $gen $flags $scmFlags 1> $scmLog 2> $scmErr;
     
     done ) 1>> $logFile 2>> $errFile
+    #
+    endTime=$(date +%s%N)
+    time_ns=$(($endTime-$startTime))
+    time_ms=$(echo "scale=3; $time_ns/10^6" | bc)
+    time_s=$(echo "scale=3; $time_ns/10^9" | bc)
+    time_m=$(echo "scale=3; $time_s/60" | bc)
+    time_h=$(echo "scale=3; $time_s/3600" | bc)
+    times=( "$time_s s" "$time_m m"  "$time_h h" ) 
+    printf "%s \n" "${times[@]}" > $logFile/time.txt
     #
     echo "$dsx, $ga program is complete"
 done
