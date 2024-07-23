@@ -349,7 +349,7 @@ for sequence in ${SEQUENCES[@]}; do
     time_m=$(echo "scale=3; $time_s/60" | bc)
     time_h=$(echo "scale=3; $time_s/3600" | bc)
     times=( "$time_s s" "$time_m m"  "$time_h h" ) 
-    printf "%s \n" "${times[@]}" > $logFile/time.txt
+    printf "%s \n" "${times[@]}" > $logFolder/time.txt
     #
     echo "$dsx, $ga program is complete"
 done
