@@ -305,7 +305,7 @@ for sequence in ${SEQUENCES[@]}; do
     #
     startTime=$(date +%s%N)
     # 
-    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls $gaFolder/*splitted* | wc -l) )); then 
+    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls $gaFolder/g$INIT_GEN.sh | wc -l) )); then 
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
