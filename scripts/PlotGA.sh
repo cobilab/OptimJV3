@@ -248,7 +248,6 @@ gnuplot << EOF
     "$best1File" with lines title "best bps", \
     "$avgAllFile_cctime" with lines axes x1y2 title "csum avg c time (all)", \
     "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)" 
-    
 EOF
 #
 done
@@ -272,7 +271,7 @@ gnuplot << EOF
     plot "$varBestNFile" with lines title "var bPS (best $bestN)"
 EOF
 #
-histBPSpdf="$plotsFolder/hist_abs_bps.pdf";
+histBPSpdf="$plotsFolder/hist_abs_bps_lg${last_gen}.pdf";
 gnuplot << EOF
     set title "Absolute frequency of bPS with interval = $histInterval"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -298,7 +297,7 @@ gnuplot << EOF
     plot "$histBPS" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels offset char 0,0.5 notitle
 EOF
 #
-histBPSrelPdf="$plotsFolder/hist_rel_bps.pdf";
+histBPSrelPdf="$plotsFolder/hist_rel_bps_lg${last_gen}.pdf";
 gnuplot << EOF
     set title "Relative frequency of bPS with interval = $histInterval"
     set terminal pdfcairo enhanced color font 'Verdade,12'
