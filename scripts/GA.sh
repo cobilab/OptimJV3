@@ -305,7 +305,7 @@ for sequence in ${SEQUENCES[@]}; do
     #
     startTime=$(date +%s%N)
     # 
-    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls $gaFolder/*splitted* | wc -l) )); then 
+    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls $gaFolder/g$INIT_GEN.sh | wc -l) )); then 
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
@@ -349,7 +349,7 @@ for sequence in ${SEQUENCES[@]}; do
     time_m=$(echo "scale=3; $time_s/60" | bc)
     time_h=$(echo "scale=3; $time_s/3600" | bc)
     times=( "$time_s s" "$time_m m"  "$time_h h" ) 
-    printf "%s \n" "${times[@]}" > $logFile/time.txt
+    printf "%s \n" "${times[@]}" > $logFolder/time.txt
     #
     echo "$dsx, $ga program is complete"
 done

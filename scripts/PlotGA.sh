@@ -186,8 +186,10 @@ avgBestNFile_ctime="$statsFolder/ctime_avg_best${bestN}_$timeFormat.tsv";
 avgAllFile_cctime="$statsFolder/cctime_avg_all_$timeFormat.tsv";
 avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$timeFormat.tsv";
 #
-# plot bps average, bestN bps results, ctime avg (all and best)
-avgAndDotsAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_b${bestN}_ctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
+# plot bps average, bestN bps results, ctime avg (all and best),
+# plot bps average, bestN bps results, cumsum ctime avg (all and best)
+avgAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_b${bestN}_ctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
+avgBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
 gnuplot << EOF
     #set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
@@ -207,47 +209,38 @@ gnuplot << EOF
     set xtics nomirror
     set xrange [$first_gen:$last_gen]
     #
-    set style line 6 lc rgb '#990000'  pt 6 ps 0.6  # circle
+    # line styles
+    set style line 1 lc rgb '#CCCC00' pt 1 ps 0.8 # N best bps; dots
+    set style line 2 lt 1 lc rgb '#004C99' ps 1 # avg bps (all)
+    set style line 3 lt 1 lc rgb '#990099' ps 1 # avg bps (best N)
+    set style line 4 lt 1 lc rgb '#CC0000' ps 1 # best bps
+    set style line 5 lt 1 lc rgb '#009900' ps 1 dashtype '_-' # csum avg c time (all)
+    set style line 6 lt 1 lc rgb '#990000' ps 1 dashtype '_-' # csum avg c time (best N)
     #
-    set output "$avgAndDotsAllAndBestNOutputPlot_bps_ctime"
-    plot "$bestNFile" title "$bestN best bps", \
-    "$avgBPSallFile" with lines title "avg bps (all)", \
-    "$avgBestNFile" with lines title "avg bps (best $bestN)", \
-    "$best1File" with lines title "best bps", \
-    "$avgAllFile_ctime" with lines axes x1y2 title "avg c time (all)", \
-    "$avgBestNFile_ctime" with lines axes x1y2 title "avg c time (best $bestN)"
-    set key bottom right
-    
-EOF
-#
-# plot bps average, bestN bps results, cumsum ctime avg (all and best)
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
-gnuplot << EOF
-    #set title "$sequenceName - Avg bPS and cumulative sum of avg CTIME"
-    set terminal pdfcairo enhanced color font 'Verdade,12'
-    set key outside top horizontal Right noreverse noenhanced autotitle nobox
-    #set key bottom right
-    #
-    # set up the axis on the left side for bps
-    set ylabel "bPS"
-    set ytics nomirror
-    #
-    # set up the axis on the right side for C time
-    set y2label "C TIME ($timeFormat)"
-    set y2tics nomirror
-    #
-    # set up the axis below for generation
-    set xlabel "Generation"
-    set xtics nomirror
-    set xrange [$first_gen:$last_gen]
-    #
-    set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-    plot "$bestNFile" title "$bestN best bps", \
-    "$avgBPSallFile" with lines title "avg bps (all)", \
-    "$avgBestNFile" with lines title "avg bps (best $bestN)", \
-    "$best1File" with lines title "best bps", \
-    "$avgAllFile_cctime" with lines axes x1y2 title "csum avg c time (all)", \
-    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)" 
+    list="$avgAllAndBestNOutputPlot_bps_ctime $avgBestNOutputPlot_bps_cctime"
+    do for [elem in list] {
+        set output elem
+        #
+        print elem
+        avgAllFile = (strstrt(elem, "_ctime") > 0) ? "$avgAllFile_ctime" : "$avgAllFile_cctime"
+        avgBestNFile = (strstrt(elem, "_ctime") > 0) ? "$avgBestNFile_ctime" : "$avgBestNFile_cctime"
+        #
+        # show dots representing the N best results if first_gen=1 and last_gen-first_gen<20
+        if ($first_gen==1) & ($last_gen-$first_gen<20) {
+            plot "$bestNFile" linestyle 1 title "$bestN best bps", \
+            "$avgBPSallFile" with lines linestyle 2 title "avg bps (all)", \
+            "$avgBestNFile" with lines linestyle 3 title "avg bps (best $bestN)", \
+            "$best1File" with lines linestyle 4 title "best bps", \
+            avgAllFile with lines linestyle 5 axes x1y2 title "csum avg c time (all)", \
+            avgBestNFile with lines linestyle 6 axes x1y2 title "csum avg c time (best $bestN)";
+        } else {
+            plot "$avgBPSallFile" with lines linestyle 2 title "avg bps (all)", \
+            "$avgBestNFile" with lines linestyle 3 title "avg bps (best $bestN)", \
+            "$best1File" with lines linestyle 4 title "best bps", \
+            avgAllFile with lines linestyle 5 axes x1y2 title "csum avg c time (all)", \
+            avgBestNFile with lines linestyle 6 axes x1y2 title "csum avg c time (best $bestN)";
+        }
+    }
 EOF
 #
 done

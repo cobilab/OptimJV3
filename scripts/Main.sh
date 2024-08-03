@@ -162,18 +162,14 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
     for sequence in ${SEQUENCES[@]}; do
         echo $sequence $fg $lg
         #
-        # === DEFAULT LR = 0.03 ====================================================
-        #
         # canonical GA
-        bash -x ./GA.sh -s "$sequence" -ga "ga01" -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga01" -fg $fg -lg $lg -t $nthreads # default lr = 0.03
+        # bash -x ./GA.sh -s "$sequence" -ga "ga01_lr0" -lr 0 -fg $fg -lg $lg -t $nthreads # lr = 0
         #
         # === LR = 0 ====================================================
         #
-        # canonical GA
-        # bash -x ./GA.sh -s "$sequence" -ga "ga01_lr0" -lr 0 -fg $fg -lg $lg -t $nthreads 
-        #
         # knowledge-based initialization
-        bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0_kbi" -lr 0 -kbi -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0_kbi" -lr 0 -kbi -fg $fg -lg $lg -t $nthreads
         #
         # change population size
         bash -x ./GA.sh -s "$sequence" -ga "ga03_lr0_ps20" -lr 0 -ps 20 -fg $fg -lg $lg -t $nthreads
@@ -181,6 +177,10 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         bash -x ./GA.sh -s "$sequence" -ga "ga05_lr0_ps80" -lr 0 -ps 80 -fg $fg -lg $lg -t $nthreads
         bash -x ./GA.sh -s "$sequence" -ga "ga06_lr0_ps150" -lr 0 -ps 150 -fg $fg -lg $lg -t $nthreads
         bash -x ./GA.sh -s "$sequence" -ga "ga07_lr0_ps200" -lr 0 -ps 200 -fg $fg -lg $lg -t $nthreads
+        #
+        # change crossover rate
+        bash -x ./GA.sh -s "$sequence" -ga "ga08_lr0_cr80" -lr 0 -ps 20 -cr 0.8 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "ga09_lr0_cr100" -lr 0 -ps 20 -cr 1 -fg $fg -lg $lg -t $nthreads
         #
         # multi-objective GAs (weight metric)
         bash -x ./GA.sh -s "$sequence" -ga "ga08_lr0_mogawm_wBPS10" -lr 0 --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
