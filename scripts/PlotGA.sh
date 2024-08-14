@@ -225,8 +225,8 @@ gnuplot << EOF
         avgAllFile = (strstrt(elem, "_ctime") > 0) ? "$avgAllFile_ctime" : "$avgAllFile_cctime"
         avgBestNFile = (strstrt(elem, "_ctime") > 0) ? "$avgBestNFile_ctime" : "$avgBestNFile_cctime"
         #
-        # show dots representing the N best results if first_gen=1 and last_gen-first_gen<20
-        if ($first_gen==1) & ($last_gen-$first_gen<20) {
+        # show dots representing the N best results if first_gen=1 and last_gen-first_gen<=20
+        if ($first_gen==1) & ($last_gen-$first_gen<=20) {
             plot "$bestNFile" linestyle 1 title "$bestN best bps", \
             "$avgBPSallFile" with lines linestyle 2 title "avg bps (all)", \
             "$avgBestNFile" with lines linestyle 3 title "avg bps (best $bestN)", \
@@ -292,7 +292,7 @@ EOF
 #
 histBPSrelPdf="$plotsFolder/hist_rel_bps_lg${last_gen}.pdf";
 gnuplot << EOF
-    set title "Relative frequency of bPS with interval = $histInterval"
+    # set title "Relative frequency of bPS with interval = $histInterval"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set style histogram rows
     set boxwidth 0.8

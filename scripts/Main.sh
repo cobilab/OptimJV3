@@ -191,14 +191,15 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         #
         # selection operators
         bash -x ./GA.sh -s "$sequence" -ga "ga13_lr0_selT" -lr 0 --sel "t" -fg $fg -lg $lg -t $nthreads # tournament
-        bash -x ./GA.sh -s "$sequence" -ga "ga14_lr0_rws" -lr 0 --sel "rws" -fg $fg -lg $lg -t $nthreads # roulette wheel selection
-        bash -x ./GA.sh -s "$sequence" -ga "ga15_lr0_rnk" -lr 0 --sel "rnk" -fg $fg -lg $lg -t $nthreads # rank
+        bash -x ./GA.sh -s "$sequence" -ga "ga14_lr0_selRWS" -lr 0 --sel "rws" -fg $fg -lg $lg -t $nthreads # roulette wheel selection
+        bash -x ./GA.sh -s "$sequence" -ga "ga15_lr0_selRnk" -lr 0 --sel "rnk" -fg $fg -lg $lg -t $nthreads # rank
+        bash -x ./GA.sh -s "$sequence" -ga "ga16_lr0_selB" -lr 0 --sel "b" -fg $fg -lg $lg -t $nthreads # boltzmann
         #
         # crossover operators
-        bash -x ./GA.sh -s "$sequence" -ga "ga16_lr0_u" -lr 0 -c "u" -fg $fg -lg $lg -t $nthreads # uniform
-        bash -x ./GA.sh -s "$sequence" -ga "ga17_lr0_a" -lr 0 -c "a" -fg $fg -lg $lg -t $nthreads # average
-        bash -x ./GA.sh -s "$sequence" -ga "ga18_lr0_d" -lr 0 -c "d" -fg $fg -lg $lg -t $nthreads # discrete
-        bash -x ./GA.sh -s "$sequence" -ga "ga19_lr0_f" -lr 0 -c "f" -fg $fg -lg $lg -t $nthreads # flat
-        bash -x ./GA.sh -s "$sequence" -ga "ga20_lr0_h" -lr 0 -c "h" -fg $fg -lg $lg -t $nthreads # heuristic
+        bash -x ./GA.sh -s "$sequence" -ga "ga17_lr0_u" -lr 0 -c "u" -fg $fg -lg $lg -t $nthreads # uniform
+        bash -x ./GA.sh -s "$sequence" -ga "ga18_lr0_a" -lr 0 -c "a" -fg $fg -lg $lg -t $nthreads # average
+        bash -x ./GA.sh -s "$sequence" -ga "ga19_lr0_d" -lr 0 -c "d" -fg $fg -lg $lg -t $nthreads # discrete
+        bash -x ./GA.sh -s "$sequence" -ga "ga20_lr0_f" -lr 0 -c "f" -fg $fg -lg $lg -t $nthreads # flat
+        bash -x ./GA.sh -s "$sequence" -ga "ga21_lr0_h" -lr 0 -c "h" -fg $fg -lg $lg -t $nthreads # heuristic
     done
 done
