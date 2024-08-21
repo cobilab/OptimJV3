@@ -162,10 +162,48 @@ while [[ $# -gt 0 ]]; do
     #
     # INIT
     #
-    --knowledge-based-initialization|-kbi)
-        initFlags+="-kbi "
-        shift
-        ;;
+    --heuristic-initialization|-hei)
+      hei=true
+      hyi=false
+      initFlags+="-hei ";
+      shift
+      ;;
+    --hybrid-initialization|-hyi)
+      hyi=true
+      hei=true
+      initFlags+="-hyi ";
+      shift
+      ;;
+    --hybrid-heuristic-percentage|-hhp)
+      hyiPercHeuCmds="$2"
+      initFlags+="-hhp $hyiPercHeuCmds ";
+      shift 2
+      ;;
+    --hybrid-heuristic-number|-hhn)
+      hyiNumHeuCmds="$2"
+      initFlags+="-hhn $hyiNumHeuCmds ";
+      shift 2
+      ;;
+    --min-cm|--m-cm|-mCM)
+      min_cms="$2";
+      initFlags+="-mCM $min_cms ";
+      shift 2;
+      ;;
+    --max-cm|--M-cm|-MCM)
+      max_cms="$2";
+      initFlags+="-MCM $max_cms ";
+      shift 2;
+      ;;
+    --min-rm|--m-rm|-mRM)
+      min_rms="$2";
+      initFlags+="-mRM $min_rms ";
+      shift 2;
+      ;;
+    --max-rm|--M-rm|-MRM)
+      max_rms="$2";
+      initFlags+="-MRM $max_rms ";
+      shift 2; 
+      ;;
     --learning-rate|-lr) 
         # 0 value turns the NN off
         lr="$2";

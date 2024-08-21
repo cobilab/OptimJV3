@@ -41,25 +41,13 @@ function SAVE_SEED() {
     printf "$seed\t$si\n" > $seedAndSiFile
 }
 #
-function GET_SEED() {
-    seedAndSiFile="$gaFolder/seed_and_si.txt"
-    if [ -f $seedAndSiFile ]; then
-        [ -z "$seed" ] && seed=$(awk '{print $1}' $seedAndSiFile) && RANDOM=$seed
-        [ -z "$si" ] && si=$(awk '{print $2}' $seedAndSiFile)
-    else 
-        [ -z "$seed" ] && seed=1 && RANDOM=$seed
-        [ -z "$si" ] && si=10
-        printf "$seed\t$si\n" > $seedAndSiFile
-    fi
-}
-#
 function DEFINE_PARAM_RANGES() {
-  if $kbi; then # knowledge-based initialization
+  if $hei; then # heuristic initialization
     #
-    min_cms=1;
-    max_cms=5;
-    min_rms=1;
-    max_rms=4;
+    [ -z $min_cms ] && min_cms=1;
+    [ -z $max_cms ] && max_cms=5;
+    [ -z $min_cms ] && min_rms=1;
+    [ -z $max_rms ] && max_rms=4;
     #
     # CM PARAMETERS
     # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
@@ -67,10 +55,10 @@ function DEFINE_PARAM_RANGES() {
     NB_D_lst=( 1 2 5 10 20 50 100 200 500 1000 2000 ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
     NB_I_cm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
     NB_G_cm_lst=( $(seq 0.05 0.05 0.95) ) # (real [0;1)) gamma; decayment forgetting factor of CM
-    NB_S_lst=( {0..6} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
-    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga (stcm?)
-    NB_E_lst=( 1 2 5 10 20 50 100 ) # ! (integer [1;5000]) denominator that builds alpha on STCM
-    NB_A_lst=($(seq 0.1 0.1 0.9)) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
+    NB_S_lst=( {0..6} ) # (integer [0;20]) max number of substitutions allowed in a STCM
+    NB_E_lst=( 1 2 5 10 20 50 100 ) # ! (integer [1;5000]) denominator that builds alpha=1/NB_E on STCM
+    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a STCM
+    NB_A_lst=($(seq 0.1 0.1 0.9)) # (real [0;1)) gamma; decayment forgetting factor of the STCM
     #
     # RM PARAMETERS
     # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
@@ -84,10 +72,10 @@ function DEFINE_PARAM_RANGES() {
     NB_Y_lst=( $(seq 0 1 5) ) # (integer {0}, [1;50]) max cache size
   else
     #
-    min_cms=1;
-    max_cms=5;
-    min_rms=1;
-    max_rms=4;
+    [ -z $min_cms ] && min_cms=1;
+    [ -z $max_cms ] && max_cms=5;
+    [ -z $min_cms ] && min_rms=1;
+    [ -z $max_rms ] && max_rms=4;
     #
     # CM PARAMETERS
     # -cm [NB_C]:[NB_D]:[NB_I]:[NB_G]/[NB_S]:[NB_E]:[NB_R]:[NB_A]  
@@ -95,10 +83,10 @@ function DEFINE_PARAM_RANGES() {
     NB_D_lst=( {1..5000} ) # (integer [1;5000]) alpha=1/NB_D => parameter estimator
     NB_I_cm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
     NB_G_cm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor of CM
-    NB_S_lst=( {0..20} ) # (integer [0;20]) max number of substitutions allowed in a STCM (substitution tolerant CM)
-    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a tolerant ga (stcm?)
-    NB_E_lst=( {1..5000} ) # ! (integer [1;5000]) denominator that builds alpha on STCM
-    NB_A_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma (decayment forgetting factor of the STCM)
+    NB_S_lst=( {0..20} ) # (integer [0;20]) max number of substitutions allowed in a STCM
+    NB_E_lst=( {1..5000} ) # ! (integer [1;5000]) denominator that builds alpha=1/NB_E on STCM
+    NB_R_cm_lst=( 0 1 ) # (integer {0,1}) checks if inverted repeats are used in a STCM
+    NB_A_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor of the STCM
     #
     # RM PARAMETERS
     # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
@@ -128,8 +116,9 @@ POPULATION_SIZE=100;
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
 #
-# knowledge-based initialization
-kbi=false
+heuristicInitState=false # heuristic initialization
+hybridInitState=false # hybrid initialization
+hyiPercHeuCmds=0.1 # default percentage of heuristic cmds generated in hybrid initialization
 #
 ga="ga";
 #
@@ -157,7 +146,7 @@ while [[ $# -gt 0 ]]; do
       FIX_SEQUENCE_NAME "$sequence"
       #
       SEQUENCES+=( "$sequence" );
-      shift 2; 
+      shift 2;
       ;;
     --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg)
       size="$2";
@@ -181,9 +170,23 @@ while [[ $# -gt 0 ]]; do
       POPULATION_SIZE="$2";
       shift 2;
       ;;
-    --knowledge-based-initialization|-kbi)
-      kbi=true
+    --heuristic-initialization|-hei)
+      hei=true
+      hyi=false
       shift
+      ;;
+    --hybrid-initialization|-hyi)
+      hyi=true
+      hei=true
+      shift
+      ;;
+    --hybrid-heuristic-percentage|-hhp)
+      hyiPercHeuCmds="$2"
+      shift 2
+      ;;
+    --hybrid-heuristic-number|-hhn)
+      hyiNumHeuCmds="$2"
+      shift 2
       ;;
     --min-cm|--m-cm|-mCM)
       min_cms="$2";
@@ -227,6 +230,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 #
+hyiNumHeuCmds=$(echo $POPULATION_SIZE $hyiPercHeuCmds | awk '{print int($1*$2)}') # default num of heuristic cmds generated in hybrid initialization
+#
 if [ ${#SEQUENCES[@]} -eq 0 ]; then
   SEQUENCES=( "${ALL_SEQUENCES[@]}" );
 fi
@@ -248,7 +253,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
         mv $gaFolder ${gaFolder}_bkp
     fi
     mkdir -p $gaFolder
-    GET_SEED
     #
     outputScript="$gaFolder/g1.sh";
     #
@@ -257,12 +261,15 @@ for sequenceName in "${SEQUENCES[@]}"; do
     # write stochastically generated commands
     ( for ((i=1; i<=POPULATION_SIZE; i++)); do
       #
-      # can go from 1 to 5
+      # if hybrid technique is selected,
+      # generate random cmd instead of heuristic after a number of heuristic cmds has been generated
+      $hyi && [ $i -gt $hyiNumHeuCmds ] && hei=false && DEFINE_PARAM_RANGES
+      #
       num_cms=$((RANDOM % (max_cms - min_cms + 1) + min_cms));
       #
       CM="";
       for ((j=1; j<=num_cms; j++)); do
-        # randomly chosen cm parameter values -cm 1:1:0:0.9/0:0:0:0
+        # stochastically chosen cm parameter values -cm 1:1:0:0.9/0:0:0:0
         NB_C=${NB_C_cm_lst[$((RANDOM % ${#NB_C_cm_lst[@]}))]};
         NB_D=${NB_D_lst[$((RANDOM % ${#NB_D_lst[@]}))]}; 
         NB_I=${NB_I_cm_lst[$((RANDOM % ${#NB_I_cm_lst[@]}))]}; 
@@ -275,12 +282,11 @@ for sequenceName in "${SEQUENCES[@]}"; do
         CM+="-cm ${NB_C}:${NB_D}:${NB_I}:${NB_G}/${NB_S}:${NB_E}:${NB_R}:${NB_A} ";
       done
       #
-      # can go from 0 to 2
       num_rms=$((RANDOM % (max_rms - min_rms + 1) + min_rms));
       #
       RM="";
       for ((j=1; j<=num_rms; j++)); do
-        # randomly chosen rm parameter values
+        # stochastically chosen rm parameter values
         NB_R=${NB_R_rm_lst[$((RANDOM % ${#NB_R_rm_lst[@]}))]};
         NB_C=${NB_C_rm_lst[$((RANDOM % ${#NB_C_rm_lst[@]}))]}; 
         NB_B=${NB_B_lst[$((RANDOM % ${#NB_B_lst[@]}))]}; 
@@ -293,8 +299,8 @@ for sequenceName in "${SEQUENCES[@]}"; do
         RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
       done
       #
-      flags="$lr$hs$CM$RM$mRM"
-      printf "${jv3Path}JARVIS3 -v $flags$sequence.seq \n";
+      flags="$lr$hs$CM$RM"
+      printf "${jv3Path}JARVIS3 -v $flags$sequence.seq\n";
     done ) > $outputScript;
     #
     chmod +x $outputScript;
