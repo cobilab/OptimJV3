@@ -1,6 +1,8 @@
 # Ignore these
+.DS_Store
 scripts/*
 DS*/*
+humanSampling*/*
 bkp_*/*
 logs/*
 errors/*
