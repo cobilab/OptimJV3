@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # default variables
-bestN=50;
+bestNpercentage=0.5;
 first_gen=1;
 dsx="DS1";
 ga="ga";
@@ -58,6 +58,10 @@ while [[ $# -gt 0 ]]; do
         dsx=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
         shift 2;
         ;;
+    --percentage-best|--best-percentage|-bp|-pb)
+        bestNpercentage="$2";
+        shift 2;
+        ;;     
     --best|-b)
         bestN="$2";
         shift 2;
@@ -82,42 +86,48 @@ while [[ $# -gt 0 ]]; do
 done
 #
 dsFolder="../${dsx}";
-gaFolder="$dsFolder/$(ls $dsFolder | grep $ga)";
+gaFolder="$dsFolder/$(ls $dsFolder | grep $ga | head -n1)";
+genFolder="$gaFolder/generations"
 statsFolder="$gaFolder/stats";
 plotsFolder="$gaFolder/plots";
 mkdir -p $statsFolder $plotsFolder;
 #
 if [ -z "$last_gen" ]; then
-    last_gen=$(ls $gaFolder/g*.tsv | wc -l);
+    last_gen=$(ls $genFolder/g*.tsv | wc -l);
 fi
 #
 # gets population size by counting num of non-empty lines and excluding header
-POPULATION_SIZE=$(( $(cat $gaFolder/g1.tsv | sed '/^\s*#/d;/^\s*$/d' | wc -l) - 2 ));
+POPULATION_SIZE=$(( $(cat $genFolder/g1.tsv | sed '/^\s*#/d;/^\s*$/d' | wc -l) - 2 ));
+bestN=$(awk -v ps=$POPULATION_SIZE -v bp=$bestNpercentage 'BEGIN {r=sprintf("%.0f",bp*ps);print r}');
 #
 # === STATS ===========================================================================
 #
 # get bestN results from each generation (bps)
 bestNFile="$statsFolder/bps_best${bestN}.tsv";
 ( for gen in $(seq $first_gen $last_gen); do 
-    awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR>2 && NR<=2+bestN {print gen"\t"$4}' "$gaFolder/g$gen.tsv"; 
+    awk -F'\t' -v gen=$gen -v bestN=$bestN 'NR==2 {if ($3 ~ /DOMINANCE/) {col=6} else {col=5} } 
+    NR>2 && NR<=2+bestN {if ($2==0) print gen"\t"$col}' "$genFolder/g$gen.tsv"; 
 done ) | sort -n -k1 -k2 | uniq > $bestNFile;
 #
 # get best1 result from each generation (bps)
 best1File="$statsFolder/bps_best1.tsv";
 ( for gen in $(seq $first_gen $last_gen); do 
-    awk -F'\t' -v gen=$gen 'NR==3 {print gen"\t"$4}' "$gaFolder/g$gen.tsv"; 
+    awk -F'\t' -v gen=$gen 'NR==2 {if ($3 ~ /DOMINANCE/) {col=6} else {col=5} } 
+    NR==3 {if ($2==0) print gen"\t"$col}' "$genFolder/g$gen.tsv"; 
 done ) > $best1File;
 #
 # get average stats (bps) (all)
 avgBPSallFile="$statsFolder/bps_avg_all.tsv";
 for gen in $(seq $first_gen $last_gen); do 
-    awk -v gen=$gen -v p=$POPULATION_SIZE -F'\t' 'NR >= 3 {sum+=$4} END {print gen"\t"sum/p}' "$gaFolder/g$gen.tsv"; 
+    awk -v gen=$gen -v p=$POPULATION_SIZE -F'\t' 'NR==2 {if ($3 ~ /DOMINANCE/) {col=6} else {col=5} } 
+    NR >= 3 {if ($2==0) sum+=$col; else sum+=2} END {print gen"\t"sum/p}' "$genFolder/g$gen.tsv"; 
 done > $avgBPSallFile;
 #
 # get average stats (bps) (bestN)
 avgBestNFile="$statsFolder/bps_avg_best${bestN}.tsv";
 for gen in $(seq $first_gen $last_gen); do 
-    awk -v gen=$gen -v bestN=$bestN -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=$4} END {print gen"\t"sum/bestN}' "$gaFolder/g$gen.tsv"; 
+    awk -v gen=$gen -v bestN=$bestN -F'\t' 'NR==2 {if ($3 ~ /DOMINANCE/) {col=6} else {col=5} } 
+    NR >= 3 && NR <= 2+bestN {if ($2==0) sum+=$col; else sum+=2} END {print gen"\t"sum/bestN}' "$genFolder/g$gen.tsv"; 
 done > $avgBestNFile;
 #
 # get variance stats (bps) (bestN) 
@@ -127,7 +137,8 @@ for gen in $(seq $first_gen $last_gen); do
     #
     # var equals sum(xi-X)/(n-1) for samples, but var equals sum(xi-X)/N for whole population
     if [ $bestN -ne $POPULATION_SIZE ]; then denominator=$(($bestN-1)); else denominator=$POPULATION_SIZE; fi
-    awk -v gen=$gen -v bestN=$bestN -v avg=$avg -v d=$denominator -F'\t' 'NR >= 3 && NR <= 2+bestN {sum+=($4-avg)^2} END {print gen"\t"sum/d}' "$gaFolder/g$gen.tsv"; 
+    awk -v gen=$gen -v bestN=$bestN -v avg=$avg -v d=$denominator -F'\t' 'NR==2 {if ($3 ~ /DOMINANCE/) {col=6} else {col=5} } 
+    NR >= 3 && NR <= 2+bestN {if ($2==0) sum+=($col-avg)^2; else sum+=(2-avg)^2} END {print gen"\t"sum/d}' "$genFolder/g$gen.tsv"; 
 done > $varBestNFile;
 #
 for timeFormat in ${timeFormats[@]}; do
@@ -144,14 +155,16 @@ for timeFormat in ${timeFormats[@]}; do
     # get average stats (c_time) (all)
     avgAllFile_ctime="$statsFolder/ctime_avg_all_$timeFormat.tsv";
     for gen in $(seq $first_gen $last_gen); do 
-        awk -F'\t' -v gen=$gen -v p=$POPULATION_SIZE -v d=$timeDenominator 'NR >= 3 {sum+=$5/d} END {print gen"\t"sum/p}' "$gaFolder/g$gen.tsv"; 
+        awk -F'\t' -v gen=$gen -v p=$POPULATION_SIZE -v d=$timeDenominator 'NR >= 3 {sum+=$6/d} END {print gen"\t"sum/p}' "$genFolder/g$gen.tsv"; 
     done > $avgAllFile_ctime;
     #
     # get average stats (c_time) (bestN)
     avgBestNFile_ctime="$statsFolder/ctime_avg_best${bestN}_$timeFormat.tsv";
     for gen in $(seq $first_gen $last_gen); do 
-        awk -F'\t' -v gen=$gen -v bestN=$bestN -v d=$timeDenominator 'NR >= 3 && NR <= 2+bestN {sum+=$5/d} END {print gen"\t"sum/bestN}' "$gaFolder/g$gen.tsv"; 
+        awk -F'\t' -v gen=$gen -v bestN=$bestN -v d=$timeDenominator 'NR >= 3 && NR <= 2+bestN {sum+=$6/d} END {print gen"\t"sum/bestN}' "$genFolder/g$gen.tsv"; 
     done > $avgBestNFile_ctime;
+    #
+    # get cumulative sum of compression time (this gives the time the software took to run until that generation)
     #
     # get cumsum average stats (cc_time) (all)
     avgAllFile_cctime="$statsFolder/cctime_avg_all_$timeFormat.tsv";
@@ -163,9 +176,9 @@ for timeFormat in ${timeFormats[@]}; do
 done
 #
 # bps histogram
-allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
+allSortedRes_bps="$gaFolder/eval/allSortedRes_bps.tsv";
 allBPS="$statsFolder/bps_absFreq.tsv";
-awk -F'\t' -v lg=$last_gen 'NR>2 && $(NF-1)<=lg {print $4}' $allSortedRes_bps | uniq -c | awk '{print $2"\t"$1}' > $allBPS;
+awk -F'\t' -v lg=$last_gen 'NR>2 && $(NF-1)<=lg {if ($2==0) print $5; else print 2}' $allSortedRes_bps | uniq -c | awk '{print $2"\t"$1}' > $allBPS;
 #
 minBPS=$(awk 'NR==1 {print $1}' $allBPS)
 histBPS="$statsFolder/bps_hist_abs.tsv";
@@ -190,15 +203,20 @@ avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$timeFormat.tsv";
 # plot bps average, bestN bps results, cumsum ctime avg (all and best)
 avgAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_b${bestN}_ctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
 avgBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
+#
 gnuplot << EOF
     #set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set key outside top horizontal Right noreverse noenhanced autotitle nobox
     #set key bottom right
     #
+    set grid
+    set grid xtics ytics
+    #
     # set up the axis on the left side for bps
     set ylabel "bPS"
     set ytics nomirror
+    set yrange [*:2]
     #
     # set up the axis on the right side for C time
     set y2label "C TIME ($timeFormat)"
@@ -210,7 +228,7 @@ gnuplot << EOF
     set xrange [$first_gen:$last_gen]
     #
     # line styles
-    set style line 1 lc rgb '#CCCC00' pt 1 ps 0.8 # N best bps; dots
+    set style line 1 lc rgb '#990099' pt 1 ps 0.1 # N best bps; dots
     set style line 2 lt 1 lc rgb '#004C99' ps 1 # avg bps (all)
     set style line 3 lt 1 lc rgb '#990099' ps 1 # avg bps (best N)
     set style line 4 lt 1 lc rgb '#CC0000' ps 1 # best bps
@@ -301,6 +319,7 @@ gnuplot << EOF
     # Set up the axis on the left side for bps
     set ylabel "Relative Frequency"
     set ytics nomirror
+    set yrange [0:1.05]  # Extend the upper limit by 10%
     #
     # set up the axis below for generation
     set xlabel "bPS"
@@ -316,5 +335,5 @@ gnuplot << EOF
     set grid y
     #
     set output "$histBPSrelPdf"
-    plot "$histBPSrel" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels rotate by 0 offset char 0,0.5 notitle
+    plot "$histBPSrel" using 1:2 with boxes lc rgb "blue" notitle, "" u 1:2:2 with labels rotate by 75 offset char 0,1.5 notitle
 EOF

@@ -110,7 +110,7 @@ for tf in ${timeFormats[@]}; do
 avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_$tf_fg${fg}_lg${lg}.pdf";
 cat $avgAndDotsBestNOutputPlot_bps_cctime
 gnuplot << EOF
-    set title "Difference between ${ga1//_/} and ${ga2//_/} for sequence $sequenceName"
+    # set title "Difference between ${ga1//_/} and ${ga2//_/} for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     #set key outside right top vertical Right noreverse noenhanced autotitle nobox
     #
@@ -138,7 +138,7 @@ EOF
 # plot bps average (all and best)
 bestNavgOutputPlot="$plotsFolder/bps_b${bestN}_fg${fg}_lg${lg}.pdf";
 gnuplot << EOF
-    set title "Difference between avg bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName"
+    # set title "Difference between avg bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNavgOutputPlot"
     plot "$avgAllFile" with lines title "avg bps (all)", \
@@ -148,7 +148,7 @@ EOF
 # plot bps variance
 bestNvarOutputPlot="$plotsFolder/var_bps_b${bestN}_fg${fg}_lg${lg}.pdf";
 gnuplot << EOF
-    set title "Difference between var bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName
+    # set title "Difference between var bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$bestNvarOutputPlot"
     plot "$varBestNFile" with lines

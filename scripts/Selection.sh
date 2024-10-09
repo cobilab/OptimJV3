@@ -80,7 +80,7 @@ function ROULETTE_SELECTION() {
     echo "=========================== ROULETTE SELECTION =====================================";
     # 
     # input file with values required for creating a roulette
-    dsFileInput="$gaFolder/g$gnum.tsv"
+    dsFileInput="$gaFolder/generations/g$gnum.tsv"
     echo "ds file input: $dsFileInput; gen num: $gnum"
     #
     roulette="$selFolder/roulette.tsv"
@@ -92,19 +92,22 @@ function ROULETTE_SELECTION() {
     echo "|f(x)| = $fSize"
     #
     # sum of all f values, F
-    F=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{sum+=$col} END{print sum}' $dsFileInput)
+    F=$(awk 'NR==2{ if ($3 ~ /DOMINANCE/) {col=3} else {col=5} } NR>2{sum+=$col} END{print sum}' $dsFileInput)
     echo "sum f(x) = F = $F"
     #
     # initialize roulette with f(x), p(x), r(x) and cmd columns
     (   awk -F'\t' -v F=$F -v n=$fSize 'NR==2{ 
-        if ($10 ~ /DOMINANCE/) {col=10} else {col=4} # column number
+        if ($3 ~ /DOMINANCE/) {col=3} else {col=5} # column number
         print "f(x)\tp(x)\tr(x)\tcmds"
     } NR>2{
-        f=$col # f(x), bps or domain values
-        if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x), https://stackoverflow.com/questions/8760473/roulette-wheel-selection-for-function-minimization
-        r+=p # r(x), cumulative sum of p(x)
-        cmd=$NF
-        print f"\t"p"\t"r"\t"cmd
+        validityVal=$2
+        if (validityVal!=1) {
+            f=$col # f(x), bps or domain values
+            if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x)
+            r+=p # r(x), cumulative sum of p(x)
+            cmd=$NF
+            print f"\t"p"\t"r"\t"cmd
+        }
     }' "$dsFileInput" ) > $roulette
     cat $roulette > $initialRoulette
     #
@@ -207,89 +210,6 @@ function RANK_SELECTION() {
             cmd=$NF # command
             print f"\t"p"\t"r"\t"cmd
         }' $rank ) > $rank.bak && mv $rank.bak $rank
-    done
-}
-#
-function BOLTZMANN_SELECTION() {
-    echo "=========================== BOLTZMANN SELECTION =====================================";
-    # 
-    # input file with values required for creating a boltzmann
-    dsFileInput="$gaFolder/g$gnum.tsv"
-    echo "ds file input: $dsFileInput; gen num: $gnum"
-    #
-    boltzmann="$selFolder/boltzmann.tsv"
-    initialBoltzmann="${boltzmann/boltzmann/initialBoltzmann}"
-    echo "boltzmann file: $boltzmann; initial boltzmann: $initialBoltzmann"
-    #
-    # f size
-    fSize=$(awk 'NR>2' $dsFileInput | sed -n '/[^[:space:]]/p' | wc -l)
-    echo "|f(x)| = $fSize"
-    #
-    # sum of all f values, F
-    F=$(awk 'NR==2{ if ($10 ~ /DOMINANCE/) {col=10} else {col=4} } NR>2{sum+=$col} END{print sum}' $dsFileInput)
-    echo "sum f(x) = F = $F"
-    #
-    initialT=$numSelectedCmds
-    #
-    # initialize boltzmann with f(x), p(x), r(x) and cmd columns
-    (   awk -F'\t' -v F=$F -v n=$fSize -v T=$initialT 'NR==2{ 
-        if ($10 ~ /DOMINANCE/) {col=10} else {col=4} # column number
-        print "x\tf(x)\tp(x)\tr(x)\tcmds"
-    } NR>2{
-        e=2.718282
-        x=$col # bps or domain column
-        f=1/(1+e^(x/T)) # f(x), boltzmann function
-        if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x)
-        r+=p # r(x), cumulative sum of p(x)
-        cmd=$NF
-        print x"\t"f"\t"p"\t"r"\t"cmd
-    }' "$dsFileInput" ) > $boltzmann
-    cat $boltzmann > $initialBoltzmann
-    #
-    temperatures=( $(for i in $(seq 1 $numSelectedCmds); do printf "$(echo "scale=3;$numSelectedCmds/$i^2"|bc) "; done ) )
-    #
-    for i in "${!temperatures[@]}"; do
-        T="${temperatures[i]}"
-        #
-        # pick a random number between 0 and 1 to choose a command
-        rmin=$(awk -F'\t' 'NR==2{print $(NF-1)}' $boltzmann)
-        rmax=$(awk -F'\t' 'END{print $(NF-1)}' $boltzmann)
-        rndNum=0.$((RANDOM%99999))$((RANDOM%9))
-        #
-        # find selected cmd
-        chosenCmd="$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$4) {print $NF;exit}}' $boltzmann)"
-        chosenCmds+=( "$chosenCmd" )
-        chosenRowNum=$(awk -F'\t' -v r=$rndNum 'NR>1{if (r<$4) {print NR;exit}}' $boltzmann)
-        #
-        # remove selected cmd from boltzmann to not choose it again
-        ( awk -v nr=$chosenRowNum 'NR!=nr {print}' $boltzmann ) > $boltzmann.bak && mv $boltzmann.bak $boltzmann
-        #
-        # update f size
-        fSize=$(awk 'NR>1' $boltzmann | sed -n '/[^[:space:]]/p' | wc -l)
-        echo "|f(x)| = $fSize"
-        #
-        # update sum of all f values, F
-        F=$(awk 'NR>1{sum+=$1} END{print sum}' $boltzmann)
-        echo "sum f(x) = F = $F"
-        #
-        # update f(x) mean and variance
-        mean=$(awk 'NR>1{n+=$2;d++}END{print n/d}' $initialBoltzmann)
-        var=$(awk -v m=$mean 'NR>1{sum+=($2-m)^2;n++}END{print sum/(n-1)}' $initialBoltzmann)
-        echo "variance = $var"
-        #
-        # update boltzmann stats
-        (   awk -F'\t' -v F=$F -v n=$fSize -v T=$T 'NR==1{
-            print "x\tf(x)\tp(x)\tr(x)\tcmds"
-        } NR>1{
-            e=2.718282 # euler
-            x=$1 # bps or domain column
-            f=1/(1+e^(x/T)) # f(x), boltzmann function
-            if (n!=1) { p=(1-f/F)/(n-1) } else { p=1 } # p(x)
-            r+=p # r(x)
-            cmd=$NF # command
-            print x"\t"f"\t"p"\t"r"\t"cmd
-        }' $boltzmann ) > $boltzmann.bak && mv $boltzmann.bak $boltzmann
-        cat $boltzmann > ${boltzmann}_$i
     done
 }
 #
@@ -420,7 +340,7 @@ fi
 for sequenceName in "${SEQUENCES[@]}"; do
     ds=$(awk '/'$sequenceName'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     #
-    cmdsFilesInput+=( "../${ds}/$ga/adultCmds.txt" );
+    cmdsFilesInput+=( "../${ds}/$ga/eval/adultCmds.txt" );
 done
 #
 for cmdsFileInput in ${cmdsFilesInput[@]}; do
@@ -429,7 +349,7 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     popSize=$(cat $cmdsFileInput | wc -l)
     [ -z "$numSelectedCmds" ] && numSelectedCmds=$(echo $popSize $selRate | awk '{print int($1*$2)}')
     #
-    gaFolder=$(dirname $cmdsFileInput);
+    gaFolder=$(dirname $cmdsFileInput | cut -d'/' -f1-3);
     nextGen=$((gnum+1));
     GET_SEED
     #
@@ -456,8 +376,6 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
         ROULETTE_SELECTION;
     elif [ "$SELECTION_OP" = "rank" ] || [ "$SELECTION_OP" = "rnk" ]; then
         RANK_SELECTION;
-    elif [ "$SELECTION_OP" = "boltzmann" ] || [ "$SELECTION_OP" = "b" ]; then
-        BOLTZMANN_SELECTION;
     elif [ "$SELECTION_OP" = "tournament" ] || [ "$SELECTION_OP" = "t" ]; then
         TOURNAMENT_SELECTION;
     fi
@@ -468,6 +386,8 @@ for cmdsFileInput in ${cmdsFilesInput[@]}; do
     #
     if [ $numUniqueCmds -eq $numSelectedCmds ]; then 
         echo "$numUniqueCmds unique selected commands";
+    #
+    # this should not happen
     else
         selCmdsFileOutputTMP="${selCmdsFileOutput/.txt/TMP.txt}"
         echo "$numSelectedCmds selected commands, $numUniqueCmds of them are unique";

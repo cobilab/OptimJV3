@@ -70,9 +70,12 @@ function GET_SEED() {
 INIT_GEN=1;
 FIRST_GEN=1;
 LAST_GEN=100;
-POPULATION_SIZE=100;
+stopCriteria=0;
+popSize=100;
 #
 ds_range="1:1";
+#
+ga="ga";
 #
 if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system
   nthreads=$(( $(nproc --all)/3 )); 
@@ -80,11 +83,12 @@ else
   nthreads=$(( $(nproc --all)-2 )); 
 fi
 #
+# to choose version of the crossover and mutation algorithm
+cmv=1
+#
 ds_sizesBase2="../../DS_sizesBase2.tsv"
 ds_sizesBase10="../../DS_sizesBase10.tsv"
 CHECK_DS_INPUT "$ds_sizesBase2" "$ds_sizesBase10"
-#
-ga="ga";
 #
 logPath="../logs";
 rm -fr $logPath;
@@ -145,9 +149,9 @@ while [[ $# -gt 0 ]]; do
         shift 2;
         ;;
     --population-size|--population|--psize|-ps)
-        POPULATION_SIZE="$2";
-        initFlags+="-ps $POPULATION_SIZE ";
-        evalFlags+="-ps $POPULATION_SIZE ";
+        popSize="$2";
+        initFlags+="-ps $popSize ";
+        evalFlags+="-ps $popSize ";
         shift 2;
         ;;
     --seed|-sd)
@@ -272,9 +276,19 @@ while [[ $# -gt 0 ]]; do
     #
     # CROSSOVER
     #
-    --crossover-rate|--xover-rate|--xrate|--cover-rate|--crate|-xr|-cr)
+    -cr|-ccr|--cmd-crossover-rate|--command-crossover-rate|--individual-crossover-rate|--genome-crossover-rate)
         CROSSOVER_RATE=$(echo "scale=3; $2" | bc);
         scmFlags+="-cr $CROSSOVER_RATE ";
+        shift 2;
+        ;;
+    -mcr|--model-crossover-rate|--chromossome-crossover-rate)
+        modelCR=$(echo "scale=3; $2" | bc);
+        scmFlags+="-mcr $modelCR ";
+        shift 2;
+        ;;
+    -cc|--command-crossover)
+        cmdCrossoverOp="$2";
+        scmFlags+="-cc $cmdCrossoverOp ";
         shift 2;
         ;;
     --crossover|--xover|--cover|-x|-c)
@@ -286,14 +300,26 @@ while [[ $# -gt 0 ]]; do
     #
     # MUTATION
     #
-    --knowledge-based-mutation|-kbm)
-        scmFlags+="-kbm "
+    --heuristic-mutation|-hm)
+        scmFlags+="-hm "
         shift
         ;;
-    --mutation-rate|--mrate|-mr)
+    -mr|-cmr|--cmd-mut-rate|--cmd-mutation-rate|--command-mutation-rate|--individual-mutation-rate|--genome-mutation-rate)
         MUTATION_RATE=$(echo "scale=3; $2" | bc);
         scmFlags+="-mr $MUTATION_RATE ";
         shift 2;
+        ;;
+    -pmr|--param-mut-rate|--param-mutation-rate|--parameter-mutation-rate)
+        paramMR=$(echo "scale=3; $2" | bc);
+        scmFlags+="-pmr $paramMR ";
+        shift 2;
+        ;;
+    #
+    # STOP CRITERIA
+    #
+    -sc|--stop-criteria)
+        stopCriteria="$2"
+        shift 2
         ;;
     *) 
         echo "Invalid option: $1"
@@ -318,8 +344,12 @@ for sequence in ${SEQUENCES[@]}; do
     dsx=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2");
     dsFolder="../$dsx";
     mkdir -p $dsFolder;
-    # 
+    #
     gaFolder="$dsFolder/$ga"
+    if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls "$gaFolder/g$INIT_GEN.sh" | wc -l) )); then
+        cp -r "$gaFolder" "${gaFolder}_bkp"
+        rm -fr $gaFolder
+    fi
     mkdir -p $gaFolder
     GET_SEED
     #
@@ -343,7 +373,7 @@ for sequence in ${SEQUENCES[@]}; do
     #
     startTime=$(date +%s%N)
     # 
-    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls $gaFolder/g$INIT_GEN.sh | wc -l) )); then 
+    ( if [ $FIRST_GEN -eq $INIT_GEN ] && (( ! $(ls "$gaFolder/generations/g$INIT_GEN.sh" | wc -l) )); then 
         initLog="$initLogFolder/init.log"
         initErr="$initLogFolder/init.err"
         echo "1. INITIALIZATION - log file: $initLog ; err file: $initErr";
@@ -354,30 +384,45 @@ for sequence in ${SEQUENCES[@]}; do
     for gen in $(seq $FIRST_GEN $LAST_GEN); do
         echo "=== GENERATION $gen ===";
         #
+        # === RUN ==========================================================================
         runLog="$runLogFolder/run$gen.log"
         runErr="$runLogFolder/run$gen.err"
         echo "2. RUN - log file: $runLog ; err file: $runErr";
         echo "./Run.sh -s $sequence -g $gen $flags $runFlags" >> "$gaCmds"
         bash -x ./Run.sh -s $sequence -g $gen $flags $runFlags 1> $runLog 2> $runErr;
         #
+        # === EVALUATION ===================================================================
         evalLog="$evalLogFolder/eval$gen.log"
         evalErr="$evalLogFolder/eval$gen.err"
         echo "3. EVALUATION - log file: $evalLog ; err file: $evalErr";
         echo "./Evaluation.sh -s $sequence -g $gen $flags $evalFlags" >> "$gaCmds"
         bash -x ./Evaluation.sh -s $sequence -g $gen $flags $evalFlags 1> $evalLog 2> $evalErr;
         #
+        # === SELECTION =====================================================================
         selLog="$selLogFolder/sel$gen.log"
         selErr="$selLogFolder/sel$gen.err"
         echo "4. SELECTION - log file: $selLog ; err file: $selErr";
         echo "./Selection.sh -s $sequence -g $gen $flags $selFlags" >> "$gaCmds"
         bash -x ./Selection.sh -s $sequence -g $gen $flags $selFlags 1> $selLog 2> $selErr;
         #
+        # === CROSSOVER and MUTATION ========================================================
         scmLog="$scmLogFolder/scm$gen.log"
         scmErr="$scmLogFolder/scm$gen.err"
         echo "5. CROSSOVER, 6. MUTATION - log file: $scmLog ; err file: $scmErr";
+        #
+        # handles command crossover and mutation rate features 
         echo "./CrossMut.sh -s $sequence -g $gen $flags $scmFlags" >> "$gaCmds"
         bash -x ./CrossMut.sh -s $sequence -g $gen $flags $scmFlags 1> $scmLog 2> $scmErr;
-    
+        #
+        # === STOP CRITERIA ========================================================
+        #
+        # this stop criteria option stops GA if generation has not produced offspring
+        # before reaching last generation
+        if [ $stopCriteria -eq 1 ]; then
+            genScript="$gaFolder/g$gen.sh"
+            numOffspring=$(cat $genScript|wc -l)
+            [ $numOffspring -eq 0 ] && break
+        fi
     done ) 1>> $logFile 2>> $errFile
     #
     endTime=$(date +%s%N)
@@ -387,7 +432,8 @@ for sequence in ${SEQUENCES[@]}; do
     time_m=$(echo "scale=3; $time_s/60" | bc)
     time_h=$(echo "scale=3; $time_s/3600" | bc)
     times=( "$time_s s" "$time_m m"  "$time_h h" ) 
-    printf "%s \n" "${times[@]}" > $logFolder/time.txt
+    printf "%s \n" "${times[@]}" >> $logFolder/time.txt
     #
-    echo "$dsx, $ga program is complete"
+    echo "$ga program ($dsx) is complete"
+    echo "data saved in: ${gaFolder}"
 done

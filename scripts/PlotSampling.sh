@@ -3,7 +3,8 @@
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-seqArr=("human12d5MB" "human25MB")
+seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
+#
 output="../humanSampling"
 mkdir -p $output
 pltsFolder="$output/plots"
@@ -21,25 +22,29 @@ pltsFile="$pltsFolder/sampling.pdf"
     awk -F'\t' 'NR==3' $results 
 done ) > $statsFile
 #
+# dsx=$(awk '/'human100MB'[[:space:]]/ { print $1 }' "$ds_sizesBase2")
+# results="../$dsx/s150gens/eval/allSortedRes_bps.tsv"
+# awk -F'\t' 'NR==3' $results >> $statsFile
+#
 # process stats so that x axis is size of sequence and y axis is BPS
 awk -F'\t' '{
     # 
     # Split the last field (command) using "/" to get rid of the path
     n = split($NF, parts, "/");
     #
-    # Now parts[n] contains the "filesize.extension", so remove the extension
-    filesize = parts[n];
+    # Now parts[n] contains the "filesizePerc.extension", so remove the extension
+    filesizePerc = parts[n];
     #
     # Remove the extension by replacing anything after the last "."
-    sub(/\.[^.]*$/, "", filesize);
+    sub(/\.[^.]*$/, "", filesizePerc);
     #
-    if (NR==1) filesize="SIZE_MB"
-    else if (filesize ~ /12d5MB/) filesize=12.5
-    else if (filesize ~ /25MB/) filesize=25
-    else if (filesize ~ /50MB/) filesize=50
-    else if (filesize ~ /100MB/) filesize=100
+    if (NR==1) filesizePerc="SIZE_PERC"
+    else if (filesizePerc ~ /12d5MB/) filesizePerc=12.5
+    else if (filesizePerc ~ /25MB/) filesizePerc=25
+    else if (filesizePerc ~ /50MB/) filesizePerc=50
+    else if (filesizePerc ~ /100MB/) filesizePerc=100
     #
-    print filesize"\t"$5"\t"$6"\t"$7"\t"$8
+    print filesizePerc"\t"$5"\t"$6"\t"$7"\t"$8
 }' $statsFile > $statsFileProcessed
 #
 # gnuplot
@@ -47,19 +52,31 @@ gnuplot -persist << EOF
     # set title "Sampling"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set output "$pltsFile"
+    set key outside top horizontal Right noreverse noenhanced autotitle nobox
 
-    set xlabel "Sequence Size"
+    set xlabel "Sequence Size (%)"
+    set format x "%g%%"  # Append % symbol to each x-axis tic
+    set xtics (100, 50, 25, 12.5)
+    set xrange [103:3]
 
     set ylabel "BPS"
-    set yrange [1.6:1.8]
+    set ytics nomirror
+    set yrange [1.43:1.69]
+
+    set y2label "C TIME (m)"
+    set y2tics nomirror
+    set y2range [0.45:7.1]
 
     set style line 1 lc rgb '#550055' pt 2 ps 1 # BPS dots
     set style line 2 lt 1 lc rgb '#990099' ps 1 # BPS line
 
+    set style line 3 lc rgb '#005500' pt 2 ps 0.5 # ctime dots
+    set style line 4 lt 1 lc rgb '#009900' ps 1 dashtype '_-' # ctime line
+
     set grid
-    plot '$statsFileProcessed' using 1:2 linestyle 1 title 'BPS', \
-    '$statsFileProcessed' using 1:2 linestyle 2 with lines notitle, \
-    '$statsFileProcessed' using 1:2:2 with labels offset char 1,1 notitle
-    # '$statsFileProcessed' using 1:2:1 with vectors nohead notitle, \
-    
+    plot '$statsFileProcessed' u 1:2 linestyle 1 notitle, \
+    '$statsFileProcessed' u 1:2 linestyle 2 with lines title "BPS", \
+    '$statsFileProcessed' u 1:2:2 with labels offset char 1.5,-1 notitle, \
+    '$statsFileProcessed' u 1:4 linestyle 3 axes x1y2 notitle, \
+    '$statsFileProcessed' u 1:4 linestyle 4 axes x1y2 with lines title "C TIME (m)"
 EOF

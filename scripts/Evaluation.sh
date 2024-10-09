@@ -1,8 +1,5 @@
 #!/bin/bash
 #
-# default variables and constants
-POPULATION_SIZE=100;
-#
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
@@ -11,7 +8,7 @@ moga_wm=false; # multi-objective GA (weight metric method)
 moga_ws=false; # multi-objective GA (weight sum method)
 #
 pExp=2; # p value required for moga (weight metric method)
-w_bPS=0.999999; # weight bPS required for moga
+w_bPS=0.5; # weight bPS required for moga
 w_CTIME=$(echo "1-$w_bPS" | bc); # weight C_TIME required for moga
 #
 ga="ga";
@@ -141,92 +138,126 @@ for sequenceName in ${SEQUENCES[@]}; do
 done
 #
 for ds in ${datasets[@]}; do
-    gaFolder="../${ds}/$ga";
+    gaFolder="../$ds/$ga";
+    evalFolder="$gaFolder/eval"
+    generationFolder="$gaFolder/generations"
+    mkdir -p $generationFolder
     #
-    # get raw results of all generations
-    currentRawResFile="$gaFolder/g${gnum}_raw.tsv";
-    allRawResFile="$gaFolder/allRawRes.tsv";
+    # add CTIME(m) and CTIME(h) and save into unsorted file
+    inputRes="$evalFolder/rawRes.tsv";
+    lastPopulation="$generationFolder/g$((gnum-1)).tsv"
+    [ $gnum -ne 1 ] && POPULATION_SIZE=$(($(cat $lastPopulation | wc -l)-2)) || POPULATION_SIZE=$(($(cat $inputRes | wc -l)-2))
+    unsortedRes="$evalFolder/unsortedRes.tsv"
+    awk -F'\t' -v OFS='\t' \
+    'NR==1 {print}
+    NR==2{
+        C_TIME_s=$6
+        $6=C_TIME_s"\tC_TIME (m)\tC_TIME (h)"
+        print
+
+    }NR>2{
+        C_TIME_s=$6
+        C_TIME_m=C_TIME_s/60
+        C_TIME_h=C_TIME_s/3600
+        $6=C_TIME_s"\t"C_TIME_m"\t"C_TIME_h
+        print
+    }' $inputRes > $unsortedRes
+    #
+    # get unsorted results of all generations
+    allUnsortedFile="$evalFolder/allUnsortedRes.tsv";
     if [ $gnum -eq 1 ]; then
-        head -n +2 $currentRawResFile | sed -e 's/ - generation.//' > $allRawResFile;
+        head -n +2 $unsortedRes | sed -e 's/ - generation.//' > $allUnsortedFile;
     fi
-    tail -n +3 $currentRawResFile >> $allRawResFile;
+    tail -n +3 $unsortedRes >> $allUnsortedFile;
     #
-    # sort all results by BPS, then CTIME (s)
-    allSortedRes_bps="$gaFolder/allSortedRes_bps_ctime_s.tsv";
-    cat $allRawResFile | sort -k3n -k5n > $allSortedRes_bps;
+    # sort all results by their validity, then BYTES_CF, then CTIME (s)
+    allSortedRes_bps="$evalFolder/allSortedRes_bps.tsv";
+    cat $allUnsortedFile | sort -k2n -k4n -k6n > $allSortedRes_bps;
     #
-    # sort all results by BPS, then CTIME (converted to minutes)
-    allSortedRes_bps_ctime_m="$gaFolder/allSortedRes_bps_ctime_m.tsv";
-    awk -v OFS="\t" -F'\t' '{if (NR==2) {$5="C_TIME (m)"} else if (NR>2) {$5=$5/60} print}' $allSortedRes_bps > $allSortedRes_bps_ctime_m;
-    #
-    # sort all results by BPS, then CTIME (converted to hours)
-    allSortedRes_bps_ctime_h="$gaFolder/allSortedRes_bps_ctime_h.tsv";
-    awk -v OFS="\t" -F'\t' '{if (NR==2) {$5="C_TIME (h)"} else if (NR>2) {$5=$5/3600} print}' $allSortedRes_bps > $allSortedRes_bps_ctime_h;
-    #
-    # filter raw results by last N generations (num of filtered results cannot be less than $POPULATION_SIZE)
-    rawFilterResFile="$gaFolder/aRawFilterRes.tsv";
+    # filter all unsorted results by last N generations (num of filtered results cannot be less than $POPULATION_SIZE)
+    filteredRes="$evalFolder/filteredRes.tsv";
     for ((oldestGen=$gnum; oldestGen>=1; oldestGen--)); do
-        numCmds=$(awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print $(NF-1)} }' $allRawResFile | wc -l);
+        numCmds=$(awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print $(NF-1)} }' $allUnsortedFile | wc -l);
         if [ $numCmds -ge $POPULATION_SIZE ]; then 
-            ( head -n +2 $currentRawResFile;
-            awk -F'\t' -v oldestGen=$oldestGen 'NR>2 { if ($(NF-1)>=oldestGen) {print} }' $allRawResFile;
-            )> $rawFilterResFile;
+            ( 
+                head -n 1 $unsortedRes
+                awk 'NR>=2' $allUnsortedFile | sort -k2n -k4n -k6n | head -n $((POPULATION_SIZE+1))
+            ) > $filteredRes
             break; 
         fi; 
     done
     #
-    # normalize bps, ctime, and cmem data (linear scaling)
-    normalizedResFile="$gaFolder/aNormalized.tsv";
-    normalizedTMP="$gaFolder/aNormalizedTMP.tsv";
-    size=$(cat $rawFilterResFile | wc -l);
-    #
-    awk -F'\t' -v OFS='\t' -v m=$ctime_min -v M=$ctime_max 'NR > 2 { $4="|"$4"|"; $5=$5"|"; $6=$6"|"; $NF="\x22"$NF"\x22"; print }' $rawFilterResFile > $normalizedTMP;
-    ( head -n +1 $rawFilterResFile;
-    printf "PROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBPSn\tC_TIMEn (s)\tC_MEMn (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tGEN_BIRTH\tC_COMMAND\n";
-    awk -F'|' -v OFS='\t' -v size=$size \
-    '{ print $1"\t"$2"\t"$3"\t"$4"\t"$2"\t"$3/size"\t"$4/size"\t"$5 }' \
-    $normalizedTMP | tr -s '\t' '\t' | tr -d '"' | sort -k4n -k5n )> $normalizedResFile;
-    rm -fr $normalizedTMP;
-    #
-    # sort results by either soga or moga strategies
-    # if [ $wCTIME -gt 0.5 ]; then
-    #     sortFlags=" -k5n -k4n"; # sort by CTIME before BPS
-    # else
-    #     sortFlags=" -k4n -k5n"; # sort by BPS before CTIME
-    # fi
-    #
     if $soga; then
-        sortedResFile="$gaFolder/aSortedRes_bps.tsv";
-        cat $normalizedResFile > $sortedResFile;
+        sortedResFile="$evalFolder/sortedRes.tsv";
+        cat $filteredRes | sort -k2n -k4n -k6n > $sortedResFile;
         echo "soga method done";
-    elif $moga_wm; then
-        sortedResFile="$gaFolder/aSortedRes_moga.tsv";
-        mogaTMP="$gaFolder/aSortedRes_mogaTMP.tsv";
-        awk -F'\t' -v OFS='\t' 'NR > 2 { $7="|"$7"|"; $8=$8"|"; $9=$9"|"; $NF="\x22"$NF"\x22"; print }' $normalizedResFile > $mogaTMP;
-        ( head -n +1 $rawFilterResFile;
-        printf "PROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBPSn\tC_TIMEn (s)\tC_MEMn (GB)\tDOMINANCE\tD_TIME (s)\tD_MEM (GB)\tDIFF\tGEN_BIRTH\tC_COMMAND\n";
-        awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"(w1*$2^p+w2*$3^p)^(1/p)"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n -k4n -k5n )> $sortedResFile;
-        rm -fr $mogaTMP;
-        echo "moga weight metric method done";
-    elif $moga_ws; then
-        sortedResFile="$gaFolder/aSortedRes_moga_ws.tsv";
-        mogaTMP="$gaFolder/aRawFilterRes_moga_ws_tmp.tsv";
-        awk -F'\t' -v OFS='\t' 'NR > 2 { $7="|"$7"|"; $8=$8"|"; $9=$9"|"; $NF="\x22"$NF"\x22"; print }' $normalizedResFile > $mogaTMP;
-        ( head -n +1 $rawFilterResFile;
-        printf "PROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBPSn\tC_TIMEn (s)\tC_MEMn (GB)\tDOMINANCE\tD_TIME (s)\tD_MEM (GB)\tDIFF\tGEN_BIRTH\tC_COMMAND\n";
-        awk -v OFS='\t' -v p=$pExp -v w1=$w_bPS -v w2=$w_CTIME -F'|' '{ print $1"\t"$2"\t"$3"\t"$4"\t"w1*$2+w2*$3"\t"$5 }' $mogaTMP | tr -s '\t' '\t' | tr -d '"' | sort -k10n -k4n -k5n )> $sortedResFile;
-        rm -fr $mogaTMP;
-        echo "moga weight sum method done";
+    #
+    else
+        #
+        # normalize ctime(s), and cmem data (linear scaling)
+        # filteredRes ---> normalized
+        normalizedResFile="$evalFolder/normalized.tsv";
+        size=$(cat $filteredRes | wc -l);
+        awk -F'\t' -v OFS='\t' -v size=$size \
+        'NR==1 {print}
+        NR==2{
+            C_TIME_s=$6
+            $6=C_TIME_s"\tnC_TIME (s)"
+
+            C_MEM=$9
+            $9=C_MEM"\tnC_MEM (GB)"
+
+            print
+
+        }NR>2{
+            C_TIME_s=$6
+            nC_TIME_s=C_TIME_s/size
+            $6=C_TIME_s"\t"nC_TIME_s
+
+            C_MEM=$9
+            nC_MEM=C_MEM/size
+            $9=C_MEM"\t"nC_MEM
+
+            print
+        }' $filteredRes > $normalizedResFile
+        #
+        # sort by dominance
+        # w1: BPS weight; w2: CTIME weight
+        sortedResFile="$evalFolder/sortedRes_moga.tsv"
+        $moga_wm && moga_wm=1 
+        $moga_ws && moga_ws=1 && sortedResFile="$evalFolder/sortedRes_moga_ws.tsv"
+        #
+        awk -F'\t' -v OFS='\t' -v mogaWm=$moga_wm -v mogaWs=$moga_ws -v w1=$w_bPS -v w2=$w_CTIME -v p=$pExp \
+        'NR==1 {print}
+        NR==2{
+            BYTES=$3
+            $3="DOMINANCE\t"BYTES
+            print
+
+        }NR>2{
+            BYTES=$3
+            BPS=$5
+            nCTIME_s=$7
+            if (mogaWm) {
+                DOMINANCE=(w1*BPS^p+w2*nCTIME_s^p)^(1/p)
+            } else if (mogaWs) {
+                DOMINANCE=w1*BPS+w2*nCTIME_s
+            }
+            $3=DOMINANCE"\t"BYTES
+            print
+        }' $normalizedResFile | sort -k2n -k3n -k5n -k7n > $sortedResFile
+        #
+        (( $moga_wm )) && echo "moga weight metric method done" || echo "moga weight sum method done"      
     fi
     #
-    # update population
-    currentPopFile="$gaFolder/g${gnum}.tsv";
-    awk -v population=$POPULATION_SIZE 'NR<=2+population {print}' $sortedResFile > $currentPopFile;
+    # save evaluated generation
+    currentPopFile="$generationFolder/g${gnum}.tsv";
+    cat $sortedResFile > $currentPopFile;
     #
     # get adult cmds
-    currentAdultCmdsFile="$gaFolder/adultCmds.txt";
+    currentAdultCmdsFile="$evalFolder/adultCmds.txt";
     awk -F'\t' 'NR > 2 {print $NF}' $currentPopFile | sed 's/.*C_COMMAND[[:space:]]*//' > $currentAdultCmdsFile;
     #
     # rename file with raw results of current generation
-    mv $currentRawResFile "$gaFolder/aLastRawRes.tsv";
+    mv $inputRes "$evalFolder/latestGenRawRes.tsv";
 done

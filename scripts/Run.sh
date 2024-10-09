@@ -65,13 +65,7 @@ function RUN_TEST() {
   D_COMMAND="$6";
   gnum="$7";
   #
-  c_time_mem_tmp="${sequenceName}${output_ext}c_time_mem_tmp.txt";
-  c_time_mem="${c_time_mem_tmp//_tmp.txt/.txt}";
-  d_time_mem="${sequenceName}${output_ext}d_time_mem.txt";
-  cmp="${sequenceName}${output_ext}cmp.txt";
-  #
-  rm -fr $c_time_mem $d_time_mem $cmp;   
-  rm -fr $FILEC $FILED;
+  c_time_mem="${sequenceName}${output_ext}c_time_mem.txt";
   #
   BYTES=`ls -la $IN_FILE | awk '{ print $5 }'`;
   #
@@ -80,56 +74,26 @@ function RUN_TEST() {
   # %e: (Not in tcsh(1).)  Elapsed real time (in seconds).
   # %M: Maximum resident set size of the process during its lifetime, in Kbytes, HOWEVER
   # Kbyte/1024/1024 => Gigabyte
-  timeout "$timeOut" /bin/time -o $c_time_mem_tmp -f "TIME\t%e\tMEM\t%M" $C_COMMAND;
-  errorStatus=$(( $(cat $c_time_mem_tmp | wc -l) != 1 ))
-  echo "time (s) and mem (GB)"; cat $c_time_mem_tmp
-  cat "$c_time_mem_tmp" | grep "TIME" | awk '{ printf $2"\t"$4/1024/1024"\n" }' 1> "${c_time_mem}";
-  rm -fr $c_time_mem_tmp;
+  timeout "$timeOut" /bin/time -o $c_time_mem -f "TIME\t%e\tMEM\t%M" $C_COMMAND;
+  errorStatus=$?
+  # errorStatus=$(( $(cat $c_time_mem | wc -l) != 1 ))
+  echo "time (s) and mem (GB)"; cat $c_time_mem
   #
-  # if compressed file exists, compression stats is not empty and non error status
-  if [ -e "$FILEC" ] && [[ -s "$c_time_mem" ]] && (( ! $errorStatus )); then
-    BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
-    BPS=$(echo "scale=3; $BYTES_CF*8 / $BYTES" | bc); # bits per symbol
-    C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $1 }')`; 
-    C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | awk '{ print $2 }')`;
-  fi
+  # a cmd is valid if compressed file exists, compression stats is not empty, non error status and did not use too much RAM
+  BYTES_CF=`ls -la $FILEC | awk '{ print $5 }'`;
+  BPS=$(echo "scale=3;$BYTES_CF*8/$BYTES" | bc)
   #
-  # invalid cmds go here, including cmds that used too much GB
-  if [ ! -e "$FILEC" ] || [[ ! -s "$c_time_mem" ]] || (( $errorStatus )) || (( $(echo "$C_MEME > $maxGBperCmd"|bc) )); then
-    invalidCmds="$dsFolder/aInvalidCmds.tsv";
-    printf "$gnum\t$C_COMMAND\n" 1>> $invalidCmds;
-    #
-    C_TIME=$((timeOut+1));
-    [ -z $C_MEME ] && C_MEME=$((timeOut+1))
-    #
-    BYTES_CF=$BYTES; # baseline value
-    BPS=2; # baseline value
-  fi
+  C_TIME=`printf "%0.3f\n" $(cat $c_time_mem | grep TIME | awk '{ print $2 }')`; 
+  C_MEME=`printf "%0.3f\n" $(cat $c_time_mem | grep TIME | awk '{ print $4/1024/1024 }')`;
   #
-  # DECOMPRESSION is not needed for optimization
-  printf "%d\t%d\n" -1 -1 > $d_time_mem;
-  #
-  # CMP file is not needed for optimization
-  touch $cmp;
-  #
-  # register D_TIME and D_MEME
-  if [[ -s "$d_time_mem" ]]; then # if file is not empty...
-    D_TIME=`printf "%0.3f\n" $(cat $d_time_mem | awk '{ print $1 }')`;
-    D_MEME=`printf "%0.3f\n" $(cat $d_time_mem | awk '{ print $2 }')`;
-  else
-    D_TIME=-1;
-    D_MEME=-1;
-  fi
-  #
-  VERIFY="0";
-  CMP_SIZE=`ls -la $cmp | awk '{ print $5}'`;
-  if [[ "$CMP_SIZE" != "0" ]]; then CMP_SIZE="1"; fi
+  tooMuchMEM=$(echo "$C_MEME > $maxGBperCmd"|bc)
+  (( $tooMuchMEM )) && VALIDITY=$maxGBperCmd || VALIDITY=$errorStatus
   #
   pattern=" -o ../../sequences/*.seq.jc ";
-  printf "$NAME\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$D_TIME\t$D_MEME\t$CMP_SIZE\t$gnum\t${C_COMMAND/$pattern}\n" 1>> "$resOutput";
+  printf "$NAME\t$VALIDITY\t$BYTES\t$BYTES_CF\t$BPS\t$C_TIME\t$C_MEME\t$gnum\t${C_COMMAND/$pattern}\n" 1>> "$resOutput";
   #
-  rm -fr $c_time_mem $d_time_mem $cmp;   
-  rm -fr $FILEC $FILED;
+  rm -fr $c_time_mem $FILEC
+  unset BYTES_CF BPS C_TIME C_MEM
   #
 }
 #
@@ -155,13 +119,13 @@ if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in t
 else # server with only one user
   nthreads=$(( $(nproc --all)-2 ))
   maxFreeGB=$(awk '/MemFree/ {printf "%.3f \n", $2/1024/1024 }' /proc/meminfo)
-  maxGBperCmd=$(echo "scale=2;($maxFreeGB-3)/$nthreads" | bc)
+  maxGBperCmd=$(echo "scale=3;$maxFreeGB/$nthreads" | bc)
 fi
 #
 ga="ga";
 #
-# remove output files and dirs from last time Run.sh was executed
-rm -fr *c_time_mem.txt *d_time_mem.txt *cmp.txt; 
+# remove output files and dirs from last time this script was executed
+rm -fr *c_time_mem.txt
 #
 ### PARSING ###############################################################################################
 #
@@ -208,18 +172,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --gen-num|-g)
       gnum="$2";
-      shift # past argument
-      shift # past value
+      shift 2;
       ;;
     --timeout|-to)
       timeOut="$2"
-      shift
-      shift
+      shift 2;
       ;;
     --nthreads|-t)
       nthreads="$2";
-      shift
-      shift
+      shift 2;
       ;;
     *) 
       echo "Invalid option: $1"
@@ -230,6 +191,11 @@ done
 #
 if [ ${#SEQUENCES[@]} -eq 0 ]; then
   SEQUENCES=( "${ALL_SEQUENCES[@]}" );
+fi
+#
+# first generation tends to use more memory than other generations
+if [ $gnum -eq 1 ]; then
+  [ $nthreads -gt $(($(nproc --all)/2)) ] && nthreads=$(( $nthreads-2 ))
 fi
 #
 # ------------------------------------------------------------------------------
@@ -244,13 +210,12 @@ for sequenceName in "${SEQUENCES[@]}"; do
     cmdsScriptInput="$dsFolder/g${gnum}.sh"; 
     CHECK_INPUT "$cmdsScriptInput";
     #
-    invalidCmds="$dsFolder/invalidCmds.txt";
-    #
     resOutput_header="$dsFolder/g${gnum}_header.txt";
-    printf "$dsX - $sequenceName - generation${gnum} \nPROGRAM\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tD_TIME (s)\tD_MEM (GB)\tDIFF\tBIRTH_GEN\tC_COMMAND\n" 1> "$resOutput_header";
+    printf "$dsX - $sequenceName - generation${gnum} \nPROGRAM\tVALIDITY\tBYTES\tBYTES_CF\tBPS\tC_TIME (s)\tC_MEM (GB)\tBIRTH_GEN\tC_COMMAND\n" 1> "$resOutput_header";
     #
     # run tests from generation $gnum
     sequence="$sequencesPath/$sequenceName";
+    rm -fr $sequence.*.jc # remove compressed sequence
     echo "sequence to compress: $sequence.seq";
     echo "start splitting and running cmds from $cmdsScriptInput file...";
     #
@@ -292,7 +257,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
         #
         d_cmd="none"; # we only want to optimize compression, not decompression
         #
-        RUN_TEST "JV3bin_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd_with_o_flag}" "${d_cmd}" "$gnum"
+        RUN_TEST "JV3_${ga}_${num_cms}cms_${num_rms}rms" "$sequence.seq" "$sequence.$output_ext.seq.jc" "$sequence.$output_ext.seq.jc.jd" "${cmd_with_o_flag}" "${d_cmd}" "$gnum"
         #
         # this prevents from having to rerun the whole population if this script is interrupted
         cmdsScriptInputTMP="$dsFolder/g${gnum}TMP.sh"; 
@@ -309,7 +274,9 @@ for sequenceName in "${SEQUENCES[@]}"; do
     #
     # merge results
     resOutput_body="$dsFolder/g${gnum}_splitted_*.txt";
-    resOutput="$dsFolder/g${gnum}_raw.tsv";
+    evalFolder="$dsFolder/eval"
+    mkdir -p $evalFolder
+    resOutput="$evalFolder/rawRes.tsv";
     cat $resOutput_header $resOutput_body $savedFile > $resOutput 2> /dev/null
     #
     # remove splitted cmd scripts, children script, header, and file with other results saved from last execution

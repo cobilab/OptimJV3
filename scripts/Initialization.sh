@@ -62,9 +62,9 @@ function DEFINE_PARAM_RANGES() {
     #
     # RM PARAMETERS
     # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
-    NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of repeat gas
+    NB_R_rm_lst=( 1 2 5 10 20 50 100 200 ) # (integer [1;10000]) max num of RMs
     NB_C_rm_lst=(12 13 14) # RM size. higher values -> more RAM -> better compression
-    NB_B_lst=($(seq 0.05 0.05 0.95)) # (real (0;1]) beta. discards or keeps a repeat ga
+    NB_B_lst=($(seq 0.05 0.05 0.95)) # (real (0;1]) beta. discards or keeps a RM
     NB_L_lst=( {1..14} ) # (integer (1;20]) limit threshold; has dependency with NB_B
     NB_G_rm_lst=( $(seq 0.05 0.05 0.95) ) # (real [0;1)) gamma; decayment forgetting factor
     NB_I_rm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
@@ -90,9 +90,9 @@ function DEFINE_PARAM_RANGES() {
     #
     # RM PARAMETERS
     # -rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y}
-    NB_R_rm_lst=( {1..500} ) # (integer [1;10000]) max num of repeat gas
+    NB_R_rm_lst=( {1..500} ) # (integer [1;10000]) max num of RMs
     NB_C_rm_lst=( {1..13} ) # RM size. higher values -> more RAM -> better compression
-    NB_B_lst=($(seq 0.01 0.01 0.99)) # (real (0;1]) beta. discards or keeps a repeat ga
+    NB_B_lst=($(seq 0.01 0.01 0.99)) # (real (0;1]) beta. discards or keeps a RM
     NB_L_lst=( {2..20} ) # (integer (1;20]) limit threshold; has dependency with NB_B
     NB_G_rm_lst=( $(seq 0 0.01 0.99) ) # (real [0;1)) gamma; decayment forgetting factor
     NB_I_rm_lst=(0 1 2) # (integer {0,1,2}) manages inverted repeats
@@ -116,9 +116,10 @@ POPULATION_SIZE=100;
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
 #
-heuristicInitState=false # heuristic initialization
-hybridInitState=false # hybrid initialization
-hyiPercHeuCmds=0.1 # default percentage of heuristic cmds generated in hybrid initialization
+hei=false # heuristic initialization
+hyi=false # hybrid initialization
+seeding=false # seeding initialization
+hyiPercHeuCmds=0.5 # default percentage of heuristic cmds generated in hybrid initialization
 #
 ga="ga";
 #
@@ -188,6 +189,10 @@ while [[ $# -gt 0 ]]; do
       hyiNumHeuCmds="$2"
       shift 2
       ;;
+    -sing|--seeding)
+      seeding=true;
+      shift
+      ;;
     --min-cm|--m-cm|-mCM)
       min_cms="$2";
       shift 2;
@@ -231,6 +236,7 @@ while [[ $# -gt 0 ]]; do
 done
 #
 hyiNumHeuCmds=$(echo $POPULATION_SIZE $hyiPercHeuCmds | awk '{print int($1*$2)}') # default num of heuristic cmds generated in hybrid initialization
+numSeedSols=$(echo $POPULATION_SIZE $seedSolsPerc | awk '{print int($1*$2)}') # default num of seed solutions in seeding initialization
 #
 if [ ${#SEQUENCES[@]} -eq 0 ]; then
   SEQUENCES=( "${ALL_SEQUENCES[@]}" );
@@ -254,6 +260,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
     fi
     mkdir -p $gaFolder
     #
+    # first generation script that will be executed
     outputScript="$gaFolder/g1.sh";
     #
     DEFINE_PARAM_RANGES;
@@ -265,43 +272,51 @@ for sequenceName in "${SEQUENCES[@]}"; do
       # generate random cmd instead of heuristic after a number of heuristic cmds has been generated
       $hyi && [ $i -gt $hyiNumHeuCmds ] && hei=false && DEFINE_PARAM_RANGES
       #
-      num_cms=$((RANDOM % (max_cms - min_cms + 1) + min_cms));
+      # if seeding is included (only works for complete human genome sequence) 
+      if [ $i -eq 1 ] && [ "$sequenceName" = "chm13v2.0" ] && $seeding; then 
+        printf "${jv3Path}JARVIS3 -v -cm 1:1:0:0.9/0:0:0:0 -cm 3:1:0:0.9/0:0:0:0 -cm 6:1:0:0.9/0:0:0:0 -cm 9:1:0:0.9/0:0:0:0 -cm 11:10:1:0.9/0:0:0:0 -cm 14:200:1:0.9/1:10:1:0.9 -rm 300:14:0.88:7:0.85:0:0.01:4 -rm 300:14:0.88:7:0.85:2:0.01:4 -rm 500:12:0.88:7:0.85:0:0.01:15 $sequence.seq\n"
       #
-      CM="";
-      for ((j=1; j<=num_cms; j++)); do
-        # stochastically chosen cm parameter values -cm 1:1:0:0.9/0:0:0:0
-        NB_C=${NB_C_cm_lst[$((RANDOM % ${#NB_C_cm_lst[@]}))]};
-        NB_D=${NB_D_lst[$((RANDOM % ${#NB_D_lst[@]}))]}; 
-        NB_I=${NB_I_cm_lst[$((RANDOM % ${#NB_I_cm_lst[@]}))]}; 
-        NB_G=${NB_G_cm_lst[$((RANDOM % ${#NB_G_cm_lst[@]}))]};
-        NB_S=${NB_S_lst[$((RANDOM % ${#NB_S_lst[@]}))]};
-        NB_R=${NB_R_cm_lst[$((RANDOM % ${#NB_R_cm_lst[@]}))]};
-        NB_E=${NB_E_lst[$((RANDOM % ${#NB_E_lst[@]}))]};
-        NB_A=${NB_A_lst[$((RANDOM % ${#NB_A_lst[@]}))]};
+      else
+        num_cms=$((RANDOM % (max_cms - min_cms + 1) + min_cms));
+        CM="";
+        for ((j=1; j<=num_cms; j++)); do
+          # stochastically chosen cm parameter values -cm 1:1:0:0.9/0:0:0:0
+          NB_C=${NB_C_cm_lst[$((RANDOM % ${#NB_C_cm_lst[@]}))]};
+          NB_D=${NB_D_lst[$((RANDOM % ${#NB_D_lst[@]}))]}; 
+          NB_I=${NB_I_cm_lst[$((RANDOM % ${#NB_I_cm_lst[@]}))]}; 
+          NB_G=${NB_G_cm_lst[$((RANDOM % ${#NB_G_cm_lst[@]}))]};
+          NB_S=${NB_S_lst[$((RANDOM % ${#NB_S_lst[@]}))]};
+          NB_R=${NB_R_cm_lst[$((RANDOM % ${#NB_R_cm_lst[@]}))]};
+          NB_E=${NB_E_lst[$((RANDOM % ${#NB_E_lst[@]}))]};
+          NB_A=${NB_A_lst[$((RANDOM % ${#NB_A_lst[@]}))]};
+          #
+          CM+="-cm ${NB_C}:${NB_D}:${NB_I}:${NB_G}/${NB_S}:${NB_E}:${NB_R}:${NB_A} ";
+        done
+        cmArr=($(echo $CM | sed 's/-cm /\n/g' | tail -n +2|sort))
+        CM=$(printf "\055cm %s " ${cmArr[@]})
         #
-        CM+="-cm ${NB_C}:${NB_D}:${NB_I}:${NB_G}/${NB_S}:${NB_E}:${NB_R}:${NB_A} ";
-      done
-      #
-      num_rms=$((RANDOM % (max_rms - min_rms + 1) + min_rms));
-      #
-      RM="";
-      for ((j=1; j<=num_rms; j++)); do
-        # stochastically chosen rm parameter values
-        NB_R=${NB_R_rm_lst[$((RANDOM % ${#NB_R_rm_lst[@]}))]};
-        NB_C=${NB_C_rm_lst[$((RANDOM % ${#NB_C_rm_lst[@]}))]}; 
-        NB_B=${NB_B_lst[$((RANDOM % ${#NB_B_lst[@]}))]}; 
-        NB_L=${NB_L_lst[$((RANDOM % ${#NB_L_lst[@]}))]};
-        NB_G=${NB_G_rm_lst[$((RANDOM % ${#NB_G_rm_lst[@]}))]}; 
-        NB_I=${NB_I_rm_lst[$((RANDOM % ${#NB_I_rm_lst[@]}))]};
-        NB_W=${NB_W_lst[$((RANDOM % ${#NB_W_lst[@]}))]};
-        NB_Y=${NB_Y_lst[$((RANDOM % ${#NB_Y_lst[@]}))]};
+        num_rms=$((RANDOM % (max_rms - min_rms + 1) + min_rms));
+        RM="";
+        for ((j=1; j<=num_rms; j++)); do
+          # stochastically chosen rm parameter values
+          NB_R=${NB_R_rm_lst[$((RANDOM % ${#NB_R_rm_lst[@]}))]};
+          NB_C=${NB_C_rm_lst[$((RANDOM % ${#NB_C_rm_lst[@]}))]}; 
+          NB_B=${NB_B_lst[$((RANDOM % ${#NB_B_lst[@]}))]}; 
+          NB_L=${NB_L_lst[$((RANDOM % ${#NB_L_lst[@]}))]};
+          NB_G=${NB_G_rm_lst[$((RANDOM % ${#NB_G_rm_lst[@]}))]}; 
+          NB_I=${NB_I_rm_lst[$((RANDOM % ${#NB_I_rm_lst[@]}))]};
+          NB_W=${NB_W_lst[$((RANDOM % ${#NB_W_lst[@]}))]};
+          NB_Y=${NB_Y_lst[$((RANDOM % ${#NB_Y_lst[@]}))]};
+          #
+          RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
+        done
+        rmArr=($(echo $RM | sed 's/-rm /\n/g' | tail -n +2|sort))
+        RM=$(printf "\055rm %s " ${rmArr[@]})
         #
-        RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
-      done
-      #
-      flags="$lr$hs$CM$RM"
-      printf "${jv3Path}JARVIS3 -v $flags$sequence.seq\n";
-    done ) > $outputScript;
+        flags="$lr$hs$CM$RM"
+        printf "${jv3Path}JARVIS3 -v $flags$sequence.seq\n";
+      fi
+    done ) | head -n $POPULATION_SIZE > $outputScript;
     #
     chmod +x $outputScript;
     #

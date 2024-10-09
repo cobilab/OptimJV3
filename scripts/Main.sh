@@ -68,14 +68,19 @@ ds_sizesBase10="../../DS_sizesBase10.tsv"
 CHECK_DS_INPUT "$ds_sizesBase2" "$ds_sizesBase10"
 #
 min_gen=1
-gen_range=1000
-max_gen=1000
+gen_range=100
+max_gen=100
 #
 if [ $(w | wc -l) -gt 3 ]; then # if there is more than one user registered in the system
   nthreads=$(( $(nproc --all)/3 )); 
 else
   nthreads=$(( $(nproc --all)-2 )); 
 fi
+#
+# run experiment where each crossover and mutation script is tested.
+# these scripts are tested in smaller population (20), fewer generations (100), and within a smaller search space,
+# to provide greater challenge to its population diversity and premature convergence
+testCrossMutScripts=false
 #
 while [[ $# -gt 0 ]]; do
   key="$1"
@@ -162,51 +167,33 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
     for sequence in ${SEQUENCES[@]}; do
         echo $sequence $fg $lg
         #
-        # canonical GA
-        # bash -x ./GA.sh -s "$sequence" -ga "ga00_cga" -fg $fg -lg $lg -t $nthreads # default lr = 0.03
-        bash -x ./GA.sh -s "$sequence" -ga "ga01_lr0_cga" -lr 0 -fg $fg -lg $lg -t $nthreads # lr = 0
+        # canonical GA (run for 500 generations)
+        # bash -x ./GA.sh -s "$sequence" -ga "e0_ga2_lr0_cmga" -lr 0 -fg $fg -lg $lg -t $nthreads # lr = 0
         #
         # === LR = 0 ====================================================
         #
         # change initialization technique
-        bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0_hei" -lr 0 -hei -fg $fg -lg $lg -t $nthreads # heuristic initialization
-        bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0_hyi" -lr 0 -hyi -fg $fg -lg $lg -t $nthreads # hybrid initialization (10% heuristic, 90% random)
-        bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0_hyi25" -lr 0 -hyi -hhp 0.25 -fg $fg -lg $lg -t $nthreads # hybrid initialization (25% heuristic)
-        bash -x ./GA.sh -s "$sequence" -ga "ga02_lr0_hyi50" -lr 0 -hyi -hhp 0.5 -fg $fg -lg $lg -t $nthreads # hybrid initialization (50% heuristic)
-        #
-        # change population size
-        bash -x ./GA.sh -s "$sequence" -ga "ga03_lr0_ps20" -lr 0 -ps 20 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga04_lr0_ps50" -lr 0 -ps 50 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga05_lr0_ps80" -lr 0 -ps 80 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga06_lr0_ps150" -lr 0 -ps 150 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga07_lr0_ps200" -lr 0 -ps 200 -fg $fg -lg $lg -t $nthreads
-        #
-        # change crossover rate
-        bash -x ./GA.sh -s "$sequence" -ga "ga08_lr0_cr80" -lr 0 -ps 20 -cr 0.8 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga09_lr0_cr100" -lr 0 -ps 20 -cr 1 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "e1_ga1_lr0_hei" -lr 0 -hei -fg $fg -lg $lg -t $nthreads # heuristic initialization
+        # bash -x ./GA.sh -s "$sequence" -ga "e1_ga2_lr0_hyi10" -lr 0 -hyi -hhp 0.1 -fg $fg -lg $lg -t $nthreads # hybrid initialization (10% heuristic, 90% random)
+        # bash -x ./GA.sh -s "$sequence" -ga "e1_ga3_lr0_hyi25" -lr 0 -hyi -hhp 0.25 -fg $fg -lg $lg -t $nthreads # hybrid initialization (25% heuristic)
+        # bash -x ./GA.sh -s "$sequence" -ga "e1_ga4_lr0_hyi50" -lr 0 -hyi -fg $fg -lg $lg -t $nthreads # hybrid initialization (50% heuristic)
+        # #
+        # # change population size
+        # bash -x ./GA.sh -s "$sequence" -ga "e2_ga1_lr0_ps20" -lr 0 -ps 20 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "e2_ga2_lr0_ps50" -lr 0 -ps 50 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e2_ga3_lr0_ps80" -lr 0 -ps 80 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e2_ga4_lr0_ps150" -lr 0 -ps 150 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e2_ga5_lr0_ps200" -lr 0 -ps 200 -fg $fg -lg $lg -t $nthreads
         #
         # multi-objective GAs (weight metric)
-        # bash -x ./GA.sh -s "$sequence" -ga "ga08_lr0_mogawm_wBPS10" -lr 0 --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga09_lr0_mogawm_wBPS25" -lr 0 --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga10_lr0_mogawm_wBPS50" -lr 0 --moga -wBPS 0.5 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga11_lr0_mogawm_wBPS75" -lr 0 --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
-        # bash -x ./GA.sh -s "$sequence" -ga "ga12_lr0_mogawm_wBPS90" -lr 0 --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e3_ga1_lr0_mogawm_wBPS10" -lr 0 --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e3_ga2_lr0_mogawm_wBPS25" -lr 0 --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e3_ga3_lr0_mogawm_wBPS50" -lr 0 --moga -wBPS 0.5 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e3_ga4_lr0_mogawm_wBPS75" -lr 0 --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
+        bash -x ./GA.sh -s "$sequence" -ga "e3_ga5_lr0_mogawm_wBPS90" -lr 0 --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
         #
-        # change selection rate
-        bash -x ./GA.sh -s "$sequence" -ga "ga13_lr0_sr10" -lr 0 -ps 20 -sr 0.1 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "ga14_lr0_sr50" -lr 0 -ps 20 -sr 0.5 -fg $fg -lg $lg -t $nthreads
-        #
-        # selection operators
-        bash -x ./GA.sh -s "$sequence" -ga "ga13_lr0_selT" -lr 0 --sel "t" -fg $fg -lg $lg -t $nthreads # tournament
-        bash -x ./GA.sh -s "$sequence" -ga "ga14_lr0_selRWS" -lr 0 --sel "rws" -fg $fg -lg $lg -t $nthreads # roulette wheel selection
-        bash -x ./GA.sh -s "$sequence" -ga "ga15_lr0_selRnk" -lr 0 --sel "rnk" -fg $fg -lg $lg -t $nthreads # rank
-        # bash -x ./GA.sh -s "$sequence" -ga "ga16_lr0_selB" -lr 0 --sel "b" -fg $fg -lg $lg -t $nthreads # boltzmann
-        #
-        # crossover operators
-        # bash -x ./GA.sh -s "$sequence" -ga "ga17_lr0_u" -lr 0 -c "u" -fg $fg -lg $lg -t $nthreads # uniform
-        # bash -x ./GA.sh -s "$sequence" -ga "ga18_lr0_a" -lr 0 -c "a" -fg $fg -lg $lg -t $nthreads # average
-        # bash -x ./GA.sh -s "$sequence" -ga "ga19_lr0_d" -lr 0 -c "d" -fg $fg -lg $lg -t $nthreads # discrete
-        # bash -x ./GA.sh -s "$sequence" -ga "ga20_lr0_f" -lr 0 -c "f" -fg $fg -lg $lg -t $nthreads # flat
-        # bash -x ./GA.sh -s "$sequence" -ga "ga21_lr0_h" -lr 0 -c "h" -fg $fg -lg $lg -t $nthreads # heuristic
+        # # change selection rate
+        bash -x ./GA.sh -s "$sequence" -ga "e4_ga1_lr0_selT" -lr 0 --sel "t" -fg $fg -lg $lg -t $nthreads # tournament
+        bash -x ./GA.sh -s "$sequence" -ga "e4_ga2_lr0_selRWS" -lr 0 --sel "rws" -fg $fg -lg $lg -t $nthreads # roulette wheel selection
     done
 done
