@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+configJson="../config.json"
 sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 # === Start position of 100MB human sequence starts at 40% to avoid telomeres ===

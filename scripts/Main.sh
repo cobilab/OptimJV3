@@ -63,8 +63,9 @@ function FIX_SEQUENCE_NAME() {
 #
 # ###############################################################################################
 #
-ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],' )"
-ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],' )"
+configJson="../config.json"
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
 CHECK_DS_INPUT "$ds_sizesBase2" "$ds_sizesBase10"
 #
 min_gen=1
@@ -173,10 +174,12 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         # === LR = 0 ====================================================
         #
         # change initialization technique
-        bash -x ./GA.sh -s "$sequence" -ga "e1_ga1_lr0_hei" -lr 0 -hei -fg $fg -lg $lg -t $nthreads # heuristic initialization
+        # bash -x ./GA.sh -s "$sequence" -ga "e1_ga1_lr0_hei" -lr 0 -hei -fg $fg -lg $lg -t $nthreads # heuristic initialization
         # bash -x ./GA.sh -s "$sequence" -ga "e1_ga2_lr0_hyi10" -lr 0 -hyi -hhp 0.1 -fg $fg -lg $lg -t $nthreads # hybrid initialization (10% heuristic, 90% random)
         # bash -x ./GA.sh -s "$sequence" -ga "e1_ga3_lr0_hyi25" -lr 0 -hyi -hhp 0.25 -fg $fg -lg $lg -t $nthreads # hybrid initialization (25% heuristic)
-        # bash -x ./GA.sh -s "$sequence" -ga "e1_ga4_lr0_hyi50" -lr 0 -hyi -fg $fg -lg $lg -t $nthreads # hybrid initialization (50% heuristic)
+        # bash -x ./GA.sh -s "$sequence" -ga "e1_ga4_lr0_hyi50" -lr 0 -hyi -hhp 0.5 -fg $fg -lg $lg -t $nthreads # hybrid initialization (50% heuristic)
+        bash -x ./GA.sh -s "$sequence" -ga "e1_ga5_lr0_hyi75" -lr 0 -hyi -hhp 0.75 -fg $fg -lg $lg -t $nthreads # hybrid initialization (75% heuristic)
+        bash -x ./GA.sh -s "$sequence" -ga "e1_ga6_lr0_hyi90" -lr 0 -hyi -hhp 0.9 -fg $fg -lg $lg -t $nthreads # hybrid initialization (90% heuristic)
         # #
         # # change population size
         # bash -x ./GA.sh -s "$sequence" -ga "e2_ga1_lr0_ps20" -lr 0 -ps 20 -fg $fg -lg $lg -t $nthreads
@@ -185,11 +188,11 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         # bash -x ./GA.sh -s "$sequence" -ga "e2_ga4_lr0_ps150" -lr 0 -ps 150 -fg $fg -lg $lg -t $nthreads
         #
         # multi-objective GAs (weight metric)
-        bash -x ./GA.sh -s "$sequence" -ga "e3_ga1_lr0_mogawm_wBPS10" -lr 0 --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "e3_ga2_lr0_mogawm_wBPS25" -lr 0 --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "e3_ga3_lr0_mogawm_wBPS50" -lr 0 --moga -wBPS 0.5 -pe 2 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "e3_ga4_lr0_mogawm_wBPS75" -lr 0 --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
-        bash -x ./GA.sh -s "$sequence" -ga "e3_ga5_lr0_mogawm_wBPS90" -lr 0 --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "e3_ga1_lr0_mogawm_wBPS10" -lr 0 --moga -wBPS 0.1 -pe 2 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "e3_ga2_lr0_mogawm_wBPS25" -lr 0 --moga -wBPS 0.25 -pe 2 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "e3_ga3_lr0_mogawm_wBPS50" -lr 0 --moga -wBPS 0.5 -pe 2 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "e3_ga4_lr0_mogawm_wBPS75" -lr 0 --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
+        # bash -x ./GA.sh -s "$sequence" -ga "e3_ga5_lr0_mogawm_wBPS90" -lr 0 --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
         #
         # # change selection rate
         bash -x ./GA.sh -s "$sequence" -ga "e4_ga1_lr0_selT" -lr 0 --sel "t" -fg $fg -lg $lg -t $nthreads # tournament

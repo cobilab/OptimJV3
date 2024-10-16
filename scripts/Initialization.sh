@@ -103,6 +103,8 @@ function DEFINE_PARAM_RANGES() {
 #
 # === DEFAULT VALUES ===========================================================================
 #
+configJson="../config.json"
+#
 sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 jv3Path="../jv3/";
 #

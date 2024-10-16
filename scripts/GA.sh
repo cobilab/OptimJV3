@@ -86,8 +86,9 @@ fi
 # to choose version of the crossover and mutation algorithm
 cmv=1
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv"
-ds_sizesBase10="../../DS_sizesBase10.tsv"
+configJson="../config.json"
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )"
 CHECK_DS_INPUT "$ds_sizesBase2" "$ds_sizesBase10"
 #
 logPath="../logs";

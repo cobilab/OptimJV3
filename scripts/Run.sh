@@ -101,6 +101,8 @@ function RUN_TEST() {
 #
 # default values
 #
+configJson="../config.json"
+#
 jv3Path="../jv3/";
 sizes=("grp1" "grp2" "grp3" "grp4" "grp5"); # to be able to filter SEQUENCES to run by size
 sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
