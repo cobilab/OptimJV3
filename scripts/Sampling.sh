@@ -6,6 +6,8 @@ ds_sizesBase10="../../DS_sizesBase10.tsv";
 seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
 #
 ga="sampling"
+y2min="*"
+y2Max="*"
 #
 while [[ $# -gt 0 ]]; do
   key="$1"

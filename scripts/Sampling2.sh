@@ -21,6 +21,8 @@ function FIX_SEQUENCE_NAME() {
 iga="sampling"
 oga="sampling2"
 sequence="human100MB"
+y2min="*"
+y2Max="*"
 #
 while [[ $# -gt 0 ]]; do
   key="$1"
