@@ -103,10 +103,10 @@ function RUN_TEST() {
 #
 jv3Path="../jv3/";
 sizes=("grp1" "grp2" "grp3" "grp4" "grp5"); # to be able to filter SEQUENCES to run by size
-sequencesPath="../../sequences";
+sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();

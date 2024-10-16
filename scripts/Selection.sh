@@ -245,8 +245,8 @@ function TOURNAMENT_SELECTION() {
 #
 # ===================================================================================================
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 sequencesPath="../../sequences";
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
@@ -301,7 +301,8 @@ while [[ $# -gt 0 ]]; do
         SEQUENCES+=( $(awk -v m=$dsmin -v M=$dsmax 'NR>=1+m && NR <=1+M {print $2}' "$ds_sizesBase2") );
         shift 2;
         ;;
-    --selection|--sel|-sl) # elitist, roulette, tournament
+    # elitist, roulette, rank, tournament
+    --selection|--sel|-sl) 
         SELECTION_OP="$2";
         shift 2;
         ;;

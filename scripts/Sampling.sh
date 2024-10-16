@@ -5,26 +5,44 @@ ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
 seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
 #
+ga="sampling"
+#
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    -a|-ga|--algorithm|--genetic-algorithm)
+        ga="$2";
+        shift 2; 
+        ;;
+    -y2|--y2-range|--ctime-range)
+        y2Range="$2";
+        y2min="$(echo $y2Range | cut -d ':' -f1)"
+        y2Max="$(echo $y2Range | cut -d ':' -f2)"
+        shift 2;
+        ;;
+    *) 
+        echo "Invalid option: $1"
+        exit 1;
+        ;;
+    esac
+done
+#
 output="../humanSampling"
 mkdir -p $output
 pltsFolder="$output/plots"
 mkdir -p $pltsFolder
 statsFolder="$output/stats"
 mkdir -p $statsFolder
-statsFile="$statsFolder/sampling.tsv"
-statsFileProcessed="$statsFolder/samplingProcessed.tsv"
-pltsFile="$pltsFolder/sampling.pdf"
+statsFile="$statsFolder/$ga.tsv"
+statsFileProcessed="$statsFolder/processed_$ga.tsv"
+pltsFile="$pltsFolder/$ga.pdf"
 #
 ( for idx in "${!seqArr[@]}"; do
     dsx=$(awk '/'${seqArr[idx]}'[[:space:]]/ { print $1 }' "$ds_sizesBase2")
-    results="../$dsx/sampling/eval/allSortedRes_bps.tsv"
+    results="../$dsx/$ga/eval/allSortedRes_bps.tsv"
     [ $idx -eq 0 ] && awk -F'\t' 'NR==2' $results 
     awk -F'\t' 'NR==3' $results 
 done ) > $statsFile
-#
-# dsx=$(awk '/'human100MB'[[:space:]]/ { print $1 }' "$ds_sizesBase2")
-# results="../$dsx/s150gens/eval/allSortedRes_bps.tsv"
-# awk -F'\t' 'NR==3' $results >> $statsFile
 #
 # process stats so that x axis is size of sequence and y axis is BPS
 awk -F'\t' '{
@@ -65,7 +83,7 @@ gnuplot -persist << EOF
 
     set y2label "C TIME (m)"
     set y2tics nomirror
-    set y2range [0.45:7.1]
+    set y2range [$y2min:$y2Max]
 
     set style line 1 lc rgb '#550055' pt 2 ps 1 # BPS dots
     set style line 2 lt 1 lc rgb '#990099' ps 1 # BPS line

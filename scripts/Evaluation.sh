@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 soga=true; # single-objective GA
 moga_wm=false; # multi-objective GA (weight metric method)

@@ -103,11 +103,11 @@ function DEFINE_PARAM_RANGES() {
 #
 # === DEFAULT VALUES ===========================================================================
 #
-sequencesPath="../../sequences";
+sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 jv3Path="../jv3/";
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 sizes=("grp1" "grp2" "grp3" "grp4" "grp5"); # sequence size groups
 #

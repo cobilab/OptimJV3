@@ -415,10 +415,10 @@ numCmds=2;
 # heuristic mutation
 hm=false
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
-sequencesPath="../../sequences";
+sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 ALL_SEQUENCES=( $(ls $sequencesPath -S | egrep ".seq$" | sed 's/\.seq$//' | tac) );
 SEQUENCES=();
 #
@@ -479,7 +479,7 @@ while [[ $# -gt 0 ]]; do
         crossoverOp="$2";
         shift 2;
         ;;
-    -ccr|--cmd-crossover-rate|--command-crossover-rate|--individual-crossover-rate|--genome-crossover-rate)
+    -cr|-ccr|--cmd-crossover-rate|--command-crossover-rate|--individual-crossover-rate|--genome-crossover-rate)
         cmdCR=$(echo "scale=3; $2" | bc);
         shift 2;
         ;;

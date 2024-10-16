@@ -2,12 +2,14 @@
 #
 # === DEFAULT VALUES ===========================================================================
 #
-numHeadersPerDS="../../DS_numHeaders.tsv";
-DS_sizesBase2="../../DS_sizesBase2.tsv";
-DS_sizesBase10="../../DS_sizesBase10.tsv";
+configJson="../config.json"
 #
-rawSequencesPath="../../sequences_raw";
-sequencesPath="../../sequences";
+numHeadersPerDS="$(grep 'DS_numHeaders' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+DS_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+DS_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+#
+rawSequencesPath="$(grep 'rawSequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 seqFiles=( $sequencesPath/*.seq );
 #
 # values represented in bytes
