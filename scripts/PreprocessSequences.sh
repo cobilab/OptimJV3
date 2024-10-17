@@ -1,7 +1,7 @@
 
 #!/bin/bash
 #
-jv3Path="../jv3";
+jv3Path="$(grep 'jv3Path' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 rawSequencesPath="../../sequences_raw";
 sequencesPath="../../sequences";

@@ -106,7 +106,7 @@ function DEFINE_PARAM_RANGES() {
 configJson="../config.json"
 #
 sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
-jv3Path="../jv3/";
+jv3Path="$(grep 'jv3Path' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";

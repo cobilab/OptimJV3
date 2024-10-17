@@ -164,7 +164,7 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         echo $sequence $fg $lg
         #
         # canonical GA (run for 500 generations)
-        # bash -x ./GA.sh -s "$sequence" -ga "e0_ga2_lr0_cmga" -lr 0 -fg $fg -lg $lg -t $nthreads # lr = 0
+        # bash -x ./GA.sh -s "$sequence" -ga "e0_ga1_lr0_cmga" -lr 0 -fg $fg -lg $lg -t $nthreads # lr = 0
         #
         # === LR = 0 ====================================================
         #
@@ -189,7 +189,7 @@ for fg in $(seq $min_gen $gen_range $max_gen); do
         # bash -x ./GA.sh -s "$sequence" -ga "e3_ga4_lr0_mogawm_wBPS75" -lr 0 --moga -wBPS 0.75 -pe 2 -fg $fg -lg $lg -t $nthreads
         # bash -x ./GA.sh -s "$sequence" -ga "e3_ga5_lr0_mogawm_wBPS90" -lr 0 --moga -wBPS 0.9 -pe 2 -fg $fg -lg $lg -t $nthreads
         #
-        # # change selection rate
+        # change selection operator
         bash -x ./GA.sh -s "$sequence" -ga "e4_ga1_lr0_selT" -lr 0 --sel "t" -fg $fg -lg $lg -t $nthreads # tournament
         bash -x ./GA.sh -s "$sequence" -ga "e4_ga2_lr0_selRWS" -lr 0 --sel "rws" -fg $fg -lg $lg -t $nthreads # roulette wheel selection
     done

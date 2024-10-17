@@ -103,7 +103,6 @@ function RUN_TEST() {
 #
 configJson="../config.json"
 #
-jv3Path="../jv3/";
 sizes=("grp1" "grp2" "grp3" "grp4" "grp5"); # to be able to filter SEQUENCES to run by size
 sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
@@ -250,7 +249,6 @@ for sequenceName in "${SEQUENCES[@]}"; do
         #
         output_ext=$(echo "$splittedScript" | awk -F 'splitted_|\.sh' '{print $2}');
         #
-        # ${jv3Path}JARVIS3 $CM $RM -o $sequence.$output_ext.seq.jc $sequence.seq
         cmd_b4lastArg="$(echo $cmd | awk '{$NF=""; print}')";
         cmd_oFile="-o $sequence.$output_ext.seq.jc";
         cmd_lastArg="$(echo $cmd | awk '{printf $NF}')";

@@ -821,7 +821,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
     # don't remove script even if it's empty due to no offspring
     if [ ${#childCmds[@]} -eq 0 ]; then
         dsX=$(echo "$selCmdsFile" | awk -F 'DS|/' '{print $3}');
-        echo "NO NEW OFFSPRING - POPULATION STAGNATION OF DS${dsX}";
+        echo "NO NEW OFFSPRING";
         exit 1;
     fi
     #
