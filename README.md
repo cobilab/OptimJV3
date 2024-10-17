@@ -75,10 +75,10 @@ Alternatively, a set of pre-configured GAs can be executed as (assuming cy is th
 
 It should be noted that, since the algorithm validates solutions based on memory used, in comparison to available memory (to avoid overuse of memory resources), there is no guarantee that all results will be identical.
 
-To reproduce the metameric CGA's results for Escherichia coli (500 generations), CY (500 generations), and Cassava (20 generations), run the following:
+To reproduce the metameric CGA's results for Escherichia coli (100 generations), CY (100 generations), and Cassava (20 generations), run the following:
 <pre>
-bash -x ./GA.sh -s "escherichia_coli" -ga "e0_ga1_lr0_cmga" -lr 0 -lg 500 1> out 2> err &
-bash -x ./GA.sh -s cy -ga "e0_ga1_lr0_cmga" -lr 0 -lg 500 1> out 2> err &
+bash -x ./GA.sh -s "escherichia_coli" -ga "e0_ga1_lr0_cmga" -lr 0 -lg 100 1> out 2> err &
+bash -x ./GA.sh -s cy -ga "e0_ga1_lr0_cmga" -lr 0 -lg 100 1> out 2> err &
 bash -x ./GA.sh -s cassava -ga "e0_ga1_lr0_cmga" -lr 0 -lg 20 1> out 2> err &
 </pre>
 
