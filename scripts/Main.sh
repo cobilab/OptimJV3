@@ -78,11 +78,6 @@ else
   nthreads=$(( $(nproc --all)-2 )); 
 fi
 #
-# run experiment where each crossover and mutation script is tested.
-# these scripts are tested in smaller population (20), fewer generations (100), and within a smaller search space,
-# to provide greater challenge to its population diversity and premature convergence
-testCrossMutScripts=false
-#
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in

@@ -68,7 +68,7 @@ Alternatively, a set of pre-configured GAs can be executed as (assuming cy is th
 # -s: sequence filename (without extension)
 # -lg: last generation number
 # -t: number of threads to paralelize execution of JARVIS3 solutions
-./Main.sh -s cy -lg 100 -t 10 # canonical GA example
+./Main.sh -s cy -lg 100 -t 10
 </pre>
 
 ### Reproducibility: ###
