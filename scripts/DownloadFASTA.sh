@@ -15,13 +15,15 @@ function SHOW_HELP() {
 }
 #
 function FIX_NAME() {
-    [[ $rawFile=="NC_000024"* ]] && rawFile="CY_raw.fa"
+    [[ "$rawFile" == NC_000024* ]] && rawFile="CY_raw.fa"
 }
 #
 # ===========================================================================
 #
 defaultUrls=(
     "https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/analysis_set/chm13v2.0.fa.gz" # complete human genome (~3GB)
+
+    "GCA_008795835.1" # panthera leo
 
     # # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102193/00_Assembly_Fasta/haplotigs/TME204.HiFi_HiC.haplotig1.fa" # CASSAVA, 727.09MB
     # # "https://ftp.cngb.org/pub/gigadb/pub/10.5524/102001_103000/102193/00_Assembly_Fasta/haplotigs/TME204.HiFi_HiC.haplotig2.fa" # 673.62MB
@@ -74,6 +76,7 @@ done
 [ "${#urls[@]}" -eq 0 ] && urls=( "${defaultUrls[@]}" )
 #
 configJson="../config.json"
+toolsPath="$(grep 'toolsPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 rawSequencesPath="$(grep 'rawSequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 mkdir -p $rawSequencesPath;
 #
@@ -84,12 +87,30 @@ for url in "${urls[@]}"; do
     #
     if [[ "$url" == *"eutils.ncbi.nlm.nih.gov"* ]]; then 
         rawFile="$(echo "$url" | awk -F'&id' '{print $2}' | awk -F'&' '{print $1}' | tr -d '\\=' | tr '.' '_')_raw.fa"
+    elif [[ "$url" == "GCA_"* ]]; then
+        gcaId=$url
+        rawFile="$(echo "$gcaId" | tr '.' '_')_raw.fa"
     else
         rawFile="$(echo $url | rev | cut -d'/' -f1 | rev | sed 's/-/_/g' | sed 's/\.fa\|\.fna\|\.fasta/_raw.fa/')"
         FIX_NAME
     fi
     #
-    if [[ ! -f "$rawSequencesPath/$rawFile" ]]; then 
+    if [[ "$url" == "GCA_"* ]] && [[ ! -f "$rawSequencesPath/$rawFile" ]]; then
+        gcaId=$url
+        $toolsPath/datasets download genome accession $gcaId --include genome
+        mv ncbi_dataset.zip $rawSequencesPath
+        rm -fr ncbi_dataset.zip
+        tmpDir="$rawSequencesPath/ncbi_dataset"
+        mkdir -p $tmpDir
+        unzip $rawSequencesPath/ncbi_dataset.zip -d $tmpDir
+        inflatedRawFile="$tmpDir/ncbi_dataset/data/$gcaId/${gcaId}*.fna"
+        md5sumVal1=$(md5sum $inflatedRawFile|awk '{print $1}')
+        md5sumFile="$tmpDir/md5sum.txt"
+        md5sumVal2=$(cat $md5sumFile | grep $gcaId | awk '{print $1}')
+        [[ "$md5sumVal1" == "$md5sumVal2" ]] && echo -e "\033[32m$gcaId successfully extracted" || echo "$gcaId improperly inflated"
+        cp -r $inflatedRawFile "$rawSequencesPath/$rawFile"
+        rm -fr $rawSequencesPath/ncbi_dataset.zip $tmpDir
+    elif [[ ! -f "$rawSequencesPath/${rawFile/.gz/}" ]]; then 
         echo -e "\033[32mdownloading $rawFile file... \033[0m"
         curl $url -o "$rawSequencesPath/$rawFile"
     else
@@ -97,9 +118,9 @@ for url in "${urls[@]}"; do
         echo "$rawFile has been previously downloaded"
     fi
     #
-    # unzip file if it ends with .gz
-    if [[ "$rawSequencesPath/$rawFile" == *.gz ]]; then
-        echo -e "$\033[32mrawFile is being gunzipped... \033[0m"
+    # unzip file for .gz files
+    if [[ -f "$rawSequencesPath/$rawFile" && "$rawFile" == *.gz ]]; then
+        echo -e "$\033[32m$rawFile is being gunzipped... \033[0m"
         gunzip "$rawSequencesPath/$rawFile"
     fi
 done

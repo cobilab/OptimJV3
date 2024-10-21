@@ -82,6 +82,9 @@ function GET_LABEL() {
         "e4_ga2_lr0_selRWS")
             label="Modified RWS"
             ;;
+        "e5_ga1_lr0_mrc")
+            label="Metameric Random Crossover"
+            ;;
         *)
             echo "$1"
             ;;

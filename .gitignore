@@ -8,7 +8,8 @@ logs/*
 errors/*
 tools/*
 sequences/*
-sequences_raw*
+sequences_raw/*
+cassava_raw/*
 DS*.*
 
 # Except these

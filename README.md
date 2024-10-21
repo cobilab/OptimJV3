@@ -20,8 +20,9 @@ chmod +x *.sh
 
 Alternatively, setup can be done as the following:
 <pre>
-./InstallTools.sh      # install JARVIS3, GTO, and AlcoR
+./InstallTools.sh      # install listed compressors, GTO, and AlcoR
 ./DownloadFASTA.sh     # downloads FASTA files
+./GetCassava.sh        # gunzip cassava files
 ./GetAlcoRFASTA.sh     # simulates and stores 2 synthetic FASTA sequences
 ./FASTA2seq.sh         # cleans FASTA files and stores raw sequence files
 ./DownloadDNAcorpus.sh # download raw sequences from a balanced sequence corpus

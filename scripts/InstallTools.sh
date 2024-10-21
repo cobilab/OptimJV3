@@ -235,5 +235,10 @@ rm -fr jarvis3/
 # cd ..
 # mv paq8l_dir/paq8l .
 # rm -fr paq8l_dir
+#
+# datasets tool ------------------------------------------------------------------------
+#
+curl -sSL "https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets" -o ./datasets
+chmod +x datasets
 
 cd $scriptPath
