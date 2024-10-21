@@ -106,7 +106,7 @@ function DEFINE_PARAM_RANGES() {
 configJson="../config.json"
 #
 sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
-jv3Path="$(grep 'jv3Path' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+toolsPath="$(grep 'toolsPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
@@ -276,7 +276,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
       #
       # if seeding is included (only works for complete human genome sequence) 
       if [ $i -eq 1 ] && [ "$sequenceName" = "chm13v2.0" ] && $seeding; then 
-        printf "${jv3Path}JARVIS3 -v -cm 1:1:0:0.9/0:0:0:0 -cm 3:1:0:0.9/0:0:0:0 -cm 6:1:0:0.9/0:0:0:0 -cm 9:1:0:0.9/0:0:0:0 -cm 11:10:1:0.9/0:0:0:0 -cm 14:200:1:0.9/1:10:1:0.9 -rm 300:14:0.88:7:0.85:0:0.01:4 -rm 300:14:0.88:7:0.85:2:0.01:4 -rm 500:12:0.88:7:0.85:0:0.01:15 $sequence.seq\n"
+        printf "${toolsPath}/JARVIS3 -v -cm 1:1:0:0.9/0:0:0:0 -cm 3:1:0:0.9/0:0:0:0 -cm 6:1:0:0.9/0:0:0:0 -cm 9:1:0:0.9/0:0:0:0 -cm 11:10:1:0.9/0:0:0:0 -cm 14:200:1:0.9/1:10:1:0.9 -rm 300:14:0.88:7:0.85:0:0.01:4 -rm 300:14:0.88:7:0.85:2:0.01:4 -rm 500:12:0.88:7:0.85:0:0.01:15 $sequence.seq\n"
       #
       else
         num_cms=$((RANDOM % (max_cms - min_cms + 1) + min_cms));
@@ -313,10 +313,10 @@ for sequenceName in "${SEQUENCES[@]}"; do
           RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
         done
         rmArr=($(echo $RM | sed 's/-rm /\n/g' | tail -n +2|sort))
-        RM=$(printf "\055rm %s " ${rmArr[@]})
+        [ "${#rmArr[@]}" -ne 0 ] && RM=$(printf "\055rm %s " ${rmArr[@]}) || RN=""
         #
         flags="$lr$hs$CM$RM"
-        printf "${jv3Path}JARVIS3 -v $flags$sequence.seq\n";
+        printf "${toolsPath}/JARVIS3 -v $flags$sequence.seq\n";
       fi
     done ) | head -n $POPULATION_SIZE > $outputScript;
     #

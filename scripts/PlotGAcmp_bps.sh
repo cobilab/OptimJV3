@@ -14,8 +14,6 @@ timeFormats=("s" "m" "h");
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-gaArr=("e0_ga1_lr0_cmga")
-#
 # ==============================================================================
 #
 function CHECK_INPUT () {
@@ -26,6 +24,68 @@ function CHECK_INPUT () {
     echo -e "\e[31mERROR: input file not found ($FILE)!\e[0m";
     exit;
   fi
+}
+#
+function GET_LABEL() {
+    case "$1" in
+        "e0_ga1"*)
+            label="CGA"
+            ;;
+        "e1_ga1"*)
+            label="10% heuristic initialization"
+            ;;
+        "e1_ga2"*)
+            label="25% heuristic initialization"
+            ;;
+        "e1_ga3"*)
+            label="50% heuristic initialization"
+            ;;
+        "e1_ga4"*)
+            label="75% heuristic initialization"
+            ;;
+        "e1_ga5"*)
+            label="90% heuristic initialization"
+            ;;
+        "e1_ga6"*)
+            label="Local search initialization"
+            ;;
+        "e2_ga1"*)
+            label="Population size 20"
+            ;;
+        "e2_ga2"*)
+            label="Population size 50"
+            ;;
+        "e2_ga3"*)
+            label="Population size 80"
+            ;;
+        "e2_ga4"*)
+            label="Population size 150"
+            ;;
+        "e3_ga1"*)
+            label="MOGA (BPS weight = 0.1)"
+            ;;
+        "e3_ga2"*)
+            label="MOGA (BPS weight = 0.25)"
+            ;;
+        "e3_ga3"*)
+            label="MOGA (BPS weight = 0.5)"
+            ;;
+        "e3_ga4"*)
+            label="MOGA (BPS weight = 0.75)"
+            ;;
+        "e3_ga5"*)
+            label="MOGA (BPS weight = 0.9)"
+            ;;
+        "e4_ga1"*)
+            label="Tournament Selection"
+            ;;
+        "e4_ga2_lr0_selRWS")
+            label="Modified RWS"
+            ;;
+        *)
+            echo "$1"
+            ;;
+    esac
 }
 #
 # ==============================================================================
@@ -73,18 +133,26 @@ mkdir -p $plotsFolder;
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
-# list of choosen GAs
-gaArr+=( $(ls "$dsFolder" | grep -E "^($experiment)") )
-for ga in "${gaArr[@]}"; do
-    plotGAs+="'$dsFolder/$ga/stats/bps_avg_all.tsv' with lines title '$ga', "
-done
+bpsArr=("bps_avg_all" "bps_best1")
 #
-# plot bps average, bestN bps results, cumsum ctime avg (all and best)
-bps_avg="$plotsFolder/avgAllBPS.pdf";
+for bpsFilename in "${bpsArr[@]}"; do
+    #
+    # list of choosen GAs
+    gaArr=( "e0_ga1_lr0_cmga" $(ls "$dsFolder" | grep -E "^($experiment)") )
+    plotGAs=""
+    for ga in "${gaArr[@]}"; do
+        GET_LABEL "$ga"
+        [[ "$ga" == *"_continuation" ]] && continue
+        plotGAs+="'$dsFolder/$ga/stats/$bpsFilename.tsv' with lines title '$label', "
+    done
+    #
+    # plot bps average, bestN bps results, cumsum ctime avg (all and best)
+    output="$plotsFolder/$bpsFilename.pdf";
 gnuplot << EOF
-    set title "BPS average"
+    # set title "BPS average (all)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
-    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    #set key outside top horizontal Right noreverse noenhanced autotitle nobox
+    set grid
     #
     # Set up the axis on the left side for bps
     set ylabel "bPS"
@@ -96,7 +164,8 @@ gnuplot << EOF
     set xtics nomirror
     set xrange [$first_gen:$last_gen]
     #
-    set output "$bps_avg"
+    set output "$output"
     #
     plot $plotGAs
 EOF
+done

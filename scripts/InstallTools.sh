@@ -128,9 +128,9 @@ function INSTALL_WITHOUT_CONDA() {
 
 scriptPath=$(pwd)
 
-jv3Path="$(grep 'jv3Path' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
-mkdir -p $jv3Path
-cd $jv3Path
+toolsPath="$(grep 'toolsPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+mkdir -p $toolsPath
+cd $toolsPath
 
 if [[ "$*" == *"--install-with-conda"* ||  "$*" == *"-iwc"* ]]; then
     INSTALL_WITH_CONDA;

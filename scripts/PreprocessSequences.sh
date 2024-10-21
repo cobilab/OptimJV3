@@ -1,7 +1,7 @@
 
 #!/bin/bash
 #
-jv3Path="$(grep 'jv3Path' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+toolsPath="$(grep 'toolsPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 rawSequencesPath="../../sequences_raw";
 sequencesPath="../../sequences";
@@ -20,7 +20,7 @@ for rawFaFile in "${rawFaFiles[@]}"; do
     #
     if [[ ! -f $cleanFaFile ]]; then
         # this cleaning implies removing all of their headers...
-        $jv3Path/gto_fasta_to_seq < $rawFaFile | tr 'agct' 'AGCT' | tr -d -c "AGCT" | $jv3Path/gto_fasta_from_seq -n x -l 80 > $cleanFaFile;
+        $toolsPath/gto_fasta_to_seq < $rawFaFile | tr 'agct' 'AGCT' | tr -d -c "AGCT" | $toolsPath/gto_fasta_from_seq -n x -l 80 > $cleanFaFile;
         echo -e "\033[32mnew clean fasta: $cleanFaFile \033[0m";
     else
         echo "already exists: $cleanFaFile has been previously created";

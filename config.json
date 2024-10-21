@@ -1,4 +1,5 @@
 {
+    "toolsPath" : "../tools",
     "sequencesPath" : "../../sequences",
     "rawSequencesPath" : "../../sequences_raw",
     "DS_sizesBase2" : "../../DS_sizesBase2.tsv",

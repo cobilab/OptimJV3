@@ -406,7 +406,7 @@ cmdMR=0.1;
 # probability of each parameter of each model of a cmd (excluding parameters of a first model pair of a model type (either cm or rm), with must mutate) being mutated, given that the cmd will mutate
 paramMR=0.1;
 #
-cmdCrossoverOp="cmga"; # canonical metameric GA
+cmdCrossoverOp="mcc"; # metameric canonical crossover
 crossoverOp="xpoint";
 #
 # number of parent cmds per crossover
@@ -524,6 +524,8 @@ done
 #
 DEFINE_PARAM_RANGES;
 #
+numParamsPerModel=8
+#
 if [ ${#SEQUENCES[@]} -eq 0 ]; then
   SEQUENCES=( "${ALL_SEQUENCES[@]}" );
 fi
@@ -626,7 +628,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                     # in random metameric crossover, the first pair of either CM or RM MUST apply a model crossover operator
                     ((! $modelIdx)) && [ "$modelType" = "$modelTypeMandatoryCrossover" ] && mandatoryPair=true || mandatoryPair=false
                     #
-                    if [ "$crossoverOp" = "cmga" ] || [ "$crossoverOp" = "1" ]; then
+                    if [ "$crossoverOp" = "mcc" ] || [ "$crossoverOp" = "1" ]; then
                         modelIdx1=$modelIdx
                         modelIdx2=$modelIdx
                     else
@@ -645,7 +647,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                     p2modelArr=($(echo "${p2modelsArr[modelIdx2]}" | sed 's/[:/]/ /g'));
                     #
                     # get num of params per model
-                    [ "${#p1modelsArr[@]}" -lt "${#p2modelsArr[@]}" ] && numParamsPerModel="${#p1modelArr[@]}" || numParamsPerModel="${#p2modelArr[@]}"
+                    # [ "${#p1modelsArr[@]}" -lt "${#p2modelsArr[@]}" ] && numParamsPerModel="${#p1modelArr[@]}" || numParamsPerModel="${#p2modelArr[@]}"
                     #
                     # crossover operator is applied if random number does not surpass model crossover rate
                     rndFloat="0.$((RANDOM%999))";

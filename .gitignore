@@ -6,7 +6,7 @@ humanSampling*/*
 bkp_*/*
 logs/*
 errors/*
-jv3/*
+tools/*
 
 # Except these
 !scripts/*.sh
