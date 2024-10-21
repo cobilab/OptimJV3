@@ -20,12 +20,12 @@ chmod +x *.sh
 
 Alternatively, setup can be done as the following:
 <pre>
-./InstallTools.sh          # install JARVIS3, GTO, AlcoR, and other tools
-./DownloadSequences.sh     # download Escherichia Coli, CY, and chm13v2.0 sequences
-./PreprocessSequences.sh   # process FASTA and zipped sequences by removing headers, non-identifiable nucleobases, and uppercase base characters
-./CreateSequences.sh       # optionally, create synthetic sequences
-./GetSamples.sh            # extract human genome samples (recommended before constructing the DS table)
-./GetDSinfo.sh             # sort processed sequences by size
+./InstallTools.sh      # install JARVIS3, GTO, and AlcoR
+./DownloadFASTA.sh     # downloads FASTA files
+./GetAlcoRFASTA.sh     # simulates and stores 2 synthetic FASTA sequences
+./FASTA2seq.sh         # cleans FASTA files and stores raw sequence files
+./DownloadDNAcorpus.sh # download raw sequences from a balanced sequence corpus
+./GetDSinfo.sh         # map sequences into their ids, sorted by size; view sequences info
 </pre>
 
 Then, if necessary, update path names and file names written in config.json.
@@ -52,6 +52,16 @@ The implemented features are listed in the following scripts:
 
 ### Basic examples: ###
 
+To emulate random search, the following instruction may be executed (assuming cy is the sequence filename):
+<pre>
+# GA applied to optimization of human chromosome Y compression
+# -s: sequence filename (without extension)
+# -ga: name of folder where GA results are stored
+# -lg: last generation number
+# -t: number of threads to paralelize execution of JARVIS3 solutions
+./GA.sh -s cy -ga "randomSearch" -lg 1 -t 10
+</pre>
+
 To run a single GA, the following instruction may be executed (assuming cy is the sequence filename):
 <pre>
 # GA applied to optimization of human chromosome Y compression
@@ -59,7 +69,7 @@ To run a single GA, the following instruction may be executed (assuming cy is th
 # -ga: name of folder where GA results are stored
 # -lg: last generation number
 # -t: number of threads to paralelize execution of JARVIS3 solutions
-./GA.sh -s cy -ga "example" -lg 100 -t 10 # canonical GA example
+./GA.sh -s cy -ga "example" -lg 100 -t 10
 </pre>
 
 Alternatively, a set of pre-configured GAs can be executed as (assuming cy is the sequence filename):

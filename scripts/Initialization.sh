@@ -313,7 +313,7 @@ for sequenceName in "${SEQUENCES[@]}"; do
           RM+="-rm ${NB_R}:${NB_C}:${NB_B}:${NB_L}:${NB_G}:${NB_I}:${NB_W}:${NB_Y} ";
         done
         rmArr=($(echo $RM | sed 's/-rm /\n/g' | tail -n +2|sort))
-        [ "${#rmArr[@]}" -ne 0 ] && RM=$(printf "\055rm %s " ${rmArr[@]}) || RN=""
+        [ "${#rmArr[@]}" -ne 0 ] && RM=$(printf "\055rm %s " ${rmArr[@]}) || RM=""
         #
         flags="$lr$hs$CM$RM"
         printf "${toolsPath}/JARVIS3 -v $flags$sequence.seq\n";

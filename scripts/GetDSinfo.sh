@@ -64,3 +64,5 @@ while [[ $# -gt 0 ]]; do
         ;;
     esac
 done
+#
+cat $DS_sizesBase2
