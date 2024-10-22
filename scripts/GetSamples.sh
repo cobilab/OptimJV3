@@ -21,4 +21,4 @@ cat $sequencesPath/human100MB.seq | cut -c 1-26214400 | tr -d '\n' > $sequencesP
 # === First 25% of 100MB human sequence ===
 # 1 -> start
 # echo "104857600*0.125"|bc = 13107200.000 -> end
-cat $sequencesPath/human100MB.seq | cut -c 1-13107200 | tr -d '\n' > ../../sequences/human12d5MB.seq
+cat $sequencesPath/human100MB.seq | cut -c 1-13107200 | tr -d '\n' > $sequencesPath/human12d5MB.seq

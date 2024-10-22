@@ -7,6 +7,8 @@ configJson="../config.json"
 numHeadersPerDS="$(grep 'DS_numHeaders' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 DS_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 DS_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+[[ -f "$DS_sizesBase2" ]] && cp "$DS_sizesBase2" "$DS_sizesBase2.bkp"
+[[ -f "$DS_sizesBase10" ]] && cp "$DS_sizesBase10" "$DS_sizesBase10.bkp"
 #
 rawSequencesPath="$(grep 'rawSequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 sequencesPath="$(grep 'sequencesPath' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
@@ -66,3 +68,17 @@ while [[ $# -gt 0 ]]; do
 done
 #
 cat $DS_sizesBase2
+#
+# --- update DS result folders ----------------------------------
+#
+oldDSArr=( ../DS*/ )
+for oldDS in "${oldDSArr[@]}"; do
+    #oldDSN=$(echo "$oldDS" | grep -oP '^(DS)(\d+)')
+    xdsx=${ds/DS/xDSx}
+    mv $oldDS $xdsx
+    # name=$(awk -v dsn=$oldDSN -F'[[:space:]][[:space:]]+' '{if (dsn==$1)print $2}' "$DS_sizesBase2.bkp")
+    # newDSN=$(awk -v name=$name -F'[[:space:]][[:space:]]+' '{if (name==$2)print $1}' "$DS_sizesBase2")
+    # newDS=$(echo "$oldDS"|sed "s/DS[0-9]\+/$newDSN/g")
+    # echo $xdsx $newDS
+    # mv $xdsx $newDS
+done
