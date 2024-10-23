@@ -85,14 +85,19 @@ mkdir -p $rawSequencesPath;
 printf "downloading ${#urls[@]} sequence files...\n"
 for url in "${urls[@]}"; do
     #
+    # most sequences are downloaded from nucleotide DB
     if [[ "$url" == *"eutils.ncbi.nlm.nih.gov"* ]]; then 
         rawFile="$(echo "$url" | awk -F'&id' '{print $2}' | awk -F'&' '{print $1}' | tr -d '\\=' | tr '.' '_')_raw.fa"
+        FIX_NAME
+    #
+    # panthera leo
     elif [[ "$url" == "GCA_"* ]]; then
         gcaId=$url
         rawFile="$(echo "$gcaId" | tr '.' '_')_raw.fa"
+    #
+    # human genome
     else
         rawFile="$(echo $url | rev | cut -d'/' -f1 | rev | sed 's/-/_/g' | sed 's/\.fa\|\.fna\|\.fasta/_raw.fa/')"
-        FIX_NAME
     fi
     #
     if [[ "$url" == "GCA_"* ]] && [[ ! -f "$rawSequencesPath/$rawFile" ]]; then
