@@ -4,5 +4,6 @@
     "rawSequencesPath" : "../sequences_raw",
     "DS_sizesBase2" : "../DS_sizesBase2.tsv",
     "DS_sizesBase10" : "../DS_sizesBase10.tsv",
-    "DS_numHeaders" : "../DS_numHeaders.tsv"
+    "DS_numHeaders" : "../DS_numHeaders.tsv",
+    "benchPath" : "../../CompressSequences"
 }
