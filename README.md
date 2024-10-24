@@ -6,15 +6,23 @@
 
 ### Setup: ###
 
-1. Clone this project:
+1. Clone this project and change script permissions:
 <pre>
 git clone https://github.com/cobilab/OptimJV3.git
-</pre>
-
-2. Setup:
-<pre>
 cd OptimJV3/scripts
 chmod +x *.sh
+</pre>
+
+### Quick Demo: ###
+
+<pre>
+./GetDSinfo.sh                           # map sequences into its DS, sorted by size; view sequences info
+./GA.sh -s cy -ga "output" -lg 100 -t 10  # optimize compression of CY.seq (Human Chromsome Y) with canonical GA for 100 generations and 10 threads
+</pre>
+
+### Advanced Setup: ###
+
+<pre>
 ./Setup.sh
 </pre>
 
@@ -51,7 +59,7 @@ The implemented features are listed in the following scripts:
 ./CrossMut.sh -h        # crossover and Mutation features
 </pre>
 
-### Basic examples: ###
+### Optimization examples: ###
 
 To emulate random search, the following instruction may be executed (assuming cy is the sequence filename):
 <pre>
