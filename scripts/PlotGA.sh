@@ -6,12 +6,21 @@ first_gen=1;
 dsx="DS1";
 ga="ga";
 #
+bps_min="*"
+bps_max="2.05"
 timeFormats=("s" "m" "h");
+tmin_s="0";
+tmax_s="*";
+tmin_m="0";
+tmax_m="*";
+tmin_h="0";
+tmax_h="*";
 #
 histInterval=0.1
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+configJson="../config.json"
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 # === FUNCTIONS ===========================================================================
 #
@@ -72,6 +81,26 @@ while [[ $# -gt 0 ]]; do
         ;;
     --last-generation|--last-gen|-lg)
         last_gen="$2";
+        shift 2;
+        ;;
+    -br|--b-range)
+        bps_min="$(echo $2 | cut -d':' -f1)";
+        bps_max="$(echo $2 | cut -d':' -f2)";
+        shift 2;
+        ;;
+    -trs|--trange-s)
+        tmin_s="$(echo $2 | cut -d':' -f1)";
+        tmax_s="$(echo $2 | cut -d':' -f2)";
+        shift 2;
+        ;;
+    -trm|--trange-m)
+        tmin_m="$(echo $2 | cut -d':' -f1)";
+        tmax_m="$(echo $2 | cut -d':' -f2)";
+        shift 2;
+        ;;
+    -trh|--trange-h)
+        tmin_h="$(echo $2 | cut -d':' -f1)";
+        tmax_h="$(echo $2 | cut -d':' -f2)";
         shift 2;
         ;;
     --hist-interval|-hi)
@@ -194,6 +223,17 @@ sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
 for timeFormat in ${timeFormats[@]}; do
 #
+if [ "$timeFormat" = "s" ]; then
+    tmin=$tmin_s;
+    tmax=$tmax_s;
+elif [ "$timeFormat" = "m" ]; then
+    tmin=$tmin_m;
+    tmax=$tmax_m;
+elif [ "$timeFormat" = "h" ]; then
+    tmin=$tmin_h;
+    tmax=$tmax_h;
+fi
+#
 avgAllFile_ctime="$statsFolder/ctime_avg_all_$timeFormat.tsv";
 avgBestNFile_ctime="$statsFolder/ctime_avg_best${bestN}_$timeFormat.tsv";
 avgAllFile_cctime="$statsFolder/cctime_avg_all_$timeFormat.tsv";
@@ -205,7 +245,7 @@ avgAllAndBestNOutputPlot_bps_ctime="$plotsFolder/bps_b${bestN}_ctime_${timeForma
 avgBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_${timeFormat}_fg${first_gen}_lg${last_gen}.pdf";
 #
 gnuplot << EOF
-    #set title "Average bPS with $bestN most optimal bPS values of $sequenceName"
+    #set title "$sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set key outside top horizontal Right noreverse noenhanced autotitle nobox
     #set key bottom right
@@ -216,10 +256,11 @@ gnuplot << EOF
     # set up the axis on the left side for bps
     set ylabel "bPS"
     set ytics nomirror
-    set yrange [*:2]
+    set yrange [$bps_min:$bps_max]
     #
     # set up the axis on the right side for C time
     set y2label "C TIME ($timeFormat)"
+    set y2range [$tmin:$tmax]
     set y2tics nomirror
     #
     # set up the axis below for generation
@@ -284,7 +325,7 @@ EOF
 #
 histBPSpdf="$plotsFolder/hist_abs_bps_lg${last_gen}.pdf";
 gnuplot << EOF
-    set title "Absolute frequency of bPS with interval = $histInterval"
+    set title "$sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set style histogram rows
     set boxwidth 0.8
@@ -310,7 +351,7 @@ EOF
 #
 histBPSrelPdf="$plotsFolder/hist_rel_bps_lg${last_gen}.pdf";
 gnuplot << EOF
-    # set title "Relative frequency of bPS with interval = $histInterval"
+    set title "$sequenceName"
     set terminal pdfcairo enhanced color font 'Verdade,12'
     set style histogram rows
     set boxwidth 0.8

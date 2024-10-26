@@ -30,7 +30,6 @@ defaultUrls=(
 
     "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NC_058373.1&rettype=fasta&retmode=text" # Felis catus isolate Fca126 chromosome B3, F.catus_Fca126_mat1.0, whole genome shotgun sequence (144MB)
 
-    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NC_000001.11&rettype=fasta&retmode=text" # complete chromosome 1 from Homo sapiens
     "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NC_000008.11&rettype=fasta&retmode=text" # complete chromosome 8 from Homo sapiens
     "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NC_000021.9&rettype=fasta&retmode=text" # complete chromosome 21 from Homo sapiens
 
@@ -45,7 +44,6 @@ defaultUrls=(
     "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=NC_004461.1&rettype=fasta&retmode=text" # Staphylococcus epidermidis ATCC 12228, complete sequence (staphylococcus_epidermidis_raw.fa) (2,4M)
     "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=CM029732.1&rettype=fasta&retmode=text" # Pollicipes pollicipes isolate AB1234 mitochondrion, complete sequence, whole genome shotgun sequence (mt_genome_CM029732_raw.fa) (15KB)
     "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=OM812693.1&rettype=fasta&retmode=text" # covid (SARS_CoV_Hun_1_raw.fa) (30K)
-    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=CM047480.1&rettype=fasta&retmode=text" # Aldabrachelys gigantea (290M)
 
     "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nucleotide&id=KT868810.1&rettype=fasta&retmode=text" # Cutavirus strain BR-283 NS1 gene, partial cds; and putative VP1, hypothetical protein, VP2, and hypothetical protein genes, complete cds (4,3K)
 
@@ -112,7 +110,7 @@ for url in "${urls[@]}"; do
         md5sumVal1=$(md5sum $inflatedRawFile|awk '{print $1}')
         md5sumFile="$tmpDir/md5sum.txt"
         md5sumVal2=$(cat $md5sumFile | grep $gcaId | awk '{print $1}')
-        [[ "$md5sumVal1" == "$md5sumVal2" ]] && echo -e "\033[32m$gcaId successfully extracted" || echo "$gcaId improperly inflated"
+        [[ "$md5sumVal1" == "$md5sumVal2" ]] && echo -e "\033[32m$gcaId successfully extracted\033[0m" || echo "$gcaId improperly inflated"
         cp -r $inflatedRawFile "$rawSequencesPath/$rawFile"
         rm -fr $rawSequencesPath/ncbi_dataset.zip $tmpDir
     elif [[ ! -f "$rawSequencesPath/${rawFile/.gz/}" ]]; then 

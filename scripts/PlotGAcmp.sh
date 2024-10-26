@@ -2,15 +2,20 @@
 #
 # default variables
 bestN=50;
-fg=1;
+first_gen=1;
 dsx="DS10";
 ga1="ga1";
 ga2="ga2";
 #
-timeFormats=("s" "m" "h");
+bps_min=0;
+bps_max=2;
+labelDetail="m"
+tmin="0"
+tmax="*"
 #
-ds_sizesBase2="../../DS_sizesBase2.tsv";
-ds_sizesBase10="../../DS_sizesBase10.tsv";
+configJson="../config.json"
+ds_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
+ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | tr -d '[:space:],"' )";
 #
 # ==============================================================================
 #
@@ -24,34 +29,112 @@ function CHECK_INPUT () {
   fi
 }
 #
+function GET_LABEL() {
+    case "$1" in
+        "e0_ga1"*)
+            label="CGA"
+            ;;
+        "e1_ga1"*)
+            label="10% heuristic initialization"
+            ;;
+        "e1_ga2"*)
+            label="25% heuristic initialization"
+            ;;
+        "e1_ga3"*)
+            label="50% heuristic initialization"
+            ;;
+        "e1_ga4"*)
+            label="75% heuristic initialization"
+            ;;
+        "e1_ga5"*)
+            label="90% heuristic initialization"
+            ;;
+        "e1_ga6"*)
+            label="Local search initialization"
+            ;;
+        "e2_ga1"*)
+            label="Population size 20"
+            ;;
+        "e2_ga2"*)
+            label="Population size 50"
+            ;;
+        "e2_ga3"*)
+            label="Population size 80"
+            ;;
+        "e2_ga4"*)
+            label="Population size 150"
+            ;;
+        "e3_ga1"*)
+            label="MOGA (BPS weight = 0.1)"
+            ;;
+        "e3_ga2"*)
+            label="MOGA (BPS weight = 0.25)"
+            ;;
+        "e3_ga3"*)
+            label="MOGA (BPS weight = 0.5)"
+            ;;
+        "e3_ga4"*)
+            label="MOGA (BPS weight = 0.75)"
+            ;;
+        "e3_ga5"*)
+            label="MOGA (BPS weight = 0.9)"
+            ;;
+        "e4_ga1"*)
+            label="Tournament Selection"
+            ;;
+        "e4_ga2_lr0_selRWS")
+            label="Modified RWS"
+            ;;
+        "e5_ga1_lr0_mrc")
+            label="Metameric Random Crossover"
+            ;;
+        *)
+            echo "$1"
+            ;;
+    esac
+}
+#
 # ==============================================================================
 #
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    --genetic-algorithm1|--algorithm1|--ga1|-ga1|-a1)
-        ga1="$2";
-        shift 2; 
-        ;;
-    --genetic-algorithm2|--algorithm2|--ga2|-ga2|-a2)
-        ga2="$2";
+    -e|--experiment|--experiment-number)
+        experiment="e$(echo "$2" | tr -d "eE")";
+        experiments+=( "$experiment" )
         shift 2; 
         ;;
     --dataset|-ds)
         dsx="DS$(echo "$2" | tr -d "dsDS")";
         size=$(awk '/'$dsx'[[:space:]]/{print $NF}' $ds_sizesBase2);
         shift 2;
-        ;;
-    --best|-b)
-        bestN="$2";
-        shift 2;
-        ;;      
+        ;; 
     --first-generation|--first-gen|-fg)
-        fg="$2";
+        first_gen="$2";
         shift 2;
         ;;
     --last-generation|--last-gen|-lg)
-        lg="$2";
+        last_gen="$2";
+        shift 2;
+        ;;
+    -br|--b-range)
+        bps_min="$(echo $2 | cut -d':' -f1)";
+        bps_max="$(echo $2 | cut -d':' -f2)";
+        shift 2;
+        ;;
+    -trs|--trange-s)
+        tmin_s="$(echo $2 | cut -d':' -f1)";
+        tmax_s="$(echo $2 | cut -d':' -f2)";
+        shift 2;
+        ;;
+    -trm|--trange-m)
+        tmin_m="$(echo $2 | cut -d':' -f1)";
+        tmax_m="$(echo $2 | cut -d':' -f2)";
+        shift 2;
+        ;;
+    -trh|--trange-h)
+        tmin_h="$(echo $2 | cut -d':' -f1)";
+        tmax_h="$(echo $2 | cut -d':' -f2)";
         shift 2;
         ;;
     *) 
@@ -62,96 +145,56 @@ while [[ $# -gt 0 ]]; do
 done
 #
 dsFolder="../${dsx}";
-ga1Folder="$dsFolder/$(ls $dsFolder | grep $ga1)";
-ga2Folder="$dsFolder/$(ls $dsFolder | grep $ga2)";
 #
-if [ -z "$lg" ]; then
-    lg_ga1=$(ls $ga1Folder/g*.tsv | wc -l);
-    lg_ga2=$(ls $ga2Folder/g*.tsv | wc -l);
-    lg=$(( $lg_ga1 > $lg_ga2 ? $lg_ga1 : $lg_ga2 ));
-fi
-#
-statsFolder="$dsFolder/cmp_stats";
-plotsFolder="$dsFolder/cmp_plots";
-mkdir -p $statsFolder $plotsFolder;
-#
-statsFolder="$statsFolder/${ga1}_minus_${ga2}";
-plotsFolder="$plotsFolder/${ga1}_minus_${ga2}";
-mkdir -p $statsFolder $plotsFolder;
-#
-# get average stats diff (bps) (all)
-avgAllFile="$statsFolder/bps_avg_all.tsv";
-paste $ga1Folder/stats/bps_avg_all.tsv $ga2Folder/stats/bps_avg_all.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile;
-#
-# get average stats diff (bps) (bestN)
-avgBestNFile="$statsFolder/bps_avg_best${bestN}.tsv";
-paste $ga1Folder/stats/bps_avg_best${bestN}.tsv $ga2Folder/stats/bps_avg_best${bestN}.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgBestNFile;
-#
-# get variance stats diff (bps)
-varBestNFile="$statsFolder/bps_var_best${bestN}.tsv";
-paste $ga1Folder/stats/bps_var_best${bestN}.tsv $ga2Folder/stats/bps_var_best${bestN}.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $varBestNFile;
-#
-for tf in ${timeFormats[@]}; do
-    #
-    # get cumsum average stats diff (c_time) (all)
-    avgAllFile_cctime="$statsFolder/cctime_avg_all_$tf.tsv";
-    paste $ga1Folder/stats/cctime_avg_all_$tf.tsv $ga2Folder/stats/cctime_avg_all_$tf.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgAllFile_cctime;
-    #
-    # get cumsum average stats diff (c_time) (bestN)
-    avgBestNFile_cctime="$statsFolder/cctime_avg_best${bestN}_$tf.tsv";
-    paste $ga1Folder/stats/cctime_avg_best${bestN}_$tf.tsv $ga2Folder/stats/cctime_avg_best${bestN}_$tf.tsv | awk -v gen=$fg '{print gen"\t"$2-$4; gen+=1}' > $avgBestNFile_cctime;
-done
+[ "${#experiments[@]}" -eq 1 ] && plotsFolder="$dsFolder/cmp_plots_$experiment" || statsFolder="$dsFolder/cmp_plots"
+mkdir -p $plotsFolder;
 #
 sequenceName=$(awk '/'$dsx'/{print $2}' "$ds_sizesBase2" | tr '_' ' ');
 #
-for tf in ${timeFormats[@]}; do
+statsArr=("bps_avg_all" "bps_best1" "cctime_avg_all_s" "cctime_avg_all_m" "cctime_avg_all_h")
 #
-# plot bps average, bestN bps results, cumsum ctime avg (all and best)
-avgAndDotsBestNOutputPlot_bps_cctime="$plotsFolder/bps_b${bestN}_cctime_$tf_fg${fg}_lg${lg}.pdf";
-cat $avgAndDotsBestNOutputPlot_bps_cctime
+for statsFile in "${statsArr[@]}"; do
+    #
+    # list of choosen GAs
+    gaArr=( "e0_ga1_lr0_cmga" $(ls "$dsFolder" | grep -E "^($experiment)") )
+    plotGAs=""
+    for ga in "${gaArr[@]}"; do
+        GET_LABEL "$ga"
+        [[ "$ga" == "_continuation" ]] && continue
+        plotGAs+="'$dsFolder/$ga/stats/$statsFile.tsv' with lines title '$label', "
+    done
+    #
+    # plot bps average, bestN bps results, cumsum ctime avg (all and best)
+    output="$plotsFolder/$statsFile.pdf";
+    #
+    # define y ranges
+    ymin="$bps_min"
+    ymax="$bps_max"
+    labelDetail="$(echo $statsFile|awk -F'_' '{print $NF}')"
+    [[ "$labelDetail" == "s" ]] && ymin="$tmin_s" && ymax="$max_s"
+    [[ "$labelDetail" == "m" ]] && ymin="$tmin_m" && ymax="$max_m"
+    [[ "$labelDetail" == "h" ]] && ymin="$tmin_h" && ymax="$max_h"
+    #
+    # define y label
+    [[ "$statsFile" == "bps"* ]] && ylabel="bPS ($labelDetail)" || ylabel="TIME ($labelDetail)"
 gnuplot << EOF
-    # set title "Difference between ${ga1//_/} and ${ga2//_/} for sequence $sequenceName"
+    # set title "BPS average (all)"
     set terminal pdfcairo enhanced color font 'Verdade,12'
-    #set key outside right top vertical Right noreverse noenhanced autotitle nobox
+    #set key outside top horizontal Right noreverse noenhanced autotitle nobox
+    set grid
     #
     # Set up the axis on the left side for bps
-    set ylabel "bPS"
+    set ylabel "$ylabel"
     set ytics nomirror
-    #
-    # Set up the axis on the right side for C time
-    set y2label "C TIME (s)"
-    set y2tics nomirror
-    # set y2range [0:300]
+    # set yrange [$ymin:$ymax]
     #
     # set up the axis below for generation
     set xlabel "Generation"
     set xtics nomirror
-    set xrange [$fg:$lg]
+    set xrange [$first_gen:$last_gen]
     #
-    set output "$avgAndDotsBestNOutputPlot_bps_cctime"
-    plot "$avgAllFile" with lines title "avg bps (all)", \
-    "$avgBestNFile" with lines title "avg bps (best $bestN)", \
-    "$avgAllFile_cctime" with lines axes x1y2 title "csum avg c time (all)", \
-    "$avgBestNFile_cctime" with lines axes x1y2 title "csum avg c time (best $bestN)"
+    set output "$output"
+    #
+    plot $plotGAs
 EOF
-#
-# plot bps average (all and best)
-bestNavgOutputPlot="$plotsFolder/bps_b${bestN}_fg${fg}_lg${lg}.pdf";
-gnuplot << EOF
-    # set title "Difference between avg bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName"
-    set terminal pdfcairo enhanced color font 'Verdade,12'
-    set output "$bestNavgOutputPlot"
-    plot "$avgAllFile" with lines title "avg bps (all)", \
-    "$avgBestNFile" with lines title "avg bps (best $bestN)",
-EOF
-#
-# plot bps variance
-bestNvarOutputPlot="$plotsFolder/var_bps_b${bestN}_fg${fg}_lg${lg}.pdf";
-gnuplot << EOF
-    # set title "Difference between var bPS values of ${ga1//_/} and ${ga2//_/} (best $bestN) for sequence $sequenceName
-    set terminal pdfcairo enhanced color font 'Verdade,12'
-    set output "$bestNvarOutputPlot"
-    plot "$varBestNFile" with lines
-EOF
-#
 done
