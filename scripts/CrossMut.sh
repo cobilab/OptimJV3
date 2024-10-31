@@ -625,7 +625,7 @@ for selCmdsFile in ${selCmdsFilesArr[@]}; do
                     # p1: CM1 CM2 CM3 RM1 RM2 RM3
                     # p2: CM1         RM1 RM2
                     # in canonical metameric crossover, either CM1 pair or RM1 pair MUST apply a model crossover operator
-                    # in random metameric crossover, the first pair of either CM or RM MUST apply a model crossover operator
+                    # in random metameric crossover, the first formed pair of either CM or RM MUST apply a model crossover operator
                     ((! $modelIdx)) && [ "$modelType" = "$modelTypeMandatoryCrossover" ] && mandatoryPair=true || mandatoryPair=false
                     #
                     if [ "$crossoverOp" = "mcc" ] || [ "$crossoverOp" = "1" ]; then
