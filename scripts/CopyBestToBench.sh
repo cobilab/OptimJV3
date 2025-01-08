@@ -7,7 +7,7 @@ DS_sizesBase2="$(grep 'DS_sizesBase2' $configJson | awk -F':' '{print $2}' | tr 
 #
 dsFolders=( $(find .. -type d -regex "../DS[0-9]+$" -print| sort -V ) )
 echo ${dsFolders[@]}
-#dsFolders=( "../DS1" )
+dsFolders=( "../DS41" )
 for dsFolder in ${dsFolders[@]}; do
     evalFiles=( $(find $dsFolder -name "allSortedRes_bps.tsv" -exec echo "{}" \; | sort -V ) )
     dsx=${dsFolder/..\//}

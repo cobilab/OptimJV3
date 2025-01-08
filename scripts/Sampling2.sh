@@ -63,6 +63,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
+if [[ $sequence == *"human"* ]] || [[ $sequence == *"chm13v2.0"* ]]; then
+    seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
+else
+    seqArr=("cassava12d5MB" "cassava25MB" "cassava50MB" "cassava100MB")
+fi
+#
 # second sampling plot
 #
 dsx=$(awk '/'$sequence'[[:space:]]/ { print $1 }' "$ds_sizesBase2")

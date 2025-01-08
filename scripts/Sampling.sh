@@ -3,9 +3,8 @@
 ds_sizesBase2="../../DS_sizesBase2.tsv";
 ds_sizesBase10="../../DS_sizesBase10.tsv";
 #
-seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
-#
 ga="sampling"
+sequence="human"
 y2min="*"
 y2Max="*"
 #
@@ -15,6 +14,10 @@ while [[ $# -gt 0 ]]; do
     -a|-ga|--algorithm|--genetic-algorithm)
         ga="$2";
         shift 2; 
+        ;;
+    -s|--sequence)
+        sequence="$2"
+        shift 2;
         ;;
     -y2|--y2-range|--ctime-range)
         y2Range="$2";
@@ -29,7 +32,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 #
-output="../humanSampling"
+if [[ $sequence == "human" ]]; then
+    seqArr=("human12d5MB" "human25MB" "human50MB" "human100MB")
+else
+    seqArr=("cassava12d5MB" "cassava25MB" "cassava50MB" "cassava100MB")
+fi
+#
+[[ ${seqArr[@]} == *"human"* ]] && output="../humanSampling" || output="../cassavaSampling"
 mkdir -p $output
 pltsFolder="$output/plots"
 mkdir -p $pltsFolder

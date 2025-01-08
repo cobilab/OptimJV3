@@ -7,18 +7,25 @@ function SHOW_HELP() {
   echo "                                                        ";
   echo " Program options ---------------------------------------";
   echo "                                                        ";
-  echo " --help|-h.....................................Show this";
-  echo " --view-datasets|--view-ds|-v..View sequence names, size";
+  echo "-h|--help......................................Show this";
+  echo "-v|--view-ds|--view-datasets...View sequence names, size";
   echo "           of each in bytes, MB, and BG, and their group";
-  echo "--sequence|--seq|-s..........Select sequence by its name";
-  echo "--sequence-group|--seq-grp|-sg.Select group of sequences";
+  echo "-s|--seq|--sequence..........Select sequence by its name";
+  echo "-sg|-sequence-grp|--seq-group..Select group of sequences";
   echo "                                           by their size";
-  echo "--dataset|-ds......Select sequence by its dataset number";
-  echo "--dataset-range|--dsrange|--drange|-dr............Select";
+  echo "-ds|--dataset......Select sequence by its dataset number";
+  echo "-dr|--drange|--dsrange|--dataset-range............Select";
   echo "                   sequences by range of dataset numbers";
-  echo "--nthreads|-t...........num of threads to run JARVIS3 in"; 
+  echo "-fg|--first-gen|--first-generation..........Define first";
+  echo "                                       generation number";
+  echo "-lg|--last-gen|--last-generation.............Define last";
+  echo "                                       generation number";
+  echo "-rg|--range-gen|--range-generation.....Define generation";
+  echo "                                                   range";
+  echo "-t|--nthreads...........num of threads to run JARVIS3 in"; 
   echo "                                                parallel";
-  echo "--seed|-sd............................Pseudo-random seed";
+  echo "-sd|--seed.....................Define pseudo-random seed";
+  echo "-si|--seed-increment...............Define seed increment";
   echo "                                                        ";
   echo "example 1: ./Main.sh -s human                           ";
   echo "example 2: ./Main.sh -s cassava -s human                ";
@@ -81,33 +88,33 @@ fi
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
-    --help|-h)
+    -h|--help)
         SHOW_HELP;
         exit;
         shift;
         ;;
-    --view-datasets|--view-ds|-v)
+    -v|--view-ds|--view-datasets)
         cat $ds_sizesBase2; echo; cat $ds_sizesBase10;
         exit;
         shift;
         ;;
-    --sequence|--seq|-s) 
+    -s|--seq|--sequence) 
         sequence="$2";
         FIX_SEQUENCE_NAME "$sequence";
         SEQUENCES+=( "$sequence" );
         shift 2;
         ;;
-    --sequence-group|--sequence-grp|--seq-group|--seq-grp|-sg) 
+    -sg|-sequence-grp|--seq-group)
         size="$2";
         SEQUENCES+=( $(awk '/[[:space:]]'$size'/ { print $2 }' "$ds_sizesBase2") );
         shift 2; 
         ;;
-    --dataset|-ds)
+    -ds|--dataset)
         ds="$2";
         SEQUENCES+=( "$(awk '/DS'$ds'[[:space:]]/{print $2}' "$ds_sizesBase2")" );
         shift 2;
         ;;
-    --dataset-range|--dsrange|--drange|-dr)
+    -dr|--drange|--dsrange|--dataset-range)
         dsrange=( $(echo "$2" | sed 's/[:/]/ /g') );
         sorted_dsrange=( $(printf "%s\n" ${dsrange[@]} | sort -n ) );
         dsmin="${sorted_dsrange[0]}";
@@ -127,20 +134,20 @@ while [[ $# -gt 0 ]]; do
         max_gen="$2";
         shift 2;
         ;;
-    --seed|-sd)
+    -sd|--seed)
         seed="$2";
         RANDOM=$seed;
         initFlags+="-sd $seed ";
         scmFlags+="-sd $seed ";
         shift 2;
         ;;
-    --seed-increment|-si)
+    -si|--seed-increment)
         si="$2";
         initFlags+="-si $si ";
         scmFlags+="-si $si ";
         shift 2;
         ;;
-    --nthreads|-t)
+    -t|--nthreads)
         nthreads="$2";
         runFlags+="-t $nthreads ";
         shift 2;

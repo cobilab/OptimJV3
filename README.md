@@ -103,10 +103,10 @@ bash -x ./GA.sh -s cassava -ga "e0_ga1_lr0_cmga" -lr 0 -lg 20 1> out 2> err &
 
 To reproduce the results for CY, execute the following:
 <pre>
-bash -x ./Main.sh -ds 15 -lg 100 -t 10 1> out 2> err &
+bash -x ./Main.sh -s cy -lg 100 -t 10 1> out 2> err &
 </pre>
 
-To reproduce the sampling results, execute the instructions written in the following script:
+To reproduce the human genome sampling results, execute the instructions written in the following script:
 <pre>
 ./SamplingDemo.sh
 </pre>
