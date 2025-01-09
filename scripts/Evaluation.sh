@@ -18,23 +18,46 @@ ga="ga";
 # === FUNCTIONS ===========================================================================
 #
 function SHOW_HELP() {
- echo " -------------------------------------------------------";
- echo "                                                        ";
- echo " OptimJV3 - optimize JARVIS3 CM and RM parameters       ";
- echo "                                                        ";
- echo " Program options ---------------------------------------";
- echo "                                                        ";
- echo " --help|-h.....................................Show this";
- echo " --view-datasets|--view-ds|-v....View sequences and size"; 
- echo "                                                 of each";
- echo "--sequence|--seq|-s..........Select sequence by its name";
- echo "--sequence-group|--seq-grp|-sg.Select group of sequences";
- echo "                                           by their size";
- echo "--dataset|-ds......Select sequence by its dataset number";
- echo "--dataset-range|--dsrange|--drange|-dr............Select";
- echo "                   sequences by range of dataset numbers";
- echo "                                                        ";
- echo " -------------------------------------------------------";
+  echo " -------------------------------------------------------";
+  echo "                                                        ";
+  echo " OptimJV3 - optimize JARVIS3 CM and RM parameters       ";
+  echo "                                                        ";
+  echo " Program options ---------------------------------------";
+  echo "                                                        ";
+  echo "-h|--help......................................Show this";
+  echo "-v|--view-ds|--view-datasets...View sequence names, size";
+  echo "           of each in bytes, MB, and BG, and their group";
+  echo "-s|--seq|--sequence..........Select sequence by its name";
+  echo "-sg|--sequence-grp|--seq-group.Select group of sequences";
+  echo "                                           by their size";
+  echo "-a|-ga|--genetic-algorithm...Define (folder) name of the";
+  echo "                                       genetic algorithm";
+  echo "-s|--seq|--sequence.................Select sequence name";
+  echo "-sg|--seq-grp|--sequence-group.....Select sequence group";
+  echo "-ds|--dataset......Select sequence by its dataset number";
+  echo "-dr|--drange|--dsrange|--dataset-range............Select";
+  echo "                   sequences by range of dataset numbers";
+  echo "-ps|--psize|--population|--population-size........Define";
+  echo "                                         population size";
+  echo "-t|--nthreads...........num of threads to run JARVIS3 in"; 
+  echo "                                                parallel";
+  echo "-sd|--seed.....................Define pseudo-random seed";
+  echo "-si|--seed-increment...............Define seed increment";
+  echo "                                                        ";
+  echo " Program options (evaluation) --------------------------";
+  echo "                                                        ";
+  echo "--moga|--moga-wm|--moga-weightned-metric..Activate Multi";
+  echo "      Objective Genetic Algorithm (MOGA) using weightned";
+  echo "                                         metric function";
+  echo "--moga-ws|--moga-weightned-sum..Activate Multi-Objective";
+  echo "   Genetic Algorithm (MOGA) using weightned sum function";
+  echo "-pe|--p-exp|--p-expoent..........Define expoent for MOGA";
+  echo "                               weightned metric function";
+  echo "-w1|-wBPS|--w-bps|--weight-bps.....Bits Per Symbol (BPS)";
+  echo "                                weight for MOGA function";
+  echo "-w2|-wCTIME|--w-ctime|--weight-ctime....Compression time";
+  echo "                                weight for MOGA function";
+  echo "                                                        ";
 }
 #
 function FIX_SEQUENCE_NAME() {

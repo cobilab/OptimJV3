@@ -9,8 +9,8 @@ function SHOW_HELP() {
   echo "                                                        ";
   echo " Program options ---------------------------------------";
   echo "                                                        ";
-  echo "-h|--help.....................................Show this";
-  echo "-v|--view-ds|--view-datasets..View sequence names, size";
+  echo "-h|--help......................................Show this";
+  echo "-v|--view-ds|--view-datasets...View sequence names, size";
   echo "           of each in bytes, MB, and BG, and their group";
   echo "-s|--seq|--sequence..........Select sequence by its name";
   echo "-sg|--sequence-grp|--seq-group.Select group of sequences";
@@ -49,6 +49,9 @@ function SHOW_HELP() {
   echo "                                copy/repeat models (RMs)";
   echo "-lr|--learning-rate.................Define learning rate";
   echo "-hs|--hidden-size.....................Define hidden size";
+  echo "-sing|--seeding.................Activate seeding feature";
+  echo "to populate with few hardcoded solutions. Only works for";
+  echo "                                            human genome";
   echo "                                                        ";
   echo " Program options (run) ---------------------------------";
   echo "                                                        ";
@@ -72,14 +75,39 @@ function SHOW_HELP() {
   echo " Program options (selection) ---------------------------";
   echo "                                                        ";
   echo "-sl|--sel|--selection...................Choose selection";
-  echo "operator: 'elitist', 'roulette', 'rank', or 'tournament'";
+  echo "   operator: 'elitist' (default), 'roulette', 'rank', or";
+  echo "                                            'tournament'";
   echo "-ns|--num-sel-cmds...Define number of commands to select";
   echo "-sr|--selection-rate...Define rate of commands to select";
+  echo "                                                        ";
+  echo " Program options (crossover) ---------------------------";
+  echo "                                                        ";
   echo "-cr|-ccr|--comand-crossover-rate...Define crossover rate";
   echo "                          of a selected pair of commands";
   echo "-mrc|--model-crossover-rate........Define crossover rate";
   echo "                        of a selected pair of CMs or RMs";
-  # echo "-cc|--command-crossover"
+  echo "-cc|--command-crossover.........Choose command crossover";
+  echo " operator: 'mrc' (metameric random crossover) (default),";
+  echo "                   (metameric canonical crossover) 'mcc'";
+  echo "-c|--crossover..........Choose model crossover operator:";
+  echo "   'xpoint' (default), 'uniform', 'average', 'discrete',";
+  echo "                                     'flat', 'heuristic'";
+  echo "                                                        ";
+  echo " Program options (mutation) ----------------------------";
+  echo "                                                        ";
+  echo "-hm|--heuristic-mutation.....Activate heuristic mutation";
+  echo "                            for narrower range mutations";
+  echo "-mr|-cmr|--command-mutation-rate....Define mutation rate";
+  echo "                                            of a command";
+  echo "-pmr|--parameter-mutation-rate......Define mutation rate";
+  echo "                                          of a parameter";
+  echo "                                                        ";
+  echo " Program options (stop criteria) -----------------------";
+  echo "                                                        ";
+  echo "-sc|--stop-criteria.........Define stop criteria: '1' to";
+  echo "             halt program when no offspring is produced,";
+  echo "                  else (default) stop at last generation";
+  echo "                                                        ";
 }
 #
 function CHECK_DS_INPUT () {
@@ -263,17 +291,21 @@ while [[ $# -gt 0 ]]; do
       shift 2; 
       ;;
     --learning-rate|-lr) 
-        # 0 value turns the NN off
-        lr="$2";
-        initFlags+="-lr $lr ";
-        shift 2;
-        ;; 
+      # 0 value turns the NN off
+      lr="$2";
+      initFlags+="-lr $lr ";
+      shift 2;
+      ;; 
     --hidden-size|-hs) 
-        # hidden size of the NN
-        hs="$2";
-        initFlags+="-hs $hs ";
-        shift 2;
-        ;; 
+      # hidden size of the NN
+      hs="$2";
+      initFlags+="-hs $hs ";
+      shift 2;
+      ;; 
+    -sing|--seeding)
+      initFlags+="-sing ";
+      shift
+      ;;
     #
     # RUN
     #
