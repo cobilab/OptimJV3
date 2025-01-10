@@ -3,7 +3,7 @@
 scripts/*
 DS*/*
 xDSx*/*
-humanSampling*/*
+*Sampling*/*
 bkp_*/*
 logs/*
 errors/*
