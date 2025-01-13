@@ -12,8 +12,8 @@ function SHOW_HELP() {
   echo "-h|--help......................................Show this";
   echo "-v|--view-ds|--view-datasets...View sequence names, size";
   echo "           of each in bytes, MB, and BG, and their group";
-  echo "-s|--seq|--sequence..........Select sequence by its name";
-  echo "-sg|--sequence-grp|--seq-group.Select group of sequences";
+  echo "-fg|--first-generation...Specify first generation number";
+  echo "-lg|--last-generation......Select last generation number";
   echo "                                           by their size";
   echo "-a|-ga|--genetic-algorithm...Define (folder) name of the";
   echo "                                       genetic algorithm";
@@ -197,11 +197,11 @@ while [[ $# -gt 0 ]]; do
         exit;
         shift;
         ;;
-    -s|--seq|--sequence)
+    -fg|--first-gen|--first-generation)
         FIRST_GEN="$2";
         shift 2;
         ;;
-    -sg|--sequence-grp|--seq-group)
+    -lg|--last-gen|--last-generation)
         LAST_GEN="$2";
         shift 2;
         ;;
