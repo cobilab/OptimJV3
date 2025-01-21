@@ -1,5 +1,18 @@
 #!/bin/bash
 #
+function SHOW_HELP() {
+  echo " -------------------------------------------------------";
+  echo "                                                        ";
+  echo " OptimJV3 - optimize JARVIS3 CM and RM parameters       ";
+  echo "                                                        ";
+  echo " Program options ---------------------------------------";
+  echo "                                                        ";
+  echo "-h|--help......................................Show this";
+  echo "-v|--view-ds|--view-datasets..........View datasets info";
+  echo "                                                        ";
+  echo " -------------------------------------------------------";
+}
+#
 # === DEFAULT VALUES ===========================================================================
 #
 configJson="../config.json"
@@ -55,6 +68,10 @@ sizes=("grp1" "grp2" "grp3" "grp4" "grp5");
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
+        --help|-h)
+            SHOW_HELP;
+            exit;
+            ;;
         --view-datasets|--view-ds|-v)
             cat $DS_sizesBase2; echo; cat $DS_sizesBase10;
             exit;
@@ -71,14 +88,14 @@ cat $DS_sizesBase2
 #
 # --- update DS result folders ----------------------------------
 #
-oldDSArr=( ../*DS*/ )
-for oldDS in "${oldDSArr[@]}"; do
-    #oldDSN=$(echo "$oldDS" | grep -oP '^(DS)(\d+)')
-    xdsx=${oldDS/xDSx/DS}
-    mv $oldDS $xdsx
-    name=$(awk -v dsn=$oldDSN -F'[[:space:]][[:space:]]+' '{if (dsn==$1)print $2}' "$DS_sizesBase2.bkp")
-    # newDSN=$(awk -v name=$name -F'[[:space:]][[:space:]]+' '{if (name==$2)print $1}' "$DS_sizesBase2")
-    # newDS=$(echo "$oldDS"|sed "s/DS[0-9]\+/$newDSN/g")
-    # echo $xdsx $newDS
-    # mv $xdsx $newDS
-done
+# oldDSArr=( ../*DS*/ )
+# for oldDS in "${oldDSArr[@]}"; do
+#     #oldDSN=$(echo "$oldDS" | grep -oP '^(DS)(\d+)')
+#     xdsx=${oldDS/xDSx/DS}
+#     mv $oldDS $xdsx
+#     name=$(awk -v dsn=$oldDSN -F'[[:space:]][[:space:]]+' '{if (dsn==$1)print $2}' "$DS_sizesBase2.bkp")
+#     # newDSN=$(awk -v name=$name -F'[[:space:]][[:space:]]+' '{if (name==$2)print $1}' "$DS_sizesBase2")
+#     # newDS=$(echo "$oldDS"|sed "s/DS[0-9]\+/$newDSN/g")
+#     # echo $xdsx $newDS
+#     # mv $xdsx $newDS
+# done

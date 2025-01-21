@@ -19,6 +19,31 @@ ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | t
 #
 # ==============================================================================
 #
+function SHOW_HELP() {
+  echo " -------------------------------------------------------";
+  echo "                                                        ";
+  echo " OptimJV3 - optimize JARVIS3 CM and RM parameters       ";
+  echo "                                                        ";
+  echo " Program options ---------------------------------------";
+  echo "                                                        ";
+  echo "-h|--help......................................Show this";
+  echo "-e|--experiment-number.........Define experiment number:";
+  echo "     1. Compare GAs for different initialization methods";
+  echo "     2. Compare GAs for different population sizes      ";
+  echo "     3. Compare MOGAs                                   ";
+  echo "     4. Compare GAs for different selection methods     ";
+  echo "     5. Compare GAs for different crossover methods     ";
+  echo "-ds|--dataset......Select sequence by its dataset number";
+  echo "-fg|--first-generation...Specify first generation number";
+  echo "-lg|--last-generation......Select last generation number";
+  echo "-br|--b-range..................Define x-axis (BPS range)";
+  echo "-trs|--trange-s...Define y-axis (time range, in seconds)";
+  echo "-trm|--trange-m...Define y-axis (time range, in minutes)";
+  echo "-trh|--trange-h.....Define y-axis (time range, in hours)";
+  echo "                                                        ";
+  echo " -------------------------------------------------------";
+}
+#
 function CHECK_INPUT () {
   FILE=$1
   if [ -f "$FILE" ]; then
@@ -99,6 +124,10 @@ function GET_LABEL() {
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
+    -h|--help)
+        SHOW_HELP;
+        exit;
+        ;;
     -e|--experiment|--experiment-number)
         experiment="e$(echo "$2" | tr -d "eE")";
         experiments+=( "$experiment" )

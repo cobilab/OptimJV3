@@ -1,5 +1,21 @@
 #!/bin/bash
 #
+function SHOW_HELP() {
+  echo " -------------------------------------------------------";
+  echo "                                                        ";
+  echo " OptimJV3 - optimize JARVIS3 CM and RM parameters       ";
+  echo "                                                        ";
+  echo " Program options ---------------------------------------";
+  echo "                                                        ";
+  echo "-h|--help......................................Show this";
+  echo "-iwc|--install-with-conda........Install some tools with";
+  echo "                                                   conda";
+  echo "-iwb|--install-with-both..........Install all tools with";
+  echo "                                      conda and globally";
+  echo "                                                        ";
+  echo " -------------------------------------------------------";
+}
+#
 function INSTALL_WITH_CONDA() {
     #
     # AlcoR ------------------------------------------------------------------------
@@ -9,30 +25,30 @@ function INSTALL_WITH_CONDA() {
     # GTO ------------------------------------------------------------------------
     #
     conda install -y -c cobilab gto
-    # #
-    # # JARVIS1 ----------------------------------------------------------------------
-    # #
-    # conda install -y -c bioconda jarvis
-    # #
-    # # GeCo3 ------------------------------------------------------------------------
-    # #
-    # conda install -y -c bioconda geco3
-    # #
-    # # GeCo2 ------------------------------------------------------------------------
-    # #
-    # conda install -y -c bioconda geco2
-    # #
-    # # NAF ------------------------------------------------------------------------
-    # #
-    # conda install -y -c bioconda naf
-    # #
-    # # AGC ------------------------------------------------------------------------
-    # #
-    # conda install -y -c bioconda agc
-    # #
-    # # MBGC ------------------------------------------------------------------------
-    # #
-    # conda install -y -c bioconda mbgc 
+    #
+    # JARVIS1 ----------------------------------------------------------------------
+    #
+    conda install -y -c bioconda jarvis
+    #
+    # GeCo3 ------------------------------------------------------------------------
+    #
+    conda install -y -c bioconda geco3
+    #
+    # GeCo2 ------------------------------------------------------------------------
+    #
+    conda install -y -c bioconda geco2
+    #
+    # NAF ------------------------------------------------------------------------
+    #
+    conda install -y -c bioconda naf
+    #
+    # AGC ------------------------------------------------------------------------
+    #
+    conda install -y -c bioconda agc
+    #
+    # MBGC ------------------------------------------------------------------------
+    #
+    conda install -y -c bioconda mbgc 
 }
 #
 function INSTALL_WITHOUT_CONDA() {
@@ -57,68 +73,68 @@ function INSTALL_WITHOUT_CONDA() {
     cp ../bin/gto_fasta_to_seq ../bin/gto_fasta_from_seq ../bin/gto_fasta_split_reads ../../
     cd ../../
     rm -fr gto_dir
-    # #
-    # # JARVIS1 ----------------------------------------------------------------------
-    # #
-    # git clone https://github.com/pratas/jarvis.git
-    # cd jarvis/src/
-    # make
-    # cp JARVIS ../../
-    # cd ../../
-    # rm -fr jarvis
-    # #
-    # # GeCo3 ------------------------------------------------------------------------
-    # #
-    # git clone https://github.com/cobilab/geco3.git
-    # cd geco3/src/
-    # make
-    # cp GeCo3 ../../
-    # cp GeDe3 ../../
-    # cd ../../
-    # rm -fr geco3
-    # #
-    # # GeCo2 ------------------------------------------------------------------------
-    # #
-    # git clone https://github.com/pratas/geco2.git
-    # cd geco2/src/
-    # cmake .
-    # make
-    # cp GeCo2 ../../
-    # cp GeDe2 ../../
-    # cd ../../
-    # rm -fr geco2
-    # #
-    # # NAF ------------------------------------------------------------------------
-    # #
-    # # sudo apt install git gcc make diffutils perl # asks manual password
-    # git clone --recurse-submodules https://github.com/KirillKryukov/naf.git
-    # cd naf && make && make test && sudo make install
-    # cp ennaf/ennaf ../
-    # cp unnaf/unnaf ../
-    # cd ../
-    # rm -fr naf
-    # #
-    # # AGC ------------------------------------------------------------------------
-    # #
-    # git clone https://github.com/refresh-bio/agc
-    # cd agc && make
-    # cd ..
-    # mv agc agc_dir
-    # cp agc_dir/agc .
-    # rm -fr agc_dir
-    # #
-    # # MBGC ------------------------------------------------------------------------
-    # #
-    # git clone https://github.com/kowallus/mbgc.git
-    # cd mbgc
-    # mkdir -p build
-    # cd build
-    # cmake ..
-    # make mbgc
-    # cd ../../
-    # mv mbgc mbgc_dir # rename mbgc directory to move mbgc executable to scripts
-    # cp mbgc_dir/build/mbgc .
-    # rm -fr mbgc_dir
+    #
+    # JARVIS1 ----------------------------------------------------------------------
+    #
+    git clone https://github.com/pratas/jarvis.git
+    cd jarvis/src/
+    make
+    cp JARVIS ../../
+    cd ../../
+    rm -fr jarvis
+    #
+    # GeCo3 ------------------------------------------------------------------------
+    #
+    git clone https://github.com/cobilab/geco3.git
+    cd geco3/src/
+    make
+    cp GeCo3 ../../
+    cp GeDe3 ../../
+    cd ../../
+    rm -fr geco3
+    #
+    # GeCo2 ------------------------------------------------------------------------
+    #
+    git clone https://github.com/pratas/geco2.git
+    cd geco2/src/
+    cmake .
+    make
+    cp GeCo2 ../../
+    cp GeDe2 ../../
+    cd ../../
+    rm -fr geco2
+    #
+    # NAF ------------------------------------------------------------------------
+    #
+    # sudo apt install git gcc make diffutils perl # asks manual password
+    git clone --recurse-submodules https://github.com/KirillKryukov/naf.git
+    cd naf && make && make test && sudo make install
+    cp ennaf/ennaf ../
+    cp unnaf/unnaf ../
+    cd ../
+    rm -fr naf
+    #
+    # AGC ------------------------------------------------------------------------
+    #
+    git clone https://github.com/refresh-bio/agc
+    cd agc && make
+    cd ..
+    mv agc agc_dir
+    cp agc_dir/agc .
+    rm -fr agc_dir
+    #
+    # MBGC ------------------------------------------------------------------------
+    #
+    git clone https://github.com/kowallus/mbgc.git
+    cd mbgc
+    mkdir -p build
+    cd build
+    cmake ..
+    make mbgc
+    cd ../../
+    mv mbgc mbgc_dir # rename mbgc directory to move mbgc executable to scripts
+    cp mbgc_dir/build/mbgc .
+    rm -fr mbgc_dir
 }
 
 
@@ -132,7 +148,9 @@ toolsPath="$(grep 'toolsPath' $configJson | awk -F':' '{print $2}' | tr -d '[:sp
 mkdir -p $toolsPath
 cd $toolsPath
 
-if [[ "$*" == *"--install-with-conda"* ||  "$*" == *"-iwc"* ]]; then
+if [[ "$*" == *"-h"* ]] || [[ "$*" == *"--help"* ]]; then
+    SHOW_HELP;
+elif [[ "$*" == *"--install-with-conda"* ||  "$*" == *"-iwc"* ]]; then
     INSTALL_WITH_CONDA;
 elif [[ "$*" == *"--install-with-both"* ||  "$*" == *"-iwb"* ]]; then
     INSTALL_WITH_CONDA;

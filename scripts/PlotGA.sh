@@ -24,6 +24,32 @@ ds_sizesBase10="$(grep 'DS_sizesBase10' $configJson | awk -F':' '{print $2}' | t
 #
 # === FUNCTIONS ===========================================================================
 #
+function SHOW_HELP() {
+  echo " -------------------------------------------------------";
+  echo "                                                        ";
+  echo " OptimJV3 - optimize JARVIS3 CM and RM parameters       ";
+  echo "                                                        ";
+  echo " Program options ---------------------------------------";
+  echo "                                                        ";
+  echo "-h|--help......................................Show this";
+  echo "-a|-ga|--genetic-algorithm...Define (folder) name of the";
+  echo "                                       genetic algorithm";
+  echo "-s|--seq|--sequence............Choose sequence name/file";
+  echo "-ds|--dataset......Select sequence by its dataset number";
+  echo "-pb|--percentage-best..........Define percentage of best";
+  echo "                                     individuals to plot";
+  echo "-b|--best......Define number of best individuals to plot";
+  echo "-fg|--first-generation...Specify first generation number";
+  echo "-lg|--last-generation......Select last generation number";
+  echo "-br|--b-range..................Define x-axis (BPS range)";
+  echo "-trs|--trange-s...Define y-axis (time range, in seconds)";
+  echo "-trm|--trange-m...Define y-axis (time range, in minutes)";
+  echo "-trh|--trange-h.....Define y-axis (time range, in hours)";
+  echo "-hi|--hist-interval........Define bin size for histogram";
+  echo "                                                        ";
+  echo " -------------------------------------------------------";
+}
+#
 function CHECK_INPUT () {
   FILE=$1
   if [ -f "$FILE" ]; then
@@ -52,6 +78,10 @@ function FIX_SEQUENCE_NAME() {
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
+    -h|--help)
+        SHOW_HELP;
+        exit;
+        ;;
     --genetic-algorithm|--algorithm|--ga|-ga|-a)
         ga="$2";
         shift 2; 
